@@ -70,8 +70,19 @@ class Transaction(BaseModel):
 ### 2.2 `Alert`
 
 ```python
+import hashlib, json
+
+def _deterministic_alert_id(detector: str, source_refs: list[str], data: dict) -> str:
+    """Compute a deterministic sha256 id from alert identity fields (CR-LC-1b)."""
+    payload = json.dumps(
+        {"detector": detector, "source_refs": sorted(source_refs), "data": data},
+        sort_keys=True, separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 class Alert(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = Field(default="")   # filled by validator below if empty
     detector: str
     severity: Literal["info", "warning", "critical"]
     title: str
@@ -80,7 +91,22 @@ class Alert(BaseModel):
     explanation: str = ""    # populated only by the explanation layer
 
     model_config = {"frozen": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _set_deterministic_id(cls, values):
+        if not values.get("id"):
+            values["id"] = _deterministic_alert_id(
+                values["detector"],
+                values["source_refs"],
+                values["data"],
+            )
+        return values
 ```
+
+`id` is deterministic when not supplied: same `detector`, `source_refs`, and `data` always
+produce the same sha256 hex string across process restarts and Streamlit reruns. This makes
+the explanation cache keyed on `(alert.id, client_mode)` stable.
 
 ### 2.3 Quarantine record
 
@@ -277,16 +303,31 @@ class DetectorError(Exception):
 import importlib
 import logging
 import pkgutil
-from collections.abc import Callable
+import re
+import types
+from collections.abc import Callable, Mapping
+from typing import Any
 import pandas as pd
 from ledger_kit.models import Alert
 from ledger_kit.detectors.base import DetectorResult
 
-_REGISTRY: dict[str, Callable[[pd.DataFrame], list[Alert]]] = {}
+_REGISTRY: dict[str, Callable[[pd.DataFrame, Mapping[str, Any]], list[Alert]]] = {}
 _log = logging.getLogger(__name__)
 
+_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
+
 def register(name: str):
-    """Decorator that registers a detector function under `name`."""
+    """Decorator that registers a detector function under `name`.
+
+    `name` must follow the pattern '<namespace>.<detector>' where both parts are
+    non-empty lowercase snake_case (e.g. 'zs.recurring_charge'). Raises ValueError
+    if the name is malformed or already taken.
+    """
+    if not _NAME_RE.match(name):
+        raise ValueError(
+            f"Detector name {name!r} must match '<namespace>.<detector>' "
+            "with both parts being non-empty lowercase snake_case."
+        )
     def decorator(fn: Callable) -> Callable:
         if name in _REGISTRY:
             raise ValueError(f"Detector '{name}' is already registered.")
@@ -305,32 +346,52 @@ def auto_discover(package: str) -> None:
     for module_name in modules:
         importlib.import_module(module_name)
 
-def run_all(ledger: pd.DataFrame) -> list[DetectorResult]:
-    """Run every registered detector in insertion order; isolate failures per detector."""
+def run_all(
+    ledger: pd.DataFrame,
+    *,
+    namespace: str | None = None,
+    context: Mapping[str, Any] | None = None,
+) -> list[DetectorResult]:
+    """Run registered detectors in insertion order; isolate failures per detector.
+
+    When `namespace` is given, only detectors whose name starts with `namespace + '.'`
+    are run. `context` is wrapped in MappingProxyType before being passed to each
+    detector; when None, an empty MappingProxyType is used.
+    """
+    proxy: Mapping[str, Any] = types.MappingProxyType(dict(context) if context else {})
     results: list[DetectorResult] = []
     for name, fn in _REGISTRY.items():
+        if namespace is not None and not name.startswith(namespace + "."):
+            continue
         try:
-            alerts = fn(ledger)
+            alerts = fn(ledger, proxy)
         except Exception as exc:
             _log.warning("Detector '%s' raised %s: %s", name, type(exc).__name__, exc)
             alerts = []
         results.append(DetectorResult(name=name, alerts=alerts))
     return results
 
-def registered_names() -> list[str]:
-    """Return names of all currently registered detectors, in insertion order."""
-    return list(_REGISTRY.keys())
+def registered_names(namespace: str | None = None) -> list[str]:
+    """Return registered detector names in insertion order, optionally filtered by namespace."""
+    if namespace is None:
+        return list(_REGISTRY.keys())
+    prefix = namespace + "."
+    return [n for n in _REGISTRY if n.startswith(prefix)]
 
 def _clear_registry() -> None:
     """Remove all registered detectors. For use in tests only."""
     _REGISTRY.clear()
 ```
 
-**OD-2 resolution**: `auto_discover` sorts module names before importing, so the discovery order is deterministic regardless of filesystem traversal order. `run_all` and `registered_names` use insertion order (Python 3.7+ dict guarantee), which is therefore also deterministic.
+**CR-LC-1 resolution**:
+- Every detector receives `(ledger, context)` where `context` is always a `MappingProxyType` — immutable by construction. Detectors that need user input (aliases, cancellation dates, last-used dates) read from `context`; context-free detectors simply ignore the second argument.
+- `name` validation at decoration time prevents malformed names from ever entering the registry.
+- `run_all(ledger, namespace="zs")` runs only `zs.*` detectors, solving the multi-app process problem (OD-ZS-02) without any change to the signature seen by app code.
+- No `ledger_kit` file needs to know about app-specific context keys.
 
-**OD-4 resolution**: `_clear_registry()` is exposed as a private function. Test fixtures use it in teardown via `autouse` or explicit `yield` fixtures to prevent registry state leaking between tests.
+**OD-2 resolution** (unchanged): `auto_discover` sorts module names before importing. `run_all` iterates `_REGISTRY` in insertion order (Python 3.7+ dict guarantee).
 
-`_REGISTRY` is module-level state initialised once at import time. `auto_discover` is idempotent within a process (Python's import system caches modules); calling it twice does not double-register.
+**OD-4 resolution** (unchanged): `_clear_registry()` is exposed as a private function for test teardown.
 
 ### 4.3 Public re-exports (`ledger_kit/detectors/__init__.py`)
 
@@ -345,6 +406,351 @@ __all__ = [
     "DetectorResult", "DetectorError",
 ]
 ```
+
+---
+
+## 4a — Explanation layer (`ledger_kit/explainer.py`)
+
+This module is the **only** file in `ledger_kit` permitted to make LLM API calls (structure rule).
+
+### 4a.1 Constants and public API
+
+```python
+import logging
+import os
+import re
+import string
+import time
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from datetime import date
+from typing import Literal
+import pandas as pd
+from ledger_kit.models import Alert
+from ledger_kit.utils.money import format_amount
+
+# Streamlit renders alerts synchronously: keep the LLM call short.
+LLM_TIMEOUT_SECONDS: int = 10   # seconds before giving up
+LLM_MAX_RETRIES: int = 1        # one attempt; callers cache per alert.id
+
+# Columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-xx).
+# Never id (UUID adds random digits), never description, never full iban.
+_LLM_ROW_COLUMNS = ("date", "amount", "flow", "currency", "counterparty", "source_ref")
+
+
+@dataclass(frozen=True)
+class Explanation:
+    """Result of explain_with_meta(). `source` is 'llm' or 'fallback'."""
+    text: str
+    source: Literal["llm", "fallback"]
+    rejected_numbers: tuple[str, ...]   # numbers the guard found and rejected
+
+
+def explain(
+    alert: Alert,
+    rows: pd.DataFrame,
+    *,
+    fallback_template: str,
+    client=None,            # injectable: openai.OpenAI-compatible instance or None
+) -> str:
+    """Return a plain-English explanation for `alert` (guarded text only).
+
+    Delegates entirely to explain_with_meta; returns only the text field.
+    """
+    return explain_with_meta(
+        alert, rows, fallback_template=fallback_template, client=client
+    ).text
+
+
+def explain_with_meta(
+    alert: Alert,
+    rows: pd.DataFrame,
+    *,
+    fallback_template: str,
+    client=None,
+) -> Explanation:
+    """Return an Explanation with text, source, and any rejected numbers.
+
+    When OPENAI_API_KEY is absent and no client is injected: returns filled
+    fallback immediately, source='fallback', rejected_numbers=().
+
+    When a client is available: calls the LLM, runs the number guard, returns
+    source='llm' on success, source='fallback' if the guard fires or on any error.
+    """
+    _narrow_rows = _select_llm_columns(rows)
+    fallback = _fill_fallback(fallback_template, alert)
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key and client is None:
+        return Explanation(text=fallback, source="fallback", rejected_numbers=())
+
+    raw = _call_llm(alert, _narrow_rows, client=client)
+    if raw is None:
+        return Explanation(text=fallback, source="fallback", rejected_numbers=())
+
+    ok, rejected = _passes_number_guard(raw, alert, _narrow_rows)
+    if not ok:
+        logging.getLogger(__name__).warning(
+            "Number guard rejected LLM response for alert %s: %s", alert.id, rejected
+        )
+        return Explanation(text=fallback, source="fallback", rejected_numbers=rejected)
+
+    return Explanation(text=raw, source="llm", rejected_numbers=())
+```
+
+### 4a.2 Column narrowing (Finance Rule 5 / minimum data)
+
+```python
+def _select_llm_columns(rows: pd.DataFrame) -> pd.DataFrame:
+    """Return only the columns safe to send to the LLM."""
+    present = [c for c in _LLM_ROW_COLUMNS if c in rows.columns]
+    return rows[present]
+```
+
+### 4a.3 Fallback formatter
+
+The template syntax uses two placeholder types:
+- `{key:money}` — value from `alert.data[key]` formatted with `format_amount`.
+- `{key}` — value from `alert.data[key]` as a plain string.
+- `{source_refs}` — special placeholder, replaced with the comma-joined `alert.source_refs`.
+
+```python
+class _AlertFormatter(string.Formatter):
+    """string.Formatter subclass that resolves {key} and {key:money} from alert.data."""
+
+    def __init__(self, alert: Alert) -> None:
+        self._data = alert.data
+        self._refs = ", ".join(alert.source_refs)
+
+    def get_value(self, key, args, kwargs):  # noqa: ARG002
+        if key == "source_refs":
+            return self._refs
+        return self._data.get(key, "{" + str(key) + "}")  # leave unknown as-is
+
+    def format_field(self, value, format_spec):
+        if format_spec == "money":
+            try:
+                return format_amount(Decimal(str(value)))
+            except (InvalidOperation, TypeError):
+                return str(value)
+        return str(value)
+
+
+def _fill_fallback(template: str, alert: Alert) -> str:
+    """Fill the fallback template using _AlertFormatter."""
+    return _AlertFormatter(alert).vformat(template, [], {})
+```
+
+### 4a.4 Number guard (Decimal-value comparison)
+
+The guard compares **parsed Decimal values**, not raw strings. This means a European-formatted
+answer (`12,99 EUR`) passes against `"12.99"` in `Alert.data`, and `3` in the text matches `03`
+as the day part of a date.
+
+**Algorithm**:
+1. Extract whole date strings first (ISO `YYYY-MM-DD` and `DD/MM/YYYY`), check them against
+   cited row `date` fields and any date-formatted values in `Alert.data`, then **remove** them
+   from the text before the numeric extraction step.
+2. Tokenise the remaining text with a regex that matches European (`1.234,56`) and plain
+   (`1234.56`, `1234`) number forms.
+3. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
+4. Build the **allowed Decimal set** from:
+   - `Alert.data` values (parsed to Decimal where possible).
+   - The `date`, `amount`, `currency`, `counterparty`, `source_ref` cells of the cited `rows`
+     (only the `_LLM_ROW_COLUMNS` columns — the row index integers embedded in `source_ref`
+     strings are parsed and added automatically because they are substrings of those strings).
+   - Do **not** include `id` (UUID), `description`, or full IBAN.
+5. For each extracted Decimal, if it is not in the allowed set, record it as rejected.
+
+```python
+_DATE_ISO_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+_DATE_EU_RE  = re.compile(r"\b(\d{2})/(\d{2})/(\d{4})\b")
+_NUM_EU_RE   = re.compile(r"\b\d{1,3}(?:\.\d{3})*,\d+\b")
+_NUM_PLAIN_RE = re.compile(r"\b\d+(?:\.\d+)?\b")
+
+
+def _parse_decimal(token: str) -> Decimal | None:
+    """Parse a number token (European or plain) to Decimal. Returns None on failure."""
+    try:
+        if "," in token:
+            # European: 1.234,56 → remove dots (thousands sep) → replace comma
+            cleaned = token.replace(".", "").replace(",", ".")
+        else:
+            cleaned = token
+        return Decimal(cleaned)
+    except InvalidOperation:
+        return None
+
+
+def _extract_dates_and_strip(text: str) -> tuple[set[date], str]:
+    """Extract date objects from ISO and European date strings, remove them from text."""
+    dates: set[date] = set()
+    stripped = text
+    for m in _DATE_ISO_RE.finditer(text):
+        try:
+            dates.add(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+        except ValueError:
+            pass
+    for m in _DATE_EU_RE.finditer(text):
+        try:
+            dates.add(date(int(m.group(3)), int(m.group(2)), int(m.group(1))))
+        except ValueError:
+            pass
+    stripped = _DATE_ISO_RE.sub("", stripped)
+    stripped = _DATE_EU_RE.sub("", stripped)
+    return dates, stripped
+
+
+def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
+    """Build the set of Decimal values the LLM is permitted to use."""
+    allowed: set[Decimal] = set()
+
+    # From alert.data values
+    for v in alert.data.values():
+        d = _parse_decimal(str(v).replace(",", "."))  # always plain from Alert
+        if d is not None:
+            allowed.add(d)
+
+    # From cited row cells (only safe columns)
+    for col in rows.columns:
+        for cell in rows[col]:
+            s = str(cell)
+            for token in _NUM_EU_RE.findall(s) + _NUM_PLAIN_RE.findall(s):
+                d = _parse_decimal(token)
+                if d is not None:
+                    allowed.add(d)
+
+    return allowed
+
+
+def _allowed_dates(alert: Alert, rows: pd.DataFrame) -> set[date]:
+    """Build the set of date values the LLM is permitted to mention."""
+    dates: set[date] = set()
+    for col in rows.columns:
+        for cell in rows[col]:
+            if isinstance(cell, date):
+                dates.add(cell)
+    # Also parse date-looking strings in alert.data
+    for v in alert.data.values():
+        s = str(v)
+        for m in _DATE_ISO_RE.finditer(s):
+            try:
+                dates.add(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+            except ValueError:
+                pass
+    return dates
+
+
+def _passes_number_guard(
+    text: str, alert: Alert, rows: pd.DataFrame
+) -> tuple[bool, tuple[str, ...]]:
+    """Check LLM text; return (passed, rejected_tokens).
+
+    Dates are checked first and stripped before number extraction.
+    Numbers are compared as Decimal values (so '12,99' matches '12.99').
+    """
+    found_dates, text_no_dates = _extract_dates_and_strip(text)
+    allowed_dates = _allowed_dates(alert, rows)
+    bad_dates = found_dates - allowed_dates
+    if bad_dates:
+        return False, tuple(str(d) for d in bad_dates)
+
+    allowed = _allowed_decimals(alert, rows)
+    rejected: list[str] = []
+    for token in _NUM_EU_RE.findall(text_no_dates) + _NUM_PLAIN_RE.findall(text_no_dates):
+        d = _parse_decimal(token)
+        if d is not None and d not in allowed:
+            rejected.append(token)
+    if rejected:
+        return False, tuple(rejected)
+    return True, ()
+```
+
+### 4a.5 LLM call path
+
+```python
+def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
+    """Call the LLM with the injectable client. Returns the response text or None."""
+    if client is None:
+        import openai  # lazy import
+        client = openai.OpenAI(
+            base_url=os.environ.get("OPENAI_BASE_URL") or None,
+            api_key=os.environ["OPENAI_API_KEY"],
+            timeout=LLM_TIMEOUT_SECONDS,
+        )
+
+    model = os.environ.get("LEDGER_KIT_LLM_MODEL", "gpt-4o-mini")
+    system_prompt = (
+        "You must not invent any number, date, name, or amount. "
+        "Every figure you mention must appear verbatim either in the source rows "
+        "provided or in the structured fields of the alert (such as yearly_cost). "
+        "Do not derive, round, or estimate any figure not explicitly present in "
+        "those inputs. "
+        f"Cite at least one source reference from: {alert.source_refs}."
+    )
+    user_content = (
+        f"Alert: {alert.model_dump_json()}\n\n"
+        f"Source rows:\n{rows.to_json(orient='records')}"
+    )
+
+    for attempt in range(LLM_MAX_RETRIES):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+            )
+            return response.choices[0].message.content or None
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "LLM call attempt %d/%d failed: %s", attempt + 1, LLM_MAX_RETRIES, exc
+            )
+    return None
+```
+
+### 4a.6 Test architecture (`tests/test_explainer.py`)
+
+Tests inject a `mock_client` directly via the `client=` parameter; no patching of `openai.OpenAI`
+is required. The `LLM_MAX_RETRIES = 1` constant means the "retry" test needs only one failure
+followed by one success (two calls total).
+
+Key test helpers:
+
+```python
+@dataclass
+class _MockCompletion:
+    content: str
+
+@dataclass
+class _MockChoice:
+    message: _MockCompletion
+
+@dataclass
+class _MockResponse:
+    choices: list[_MockChoice]
+
+class MockLLMClient:
+    """Configurable mock. Pass responses=["text1", None, "text2"] to simulate failures."""
+    def __init__(self, responses):
+        self._responses = iter(responses)
+    def chat(self):  # attribute access returns self for chaining
+        return self
+    @property
+    def completions(self):
+        return self
+    def create(self, **kwargs):  # noqa: ARG002
+        r = next(self._responses)
+        if r is None:
+            raise RuntimeError("simulated failure")
+        return _MockResponse([_MockChoice(_MockCompletion(r))])
+```
+
+Number-guard property tests: generate a valid LLM response (only numbers from `alert.data`),
+then inject one random foreign Decimal (not in allowed set), assert guard rejects. Additional
+tests confirm European (`12,99`) and plain (`12.99`) forms of the same value both pass.
 
 ---
 
@@ -687,3 +1093,5 @@ Dev/test dependencies:
 | OD-2 | Deterministic `run_all` and `auto_discover` ordering? | `auto_discover` sorts module names before importing. `run_all` iterates `_REGISTRY` in insertion order (Python 3.7+ dict). Both are fully deterministic. |
 | OD-3 | File encoding strategy? | Try `utf-8-sig` first (handles BOM), then `cp1252` (Spanish Windows exports, has € sign). If both fail → quarantine whole file with `reason="undecodable_file"` and `encoding_tried=["utf-8-sig","cp1252"]`. `parse_csv` accepts `IO[bytes]` directly; no caller-side `TextIOWrapper` needed. |
 | OD-4 | Resettable registry for tests? | `_clear_registry()` private function exposed from `registry.py` and re-exported from `detectors/__init__.py`. Test fixtures call it in teardown. |
+| OD-5 (CR-LC-1) | How do context-aware detectors receive user input without changing the registry signature? | Every detector signature is `(ledger, context)`. The registry wraps `context` in `types.MappingProxyType` before dispatch. Context-free detectors ignore the second argument. App code passes `run_all(ledger, namespace="zs", context={"aliases": …, "cancellation_dates": …})`. No `ledger_kit` file needs to know about app-specific context keys. |
+| OD-6 (CR-LC-1) | How does an app run only its own detectors in a shared process? | `run_all(ledger, namespace="zs")` filters the registry to names starting with `"zs."`. Each app calls `auto_discover("apps.<app>.detectors")` at startup, populating only its own namespace. No structural change to the registry is needed beyond the `namespace` parameter. |

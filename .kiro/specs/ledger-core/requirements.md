@@ -96,10 +96,12 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-DET-01** A detector is a callable (function or callable class instance) with the exact signature:
 
   ```python
-  def detect_*(ledger: pd.DataFrame) -> list[Alert]:
+  def detect_*(ledger: pd.DataFrame, context: Mapping[str, Any]) -> list[Alert]:
   ```
 
-- **REQ-DET-02** Detectors must be pure functions: no I/O, no mutation of the input DataFrame, no global state side-effects.
+  `context` is a read-only `types.MappingProxyType` supplied by the registry runner. Detectors must never mutate it.
+
+- **REQ-DET-02** Detectors must be pure functions: no I/O, no mutation of the input DataFrame, no mutation of `context`, no global state side-effects.
 - **REQ-DET-03** Every `Alert` emitted must include:
   - `detector`: the detector's registered name (string).
   - `severity`: one of `"info"`, `"warning"`, `"critical"`.
@@ -116,14 +118,77 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 
 ---
 
+### 2a — Alert model: deterministic id (CR-LC-1b)
+
+- **REQ-MOD-01** When no `id` value is provided to `Alert`, the model must compute a **deterministic id** as the hex sha256 of the canonical JSON of `{"detector": ..., "source_refs": sorted(...), "data": ...}` (keys sorted, compact separators). This ensures the same alert data always produces the same `id` across process restarts and Streamlit reruns, enabling stable explanation caching.
+- **REQ-MOD-02** When an explicit `id` is passed to `Alert`, it is used as-is (backward-compatible). The deterministic default applies only when `id` is absent or empty.
+- **REQ-MOD-03** The `test_alert_deterministic_id` test must verify that two `Alert` instances constructed with identical `detector`, `source_refs`, and `data` fields (and no explicit `id`) produce the same `id`.
+- **REQ-MOD-04** The `test_alert_explicit_id_preserved` test must verify that passing `id="custom-id"` returns that exact value without hashing.
+
 ### 3 — Detector registry
 
-- **REQ-REG-01** The registry (`ledger_kit/detectors/__init__.py` or a dedicated `registry.py`) must expose a `register(name: str)` decorator that marks a function as a detector and stores it under the given name.
+- **REQ-REG-01** The registry (`ledger_kit/detectors/__init__.py` or a dedicated `registry.py`) must expose a `register(name: str)` decorator that marks a function as a detector and stores it under the given name. The `name` must follow the pattern `<namespace>.<detector>` where both parts are non-empty lowercase `snake_case`; otherwise `register` raises `ValueError` at decoration time.
 - **REQ-REG-02** The registry must expose an `auto_discover(package: str)` function that imports all modules in the given package path and thereby triggers `@register` decorators, requiring no manual registration call.
-- **REQ-REG-03** The registry must expose a `run_all(ledger: pd.DataFrame) -> list[DetectorResult]` function that runs every registered detector against the ledger and collects results.
+- **REQ-REG-03** The registry must expose a `run_all(ledger: pd.DataFrame, *, namespace: str | None = None, context: Mapping[str, Any] | None = None) -> list[DetectorResult]` function that runs registered detectors and collects results. When `namespace` is given, only detectors whose registered name starts with `namespace + "."` are run. `context` is wrapped in `types.MappingProxyType` before being passed to each detector; when `None`, an empty `MappingProxyType({})` is passed.
 - **REQ-REG-04** If a detector raises an unhandled exception, `run_all` must catch it, log a warning, and continue running the remaining detectors. The failed detector's result must be represented as an empty alert list (not propagated as an exception).
 - **REQ-REG-05** Registering two detectors under the same name must raise a `ValueError` at import time.
 - **REQ-REG-06** The registry must be importable without any app-level dependencies.
+- **REQ-REG-07** `registered_names(namespace: str | None = None) -> list[str]` must return the names of all registered detectors in insertion order. When `namespace` is given, only names starting with `namespace + "."` are returned.
+
+---
+
+### 4a — Explanation layer (`ledger_kit/explainer.py`)
+
+- **REQ-EXP-01** `ledger_kit/explainer.py` must export two public functions:
+
+  ```python
+  def explain(
+      alert: Alert,
+      rows: pd.DataFrame,
+      *,
+      fallback_template: str,
+      client=None,          # injectable OpenAI-compatible client; None = auto-create
+  ) -> str:
+      """Return the guarded explanation text (delegates to explain_with_meta)."""
+
+  def explain_with_meta(
+      alert: Alert,
+      rows: pd.DataFrame,
+      *,
+      fallback_template: str,
+      client=None,
+  ) -> Explanation:
+      """Return an Explanation(text, source, rejected_numbers)."""
+  ```
+
+  `rows` is the slice of the ledger containing exactly the rows referenced by `alert.source_refs`.
+  `Explanation` is a frozen dataclass:
+  ```python
+  @dataclass(frozen=True)
+  class Explanation:
+      text: str
+      source: Literal["llm", "fallback"]
+      rejected_numbers: tuple[str, ...]
+  ```
+
+- **REQ-EXP-02** When `OPENAI_API_KEY` is absent/empty **and** no `client` is injected, both functions return the filled fallback immediately. No network call is made. `source="fallback"`, `rejected_numbers=()`.
+- **REQ-EXP-03** Fallback template formatting uses a custom `string.Formatter` subclass (`_AlertFormatter`). Two placeholder types are supported:
+  - `{key:money}` — `alert.data[key]` formatted with `format_amount`. This is the correct way to format monetary values; a plain `{key}` for a Decimal value inserts it as-is (e.g. `"12.99"`), which is intentional for non-display use.
+  - `{key}` — `alert.data[key]` as a plain string.
+  - `{source_refs}` — special placeholder replaced with the comma-joined `alert.source_refs`.
+  Unknown placeholders are left unchanged.
+- **REQ-EXP-04** When a client is available (injected or auto-created from `OPENAI_API_KEY`), `explain_with_meta` calls the LLM once (`LLM_MAX_RETRIES = 1`; `LLM_TIMEOUT_SECONDS = 10`). The base URL and model come from `OPENAI_BASE_URL` and `LEDGER_KIT_LLM_MODEL` env vars, defaulting to the standard OpenAI endpoint and `"gpt-4o-mini"`.
+- **REQ-EXP-05** The LLM call uses `temperature=0`. On any exception (timeout, API error), `explain_with_meta` returns the fallback. No back-off or retry loop. Apps cache `Explanation` objects by `(alert.id, client_mode)` where `alert.id` is the deterministic sha256 from REQ-MOD-01, ensuring the cache survives Streamlit reruns.
+- **REQ-EXP-06** The system prompt must include the Finance Rule 1 phrase verbatim.
+- **REQ-EXP-07** The system prompt must instruct the model to cite at least one `source_ref` from `alert.source_refs`.
+- **REQ-EXP-08** **Number guard** — Decimal-value comparison, not string comparison:
+  1. Extract whole dates (ISO `YYYY-MM-DD` and `DD/MM/YYYY`) from the LLM text; check each parsed `datetime.date` against the `date` fields of the cited rows and date-formatted values in `Alert.data`. Remove matched date strings from the text before step 2. Any unrecognised date triggers the fallback.
+  2. Tokenise the remaining text with regexes for European (`1.234,56`) and plain (`1234.56`, `1234`) number forms.
+  3. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
+  4. Build the allowed `Decimal` set from: `Alert.data` values (parsed), and the `date`, `amount`, `flow`, `currency`, `counterparty`, `source_ref` cells of the cited `rows` only. **Never** `id`, `description`, or full IBAN.
+  5. If any token's `Decimal` is not in the allowed set, discard the LLM text and return the fallback with `source="fallback"` and `rejected_numbers=(…token…)`.
+  6. A European-formatted `12,99` passes against `Decimal("12.99")` in the allowed set. The integer `3` passes against a row index `03` because both parse to `Decimal("3")`.
+- **REQ-EXP-09** On any API error or timeout, `explain_with_meta` returns the fallback, logs the reason, and never propagates the exception.
 
 ---
 
@@ -174,3 +239,23 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-TST-05** Tests must not use real wall-clock time; any date-sensitive logic must use `freezegun` or accept explicit date parameters.
 - **REQ-TST-06** Coverage across `ledger_kit` must not fall below 80% as enforced by `pytest --cov-fail-under=80`.
 - **REQ-TST-07** `ruff check` and `ruff format --check` must pass with zero warnings in CI.
+- **REQ-TST-08** The explainer layer must be tested in `tests/test_explainer.py` using an injectable `MockLLMClient` — never against the real API in CI. Required tests:
+  - `test_explain_fallback_when_no_api_key` — with `OPENAI_API_KEY` unset and no client injected, returns filled fallback; `source="fallback"`.
+  - `test_explain_money_placeholder_formats_amount` — `{yearly_cost:money}` with `"155.88"` → `"155,88 EUR"` in fallback output.
+  - `test_explain_plain_placeholder_inserts_as_string` — `{charge_count}` with value `"12"` → `"12"` (not `"12,00 EUR"`).
+  - `test_explain_source_refs_placeholder` — `{source_refs}` → comma-joined list.
+  - `test_explain_unknown_placeholder_left_as_is` — `{unknown}` not in `alert.data` → left unchanged.
+  - `test_build_prompt_includes_source_refs` — the system prompt sent to the mock client contains all values from `alert.source_refs`.
+  - `test_build_prompt_includes_no_invention_instruction` — the system prompt contains the Finance Rule 1 phrase verbatim.
+  - `test_explain_with_meta_returns_explanation_dataclass` — result is an `Explanation` with `.text`, `.source`, `.rejected_numbers`.
+  - `test_explain_with_meta_llm_source_on_success` — valid mock response → `source="llm"`, `rejected_numbers=()`.
+  - `test_explain_number_guard_european_format_passes` — mock returns `"12,99 EUR"` when `alert.data` has `"12.99"` → guard passes (both parse to `Decimal("12.99")`).
+  - `test_explain_number_guard_date_03_passes_for_row_index_3` — `3` in LLM text passes against row index `3` (both `Decimal("3")`).
+  - `test_explain_number_guard_rejects_hallucinated_number` — mock returns response with `"999.99"` not in alert data or rows → `source="fallback"`, `rejected_numbers=("999.99",)` (or equivalent token).
+  - `test_explain_number_guard_passes_valid_response` — mock returns response repeating only figures from `alert.data` → `source="llm"`.
+  - `test_explain_date_guard_rejects_hallucinated_date` — mock returns a date not in cited rows → fallback.
+  - `test_explain_date_guard_passes_row_date` — mock mentions an ISO date matching a row → passes.
+  - `test_explain_fallback_on_api_error` — mock raises `RuntimeError` → `source="fallback"`, no exception propagated.
+  - `test_explain_only_safe_columns_sent` — the DataFrame passed to the LLM never contains `id` or `description` columns.
+  - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: inject a random Decimal (not in allowed set) into a valid answer → guard always rejects. Use a fixed `alert` and rows; generate foreign values via `st.decimals(min_value=Decimal("10000"), max_value=Decimal("99999"), places=2)`.
+  - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: an LLM answer that only uses Decimal strings from `alert.data` always passes the guard.

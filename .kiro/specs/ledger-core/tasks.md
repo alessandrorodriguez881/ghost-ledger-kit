@@ -40,13 +40,16 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_transaction_is_frozen` — attempting to mutate a field raises an error.
   - `test_alert_requires_non_empty_source_refs` — empty `source_refs` list raises `ValidationError`.
   - `test_alert_is_frozen` — attempting to mutate a field raises an error.
+  - `test_alert_deterministic_id` — two `Alert` instances with identical `detector`, `source_refs`, and `data` (no explicit `id`) produce the same `id` (REQ-MOD-01).
+  - `test_alert_explicit_id_preserved` — passing `id="custom-id"` returns that exact value (REQ-MOD-02).
   - `test_quarantine_dict_shape` — document expected quarantine record keys via a helper.
 - [ ] Implement `ledger_kit/models.py`:
   - `Transaction` Pydantic v2 model exactly as in design §2.1.
-  - `Alert` Pydantic v2 model exactly as in design §2.2.
+  - `Alert` Pydantic v2 model with deterministic `id` validator as in design §2.2 (CR-LC-1b).
   - Both with `model_config = {"frozen": True}`.
   - Add a Pydantic validator that enforces `amount >= 0` on `Transaction`.
   - Add a Pydantic validator that enforces `len(source_refs) >= 1` on `Alert`.
+  - `_deterministic_alert_id` helper using sha256 of canonical JSON.
 - [ ] Update `ledger_kit/__init__.py` to re-export `Transaction` and `Alert`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -212,22 +215,31 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 10 — Detector base types and registry
 
-**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-05, REQ-DET-07, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, design §4
+**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-05, REQ-DET-07, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, design §4
 
 - [ ] Write `tests/detectors/test_registry.py` with:
-  - `test_register_adds_detector` — `@register("foo")` → `"foo"` in `registered_names()`.
-  - `test_register_duplicate_name_raises` — second `@register("foo")` on a different function raises `ValueError`.
+  - `test_register_adds_detector` — `@register("ns.foo")` → `"ns.foo"` in `registered_names()`.
+  - `test_register_duplicate_name_raises` — second `@register("ns.foo")` on a different function raises `ValueError`.
+  - `test_register_invalid_name_no_dot_raises` — `@register("nodot")` raises `ValueError`.
+  - `test_register_invalid_name_uppercase_raises` — `@register("NS.foo")` raises `ValueError`.
+  - `test_register_invalid_name_empty_part_raises` — `@register(".foo")` and `@register("ns.")` both raise `ValueError`.
   - `test_run_all_empty_registry_returns_empty` — no detectors → `[]`.
   - `test_run_all_calls_registered_detector` — one registered detector returning one alert → result contains that alert.
   - `test_run_all_isolates_failing_detector` — detector that raises does not prevent others from running; its result has empty `alerts`.
   - `test_run_all_order_is_insertion_order` — detectors registered in a given order → results in that same order.
+  - `test_run_all_namespace_filter_excludes_other_ns` — register `"zs.a"` and `"pi.b"`; `run_all(ledger, namespace="zs")` returns only the `"zs.a"` result.
+  - `test_run_all_namespace_filter_none_runs_all` — `run_all(ledger, namespace=None)` runs both namespaces.
+  - `test_run_all_context_passed_as_mapping_proxy` — the `context` argument received by the detector is a `MappingProxyType`; attempting `context["new_key"] = 1` raises `TypeError`.
+  - `test_run_all_empty_context_when_none_passed` — calling `run_all(ledger)` with no `context` passes an empty `MappingProxyType` to the detector (detector receives `{}` view).
+  - `test_run_all_context_values_accessible` — detector can read `context["aliases"]` when passed via `run_all`.
+  - `test_registered_names_namespace_filter` — `registered_names(namespace="zs")` returns only `"zs.*"` names.
   - `test_auto_discover_sorted_order` — create two fake modules in a temp package; `auto_discover` imports them in alphabetical order regardless of `pkgutil` traversal order.
   - `test_auto_discover_does_not_double_register` — calling `auto_discover` twice does not raise.
   - `test_clear_registry_removes_all` — after `_clear_registry()`, `registered_names()` is empty.
   - `test_run_all_empty_ledger` — all registered detectors return `[]` for an empty DataFrame (detector contract enforcement).
   - A `conftest.py` in `tests/detectors/` that calls `_clear_registry()` in an `autouse` fixture to prevent test pollution.
 - [ ] Implement `ledger_kit/detectors/base.py` with `DetectorResult` and `DetectorError` as in design §4.1.
-- [ ] Implement `ledger_kit/detectors/registry.py` with `register`, `auto_discover` (sorted), `run_all`, `registered_names`, `_clear_registry` as in design §4.2.
+- [ ] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry` as in design §4.2.
 - [ ] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -242,7 +254,38 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_source_refs_are_subset_of_input` — for any generated ledger, every `source_ref` in every alert exists in the ledger's `source_ref` column (`@settings(max_examples=200)`).
   - `test_run_all_idempotent` — running `run_all` twice on the same ledger returns structurally identical results (`@settings(max_examples=200)`).
   - `test_run_all_empty_input_always_empty` — for all randomly generated DataFrames with zero rows, all detectors return `[]` (`@settings(max_examples=200)`).
+  - `test_namespace_filter_never_calls_other_ns` — with detectors registered in two namespaces (`"zs"` and `"pi"`), `run_all(ledger, namespace="zs")` never invokes any `"pi.*"` detector for any generated ledger (`@settings(max_examples=200)`).
+  - `test_context_is_immutable_proxy` — for any generated `context` dict, the `MappingProxyType` received by the detector raises `TypeError` on any attempted mutation (`@settings(max_examples=200)`).
 - [ ] Verify: all Hypothesis tests pass with 200 examples, `ruff check` clean.
+
+---
+
+## Task 11a — Explainer layer (test-first)
+
+**Covers**: REQ-EXP-01 through REQ-EXP-09, REQ-TST-08, design §4a
+
+- [ ] Write `tests/test_explainer.py` — all tests inject `MockLLMClient` via `client=` parameter; no network calls, no patching of `openai.OpenAI`:
+  - `test_explain_fallback_when_no_api_key` — `OPENAI_API_KEY` unset, no client → filled fallback, `source="fallback"`.
+  - `test_explain_money_placeholder_formats_amount` — `{yearly_cost:money}` with `"155.88"` → `"155,88 EUR"`.
+  - `test_explain_plain_placeholder_inserts_as_string` — `{charge_count}` with `"12"` → `"12"` (not `"12,00 EUR"`).
+  - `test_explain_source_refs_placeholder` — `{source_refs}` → comma-joined refs string.
+  - `test_explain_unknown_placeholder_left_as_is` — unknown key left unchanged.
+  - `test_build_prompt_includes_source_refs` — system prompt contains all `alert.source_refs` values.
+  - `test_build_prompt_includes_no_invention_instruction` — system prompt contains Finance Rule 1 phrase verbatim.
+  - `test_explain_with_meta_returns_explanation_dataclass` — result is `Explanation` with correct fields.
+  - `test_explain_with_meta_llm_source_on_success` — valid mock response → `source="llm"`, `rejected_numbers=()`.
+  - `test_explain_number_guard_european_format_passes` — `"12,99 EUR"` in response passes when `alert.data` has `"12.99"`.
+  - `test_explain_number_guard_date_03_passes_for_row_index_3` — integer `3` in text matches row index `3` (both `Decimal("3")`).
+  - `test_explain_number_guard_rejects_hallucinated_number` — response with `"999.99"` (not in alert/rows) → `source="fallback"`.
+  - `test_explain_number_guard_passes_valid_response` — response with only known figures → `source="llm"`.
+  - `test_explain_date_guard_rejects_hallucinated_date` — response mentions a date not in cited rows → fallback.
+  - `test_explain_date_guard_passes_row_date` — response mentions an ISO date matching a row → passes.
+  - `test_explain_fallback_on_api_error` — mock raises `RuntimeError` → fallback, no re-raise.
+  - `test_explain_only_safe_columns_sent` — the `rows` DataFrame reaching the LLM never contains `id` or `description`.
+  - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: generate foreign Decimal values in `[10000, 99999]` range (well outside alert data); always rejected.
+  - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: LLM answer repeating only `alert.data` Decimal strings always passes.
+- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta`, `_AlertFormatter`, `_fill_fallback`, `_select_llm_columns`, `_parse_decimal`, `_extract_dates_and_strip`, `_allowed_decimals`, `_allowed_dates`, `_passes_number_guard`, `_call_llm` as in design §4a.
+- [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -267,15 +310,17 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ---
 
-## Task 13 — Sample data files
+## Task 13 — Sample data files and generator script
 
 **Covers**: REQ-PKG-04 (data directory), structure rule (data/samples only synthetic or public-domain), Finance Rules 5 + 6
 
+- [ ] Create `scripts/generate_samples.py` — a seeded random generator that produces synthetic bank-statement CSVs and invoice files with PII-safe data (Finance Rule 5 names, test IBANs). Accepts CLI args for dialect, row count, and seed. Used by ledger-core and zombie-subscriptions demo fixtures.
 - [ ] Create `data/samples/README.md` documenting that all files are synthetically generated and listing the generation script.
-- [ ] Create `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, synthetic PII-safe data (Finance Rule 5 names, test IBANs), mix of debits and credits.
-- [ ] Create `data/samples/bank_statement_sample_es.csv` — 10 rows, European dialect (semicolon, comma-decimal, DD/MM/YYYY), same data schema.
-- [ ] Create `data/samples/invoice_sample.csv` — 5 rows of invoice data, plain format.
-- [ ] Create `data/samples/invoice_sample.json` — 5 rows FATURA-style JSON array.
+- [ ] Use `scripts/generate_samples.py` to create:
+  - `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, mix of debits and credits.
+  - `data/samples/bank_statement_sample_es.csv` — 10 rows, European dialect (semicolon, comma-decimal, DD/MM/YYYY).
+  - `data/samples/invoice_sample.csv` — 5 rows, plain format.
+  - `data/samples/invoice_sample.json` — 5 rows FATURA-style JSON array.
 - [ ] Update `.gitignore` to exclude `data/real/` and loose `*.csv` / `*.json` / `*.pdf` outside `data/samples/`.
 - [ ] Verify: `parse_csv` and `parse_invoice` successfully ingest all four sample files with zero quarantine.
 
@@ -283,12 +328,12 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 14 — Final integration check
 
-**Covers**: REQ-TST-06, REQ-TST-07, all requirements end-to-end
+**Covers**: REQ-TST-06, REQ-TST-07, REQ-TST-08, all requirements end-to-end
 
 - [ ] Run the full test suite: `pytest --cov=ledger_kit --cov-fail-under=80`.
-- [ ] Confirm all three test tiers are present for each module (ingestion, detectors, money, anonymise).
+- [ ] Confirm all three test tiers are present for each module (ingestion, detectors, explainer, money, anonymise).
 - [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
 - [ ] Confirm all Hypothesis property tests are decorated with `@settings(max_examples=200)`.
-- [ ] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses `freezegun` or fixed literal dates.
+- [ ] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
 - [ ] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
 - [ ] Fix any coverage gaps or lint issues found.
