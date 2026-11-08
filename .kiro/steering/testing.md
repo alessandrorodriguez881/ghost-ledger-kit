@@ -33,7 +33,7 @@ Rules:
 Cover boundary conditions and malformed inputs.
 
 Mandatory edge cases for every detector:
-- **Empty ledger**: `detect_*(pd.DataFrame())` must return an empty list, never raise.
+- **Empty ledger**: `detect_*(pd.DataFrame(), MappingProxyType({}))` must return an empty list, never raise.
 - **Single-row ledger**: must not crash; return value must be a list.
 - **Amount boundary**: test both sides of every numeric threshold constant (e.g. `DUPLICATE_AMOUNT_TOLERANCE`).
 - **Date boundary**: first and last day of a lookback window.
@@ -54,6 +54,8 @@ At minimum one property-based test per detector. Properties to test include:
 | Source ref coverage | Every `source_ref` in `Alert.source_refs` resolves to a row in the input ledger. |
 
 ```python
+from types import MappingProxyType
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.pandas import data_frames, column
@@ -64,7 +66,7 @@ from hypothesis.extra.pandas import data_frames, column
     ...
 ]))
 def test_source_refs_are_subset_of_input(ledger):
-    alerts = detect_*(ledger)
+    alerts = detect_*(ledger, MappingProxyType({}))
     all_refs = set(ledger["source_ref"])
     for alert in alerts:
         for ref in alert.source_refs:
@@ -106,14 +108,15 @@ Required tests:
 
 ## Explanation layer tests
 
-The LLM explanation layer is tested with a **mock LLM client** — never against the real API in CI.
+The LLM explanation layer is tested with an injectable **`MockLLMClient`** (`chat` and `completions` are properties; `create` records each call's kwargs in `client.calls`) — never against the real API in CI.
 
 Required tests:
-- `build_prompt(alert, source_rows)` includes all `source_ref` values from the alert.
-- `build_prompt` includes the mandatory no-invention instruction verbatim.
-- `explain(alert, source_rows, client=mock_client)` returns a non-empty string.
-- The raw LLM response is stored on the `Alert` alongside the explanation.
-- A simulated LLM that returns a hallucinated amount (not in source rows) is detected and raises `ExplanationIntegrityError`.
+- The system message sent to the client (`client.calls[0]["messages"]`) includes all `source_ref` values from the alert and the mandatory no-invention instruction verbatim.
+- `explain(alert, rows, fallback_template=..., client=mock_client)` returns a non-empty string; `explain_with_meta` returns an `Explanation(text, source, rejected_numbers)`.
+- With no API key and no client, the filled fallback template is returned (`source="fallback"`).
+- A simulated LLM that returns a hallucinated amount, a made-up number equal to a cited row number, an invented number glued to letters, an unknown or malformed date, or an IBAN-shaped token is rejected by the number guard: the result is the fallback template with `source="fallback"` and the offending tokens in `Explanation.rejected_numbers`. No exception is raised (there is no `ExplanationIntegrityError`).
+- European amounts in the answer (`12,99 EUR`, `1.060,00 EUR`) pass when the same value is allowed.
+- An API error, timeout or missing `openai` package returns the fallback.
 
 ---
 

@@ -19,7 +19,7 @@ Reads real-world financial documents (bank-statement CSVs, invoice files) and pr
 
 ### 2 · Deterministic detector layer
 Plain Python functions — no machine learning, no probabilistic scoring — that read the normalised ledger and emit typed `Alert` objects. Responsibilities:
-- Each detector is a pure function: `(ledger: DataFrame) -> list[Alert]`.
+- Each detector is a pure function: `(ledger: DataFrame, context: Mapping[str, Any]) -> list[Alert]`, where `context` is a read-only `MappingProxyType` supplied by `run_all` (detectors that need no user input ignore it).
 - Every `Alert` carries the `source_ref` of the row(s) that triggered it.
 - All business thresholds (amount limits, frequency windows, tolerance margins) are explicit constants in code, not hidden inside a model.
 - Detectors are covered by normal-case, edge-case, and property-based tests before they ship.

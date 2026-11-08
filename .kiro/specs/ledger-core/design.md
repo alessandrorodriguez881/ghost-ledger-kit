@@ -71,12 +71,34 @@ class Transaction(BaseModel):
 
 ```python
 import hashlib, json
+from typing import Any, Literal
+from pydantic import BaseModel, Field, model_validator
+
+
+def _json_default(value: Any) -> Any:
+    """json.dumps default hook: numpy scalars -> Python types, everything else -> str.
+
+    Decimal and date become their str() form (e.g. '12.99', '2026-01-15'), which is
+    stable across runs. numpy scalars (anything exposing .item()) are converted to the
+    equivalent Python int/float/bool first so 3 and numpy.int64(3) hash identically.
+    """
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return item()
+        except (TypeError, ValueError):
+            pass
+    return str(value)
+
 
 def _deterministic_alert_id(detector: str, source_refs: list[str], data: dict) -> str:
-    """Compute a deterministic sha256 id from alert identity fields (CR-LC-1b)."""
+    """Compute a deterministic sha256 id from alert identity fields (CR-LC-1b).
+
+    Never raises on Decimal, date or numpy values in `data` (REQ-MOD-05).
+    """
     payload = json.dumps(
         {"detector": detector, "source_refs": sorted(source_refs), "data": data},
-        sort_keys=True, separators=(",", ":"),
+        sort_keys=True, separators=(",", ":"), default=_json_default,
     )
     return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -95,14 +117,21 @@ class Alert(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _set_deterministic_id(cls, values):
-        if not values.get("id"):
-            values["id"] = _deterministic_alert_id(
-                values["detector"],
-                values["source_refs"],
-                values["data"],
-            )
+        if isinstance(values, dict) and not values.get("id"):
+            # A missing detector/source_refs/data must surface as a pydantic
+            # ValidationError (raised by field validation below), never as KeyError.
+            # So only compute the id when all three identity fields are present.
+            if all(k in values for k in ("detector", "source_refs", "data")):
+                values = {**values, "id": _deterministic_alert_id(
+                    values["detector"], values["source_refs"], values["data"],
+                )}
         return values
 ```
+
+`source_refs` is a required field, so omitting it fails field validation with
+`ValidationError` (REQ-MOD-06). The validator copies the input dict instead of mutating it.
+`run_all` therefore no longer loses a detector's alerts to a `TypeError` raised while
+building the id (a `Decimal`, `date` or numpy value in `data` is serialised via `default=`).
 
 `id` is deterministic when not supplied: same `detector`, `source_refs`, and `data` always
 produce the same sha256 hex string across process restarts and Streamlit reruns. This makes
@@ -158,7 +187,19 @@ Note: the header line alone determines the delimiter. Amount-pattern detection (
 #### `parse_amount(raw: str, dialect: CsvDialect) -> Decimal`
 
 - **PLAIN**: strip whitespace, convert directly with `Decimal(raw)`. Raises `InvalidOperation` on failure.
-- **EUROPEAN**: strip whitespace, remove all `.` (thousands separator), replace `,` with `.`, then `Decimal(cleaned)`. If the cleaned string cannot be parsed as a `Decimal`, raises `InvalidOperation`.
+- **EUROPEAN**: strip whitespace, then **validate with a regex before converting**:
+
+  ```python
+  # optional minus, then dot-grouped thousands or plain digits, then a comma and digits.
+  # Anything else (12.50, -12.5, 1,234.56, 1,2,3) does not match.
+  _EUROPEAN_AMOUNT_RE = re.compile(r"-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+")
+  ```
+
+  If `_EUROPEAN_AMOUNT_RE.fullmatch(raw)` is `None`, raise `InvalidOperation` (the caller
+  quarantines with `reason="unparseable_amount"`). Only a matching string is converted: remove
+  all `.` (thousands separator), replace `,` with `.`, `Decimal(cleaned)`. Without this check
+  `12.50` became `1250`, `-12.5` became `-125` and `1,234.56` became `1.23456` and none was
+  quarantined (REQ-ING-22).
 - A leading `-` is valid for both dialects (REQ-ING-23).
 - Callers catch `InvalidOperation` and quarantine the row with `reason="unparseable_amount"`.
 
@@ -206,6 +247,10 @@ def parse_csv(
 receive source (path, text stream, or bytes stream)
   │
   ├─ if bytes: try utf-8-sig → try cp1252 → fail → quarantine whole file (undecodable_file)
+  │
+  ├─ if text is empty or whitespace-only → return ([], [])   (REQ-ING-06)
+  │     (before dialect detection: an empty file has no header line, so
+  │      detect_dialect("") would return None and wrongly quarantine it as ambiguous)
   │
   ├─ read first non-empty line from text content
   │
@@ -268,7 +313,11 @@ def normalise(
 
 1. Concatenate all source lists into a single flat list.
 2. For each `Transaction`, verify required fields are non-null (belt-and-suspenders after Pydantic).
-3. Build a `pd.DataFrame` from `[t.model_dump() for t in transactions]`.
+3. Build the DataFrame with `pd.DataFrame([t.model_dump() for t in transactions], columns=CANONICAL_COLUMNS)`.
+   `CANONICAL_COLUMNS` is the ordered tuple of the REQ-ING-13 column names, defined once in
+   `normaliser.py`. Passing `columns=` means a run where every row was quarantined (or no
+   source had rows) yields an **empty ledger with the right columns**, not a column-less
+   frame that makes `ledger["source_ref"]` raise `KeyError` in detectors and the UI.
 4. Ensure column dtypes match the canonical schema (REQ-ING-13): `amount` and `date` remain `object` dtype (Python `Decimal` and `datetime.date`); `source_row` is `int64`.
 5. Return `(df, quarantine_list)`.
 
@@ -379,8 +428,17 @@ def registered_names(namespace: str | None = None) -> list[str]:
     return [n for n in _REGISTRY if n.startswith(prefix)]
 
 def _clear_registry() -> None:
-    """Remove all registered detectors. For use in tests only."""
+    """Remove all registered detectors. For use in tests only (prefer snapshot/restore)."""
     _REGISTRY.clear()
+
+def _snapshot_registry() -> dict[str, Callable]:
+    """Return a copy of the registry for later restore. For use in tests only."""
+    return dict(_REGISTRY)
+
+def _restore_registry(snapshot: dict[str, Callable]) -> None:
+    """Replace the registry contents with `snapshot` (same dict object). Tests only."""
+    _REGISTRY.clear()
+    _REGISTRY.update(snapshot)
 ```
 
 **CR-LC-1 resolution**:
@@ -391,18 +449,34 @@ def _clear_registry() -> None:
 
 **OD-2 resolution** (unchanged): `auto_discover` sorts module names before importing. `run_all` iterates `_REGISTRY` in insertion order (Python 3.7+ dict guarantee).
 
-**OD-4 resolution** (unchanged): `_clear_registry()` is exposed as a private function for test teardown.
+**OD-4 resolution** (revised): `_clear_registry()` stays exposed for completeness, but tests must
+**not** use it for isolation: clearing also drops app detectors that were already imported, and
+`auto_discover` cannot re-register them (Python caches the module, so the `@register` decorator
+does not run again). Test isolation uses `_snapshot_registry()` / `_restore_registry()` (defined
+above) instead.
+
+The test fixture snapshots before each test and restores after, so whatever was registered at
+import time (including already-imported app detectors) survives.
+
+**Hypothesis and the registry** (tests/detectors): two traps. (1) A function-scoped pytest
+fixture used by an `@given` test is created once for all examples and fails Hypothesis's
+`function_scoped_fixture` health check. (2) Calling `@register(...)` inside the `@given` body
+registers on example 1 and raises the duplicate-name `ValueError` on example 2. So property
+tests register their detectors **once at module scope** (with distinct names, e.g.
+`"tprop.trivial"`, `"tprop_zs.a"`), and the `@given` body only calls `run_all`.
 
 ### 4.3 Public re-exports (`ledger_kit/detectors/__init__.py`)
 
 ```python
 from ledger_kit.detectors.registry import (
-    register, auto_discover, run_all, registered_names, _clear_registry,
+    register, auto_discover, run_all, registered_names,
+    _clear_registry, _snapshot_registry, _restore_registry,
 )
 from ledger_kit.detectors.base import DetectorResult, DetectorError
 
 __all__ = [
-    "register", "auto_discover", "run_all", "registered_names", "_clear_registry",
+    "register", "auto_discover", "run_all", "registered_names",
+    "_clear_registry", "_snapshot_registry", "_restore_registry",
     "DetectorResult", "DetectorError",
 ]
 ```
@@ -421,6 +495,7 @@ import os
 import re
 import string
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from datetime import date
@@ -544,29 +619,107 @@ def _fill_fallback(template: str, alert: Alert) -> str:
 ### 4a.4 Number guard (Decimal-value comparison)
 
 The guard compares **parsed Decimal values**, not raw strings. This means a European-formatted
-answer (`12,99 EUR`) passes against `"12.99"` in `Alert.data`, and `3` in the text matches `03`
-as the day part of a date.
+answer (`12,99 EUR`) passes against `"12.99"` in `Alert.data`. Row indices and date parts are
+**not** numbers the model may use: a `3` in the text is only accepted if some allowed source
+(an `Alert.data` value or a cited `amount`/`counterparty` cell) contains the number 3.
+
+**One tokeniser, two callers.** `_tokenise(text, known_refs)` is used both on the LLM text
+(step 1) and to build the allowed set from `Alert.data` and the cited cells (step 4), so the
+two sides can never disagree on how a string is split. It applies its patterns in a fixed
+order and **replaces each match with a single space before the next pattern runs**:
+
+1. IBAN-shaped tokens are detected first. Any IBAN-shaped token in the LLM text is rejected
+   outright (its text is added to `rejected_numbers`); IBANs are never sent to the model
+   (Finance Rule 5), so the model cannot legitimately quote one.
+2. Dates: ISO `YYYY-MM-DD`, then `DD/MM/YYYY`. Each match is parsed to `datetime.date` and
+   removed from the text. A date-shaped string that is not a real date (`31/02/2026`) is
+   recorded as malformed and rejected.
+3. `source_ref` strings (`file:row`). Only the refs in `known_refs` (`alert.source_refs` plus
+   the `source_ref` column of the cited rows) are removed, matched literally. The file name
+   digits and the row number therefore never become numbers. A ref that is not cited (e.g.
+   `bank.csv:7` when only row 3 is cited) is left in the text, so its `7` is checked like any
+   other number and is rejected.
+4. European numbers (`1.234,56`, `12,99`).
+5. Plain numbers (`1234.56`, `1234`, `15.99`).
+
+Digit **lookarounds** (`(?<!\d)` / `(?!\d)`) are used instead of `\b`, so a number glued to
+letters is still extracted: `15.99EUR` yields `15.99`, `F2026099` yields `2026099`. Removing
+European matches before the plain pass is what stops `12,99` being split into `12` and `99`.
+Signs are ignored (`-12,50` is tokenised as `12,50`); the same is true on the allowed side.
 
 **Algorithm**:
-1. Extract whole date strings first (ISO `YYYY-MM-DD` and `DD/MM/YYYY`), check them against
-   cited row `date` fields and any date-formatted values in `Alert.data`, then **remove** them
-   from the text before the numeric extraction step.
-2. Tokenise the remaining text with a regex that matches European (`1.234,56`) and plain
-   (`1234.56`, `1234`) number forms.
-3. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
-4. Build the **allowed Decimal set** from:
-   - `Alert.data` values (parsed to Decimal where possible).
-   - The `date`, `amount`, `currency`, `counterparty`, `source_ref` cells of the cited `rows`
-     (only the `_LLM_ROW_COLUMNS` columns — the row index integers embedded in `source_ref`
-     strings are parsed and added automatically because they are substrings of those strings).
-   - Do **not** include `id` (UUID), `description`, or full IBAN.
-5. For each extracted Decimal, if it is not in the allowed set, record it as rejected.
+1. `_tokenise(text, alert.source_refs)` the LLM text → dates, malformed dates, numbers,
+   IBAN-shaped tokens. Any IBAN-shaped token or malformed date rejects the answer.
+2. Check each date against `_allowed_dates` (cited row `date` cells and `date` objects or
+   ISO strings in `Alert.data`); any unknown date rejects the answer.
+3. Parse each number token to `Decimal` (European: strip `.`, replace `,` with `.`; plain:
+   direct).
+4. Build the **allowed Decimal set** by running the same `_tokenise` over `str(value)` for
+   every `Alert.data` value and over every cell of the cited rows except `date`. Because dates
+   and cited `source_ref` strings are stripped first, **no row index, file-name digit or date
+   part is ever added to the allowed set.** Do **not** include `id` (UUID), `description`, or
+   full IBAN (those columns are never sent to the LLM, `_LLM_ROW_COLUMNS`).
+5. For each number token, if its `Decimal` is not in the allowed set, record it as rejected.
+
+Known limitation (fails safe): a thousands-only European number without decimals (`1.060`)
+is read as the plain decimal `1.060`, so it is rejected unless `Alert.data` holds that value.
+The guard only ever errs towards the fallback.
 
 ```python
-_DATE_ISO_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
-_DATE_EU_RE  = re.compile(r"\b(\d{2})/(\d{2})/(\d{4})\b")
-_NUM_EU_RE   = re.compile(r"\b\d{1,3}(?:\.\d{3})*,\d+\b")
-_NUM_PLAIN_RE = re.compile(r"\b\d+(?:\.\d+)?\b")
+_IBAN_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?(?![A-Za-z0-9])")
+_DATE_ISO_RE = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
+_DATE_EU_RE  = re.compile(r"(?<!\d)(\d{2})/(\d{2})/(\d{4})(?!\d)")
+_NUM_EU_RE   = re.compile(r"(?<!\d)(?:\d{1,3}(?:\.\d{3})+|\d+),\d+(?!\d)")
+_NUM_PLAIN_RE = re.compile(r"(?<!\d)\d+(?:\.\d+)?(?!\d)")
+
+
+@dataclass(frozen=True)
+class _Tokens:
+    """Result of _tokenise(): everything numeric found in one string."""
+    dates: frozenset[date]
+    malformed_dates: tuple[str, ...]
+    ibans: tuple[str, ...]
+    numbers: tuple[str, ...]
+
+
+def _tokenise(text: str, known_refs: Iterable[str] = ()) -> _Tokens:
+    """Split `text` into dates, IBANs and numbers; each match is removed before the next pass.
+
+    Order: IBAN, ISO date, European date, known source_refs, European numbers, plain
+    numbers. Matches are replaced by a space so neighbouring digits never merge.
+    """
+    dates: set[date] = set()
+    malformed: list[str] = []
+    numbers: list[str] = []
+
+    ibans = tuple(m.group(0) for m in _IBAN_RE.finditer(text))
+    text = _IBAN_RE.sub(" ", text)
+
+    def _date_sub(order: tuple[int, int, int]):
+        def _sub(m: re.Match[str]) -> str:
+            y, mo, d = (int(m.group(i)) for i in order)
+            try:
+                dates.add(date(y, mo, d))
+            except ValueError:
+                malformed.append(m.group(0))
+            return " "
+        return _sub
+
+    text = _DATE_ISO_RE.sub(_date_sub((1, 2, 3)), text)
+    text = _DATE_EU_RE.sub(_date_sub((3, 2, 1)), text)
+
+    refs = sorted({r for r in known_refs if r}, key=len, reverse=True)
+    if refs:
+        ref_re = re.compile(
+            r"(?<![\w.])(?:" + "|".join(re.escape(r) for r in refs) + r")(?!\d)"
+        )
+        text = ref_re.sub(" ", text)
+
+    for pattern in (_NUM_EU_RE, _NUM_PLAIN_RE):
+        numbers.extend(pattern.findall(text))
+        text = pattern.sub(" ", text)
+
+    return _Tokens(frozenset(dates), tuple(malformed), ibans, tuple(numbers))
 
 
 def _parse_decimal(token: str) -> Decimal | None:
@@ -582,43 +735,32 @@ def _parse_decimal(token: str) -> Decimal | None:
         return None
 
 
-def _extract_dates_and_strip(text: str) -> tuple[set[date], str]:
-    """Extract date objects from ISO and European date strings, remove them from text."""
-    dates: set[date] = set()
-    stripped = text
-    for m in _DATE_ISO_RE.finditer(text):
-        try:
-            dates.add(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
-        except ValueError:
-            pass
-    for m in _DATE_EU_RE.finditer(text):
-        try:
-            dates.add(date(int(m.group(3)), int(m.group(2)), int(m.group(1))))
-        except ValueError:
-            pass
-    stripped = _DATE_ISO_RE.sub("", stripped)
-    stripped = _DATE_EU_RE.sub("", stripped)
-    return dates, stripped
-
-
 def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
-    """Build the set of Decimal values the LLM is permitted to use."""
+    """Build the set of Decimal values the LLM is permitted to use.
+
+    Uses the same _tokenise() as the LLM text. Dates and cited source_ref strings are
+    stripped first, so row indices, file-name digits and date parts are never allowed.
+    """
+    refs = list(alert.source_refs)
+    if "source_ref" in rows.columns:
+        refs += [str(r) for r in rows["source_ref"]]
+
     allowed: set[Decimal] = set()
 
-    # From alert.data values
-    for v in alert.data.values():
-        d = _parse_decimal(str(v).replace(",", "."))  # always plain from Alert
-        if d is not None:
-            allowed.add(d)
+    def _add(text: str) -> None:
+        for token in _tokenise(text, refs).numbers:
+            d = _parse_decimal(token)
+            if d is not None:
+                allowed.add(d)
 
-    # From cited row cells (only safe columns)
+    for v in alert.data.values():
+        _add(str(v))
+
     for col in rows.columns:
+        if col == "date":      # date parts are handled by _allowed_dates, never as numbers
+            continue
         for cell in rows[col]:
-            s = str(cell)
-            for token in _NUM_EU_RE.findall(s) + _NUM_PLAIN_RE.findall(s):
-                d = _parse_decimal(token)
-                if d is not None:
-                    allowed.add(d)
+            _add(str(cell))
 
     return allowed
 
@@ -626,18 +768,14 @@ def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
 def _allowed_dates(alert: Alert, rows: pd.DataFrame) -> set[date]:
     """Build the set of date values the LLM is permitted to mention."""
     dates: set[date] = set()
-    for col in rows.columns:
-        for cell in rows[col]:
-            if isinstance(cell, date):
-                dates.add(cell)
-    # Also parse date-looking strings in alert.data
+    for cell in rows["date"] if "date" in rows.columns else []:
+        if isinstance(cell, date):
+            dates.add(cell)
     for v in alert.data.values():
-        s = str(v)
-        for m in _DATE_ISO_RE.finditer(s):
-            try:
-                dates.add(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
-            except ValueError:
-                pass
+        if isinstance(v, date):
+            dates.add(v)
+        else:
+            dates |= _tokenise(str(v)).dates
     return dates
 
 
@@ -646,18 +784,21 @@ def _passes_number_guard(
 ) -> tuple[bool, tuple[str, ...]]:
     """Check LLM text; return (passed, rejected_tokens).
 
-    Dates are checked first and stripped before number extraction.
-    Numbers are compared as Decimal values (so '12,99' matches '12.99').
+    Rejects IBAN-shaped tokens, malformed or unknown dates, and any number whose Decimal
+    value is not in the allowed set ('12,99' matches '12.99').
     """
-    found_dates, text_no_dates = _extract_dates_and_strip(text)
-    allowed_dates = _allowed_dates(alert, rows)
-    bad_dates = found_dates - allowed_dates
+    tokens = _tokenise(text, alert.source_refs)
+    if tokens.ibans:
+        return False, tokens.ibans
+    if tokens.malformed_dates:
+        return False, tokens.malformed_dates
+    bad_dates = tokens.dates - _allowed_dates(alert, rows)
     if bad_dates:
-        return False, tuple(str(d) for d in bad_dates)
+        return False, tuple(sorted(d.isoformat() for d in bad_dates))
 
     allowed = _allowed_decimals(alert, rows)
     rejected: list[str] = []
-    for token in _NUM_EU_RE.findall(text_no_dates) + _NUM_PLAIN_RE.findall(text_no_dates):
+    for token in tokens.numbers:
         d = _parse_decimal(token)
         if d is not None and d not in allowed:
             rejected.append(token)
@@ -670,15 +811,11 @@ def _passes_number_guard(
 
 ```python
 def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
-    """Call the LLM with the injectable client. Returns the response text or None."""
-    if client is None:
-        import openai  # lazy import
-        client = openai.OpenAI(
-            base_url=os.environ.get("OPENAI_BASE_URL") or None,
-            api_key=os.environ["OPENAI_API_KEY"],
-            timeout=LLM_TIMEOUT_SECONDS,
-        )
+    """Call the LLM with the injectable client. Returns the response text or None.
 
+    Every failure (openai not installed, missing key, timeout, API error) returns None
+    so the caller falls back to the template.
+    """
     model = os.environ.get("LEDGER_KIT_LLM_MODEL", "gpt-4o-mini")
     system_prompt = (
         "You must not invent any number, date, name, or amount. "
@@ -688,13 +825,22 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
         "those inputs. "
         f"Cite at least one source reference from: {alert.source_refs}."
     )
-    user_content = (
-        f"Alert: {alert.model_dump_json()}\n\n"
-        f"Source rows:\n{rows.to_json(orient='records')}"
-    )
+    # date_format="iso" + default_handler=str: dates reach the model as 2026-01-15, not as
+    # epoch milliseconds, so the date guard can match what the model quotes.
+    rows_json = rows.to_json(orient="records", date_format="iso", default_handler=str)
+    user_content = f"Alert: {alert.model_dump_json()}\n\nSource rows:\n{rows_json}"
 
     for attempt in range(LLM_MAX_RETRIES):
         try:
+            if client is None:
+                import openai  # lazy + inside the try: the openai extra is optional
+
+                client = openai.OpenAI(
+                    base_url=os.environ.get("OPENAI_BASE_URL") or None,
+                    api_key=os.environ["OPENAI_API_KEY"],
+                    timeout=LLM_TIMEOUT_SECONDS,
+                    max_retries=0,   # the SDK default is 2; LLM_MAX_RETRIES is the only retry knob
+                )
             response = client.chat.completions.create(
                 model=model,
                 temperature=0,
@@ -711,11 +857,17 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
     return None
 ```
 
+`openai` is **not** a runtime dependency of `ledger_kit`. It is pinned (exact version) in the
+optional extra `[project.optional-dependencies] llm = ["openai==<pinned>"]` in `pyproject.toml`
+and in `requirements.txt` under a comment marking it optional. Without it, a run with no `OPENAI_API_KEY`
+uses the fallback (REQ-EXP-02), and a run with a key but without the package logs the
+`ImportError` and falls back (REQ-EXP-09).
+
 ### 4a.6 Test architecture (`tests/test_explainer.py`)
 
-Tests inject a `mock_client` directly via the `client=` parameter; no patching of `openai.OpenAI`
-is required. The `LLM_MAX_RETRIES = 1` constant means the "retry" test needs only one failure
-followed by one success (two calls total).
+Tests inject a `MockLLMClient` directly via the `client=` parameter; no patching of
+`openai.OpenAI` is required. `LLM_MAX_RETRIES = 1` means exactly one attempt per call, so a
+failing mock response yields the fallback after a single `create` call.
 
 Key test helpers:
 
@@ -733,20 +885,37 @@ class _MockResponse:
     choices: list[_MockChoice]
 
 class MockLLMClient:
-    """Configurable mock. Pass responses=["text1", None, "text2"] to simulate failures."""
+    """Configurable mock. Pass responses=["text1", None, "text2"] to simulate failures.
+
+    `calls` records the kwargs of every create() call (model, temperature, messages) so
+    prompt tests can inspect exactly what would have been sent.
+    """
     def __init__(self, responses):
         self._responses = iter(responses)
-    def chat(self):  # attribute access returns self for chaining
+        self.calls: list[dict] = []
+
+    @property
+    def chat(self):    # property, so `client.chat.completions.create(...)` resolves
         return self
+
     @property
     def completions(self):
         return self
-    def create(self, **kwargs):  # noqa: ARG002
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
         r = next(self._responses)
         if r is None:
             raise RuntimeError("simulated failure")
         return _MockResponse([_MockChoice(_MockCompletion(r))])
 ```
+
+`chat` was previously a plain method, so `client.chat.completions` raised `AttributeError`,
+which `_call_llm` swallowed, and every test expecting `source="llm"` silently got the
+fallback. `test_mock_client_chat_completions_create_resolves` guards against that regression.
+
+Prompt tests read `client.calls[0]["messages"]`: the system message for the
+no-invention/source-ref checks, the user message for the "only safe columns" check.
 
 Number-guard property tests: generate a valid LLM response (only numbers from `alert.data`),
 then inject one random foreign Decimal (not in allowed set), assert guard rejects. Additional
@@ -906,7 +1075,8 @@ tests/
 ├── test_money.py                      # round_to_cents, format_amount, format_as_european
 ├── test_anonymise.py                  # scrub()
 └── detectors/
-    └── test_registry.py               # register, auto_discover, run_all, _clear_registry
+    ├── test_registry.py               # register, auto_discover, run_all, snapshot/restore
+    └── test_registry_properties.py    # Hypothesis tests; detectors registered at module scope
 ```
 
 ### 8.2 Shared fixtures (`tests/conftest.py`)

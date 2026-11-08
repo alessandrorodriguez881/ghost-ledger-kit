@@ -23,7 +23,7 @@ Any app built on the template (e.g. `zombie_subscriptions`, `phantom_invoices`) 
 - **REQ-ING-03** `amount` must be stored as `decimal.Decimal`, never `float`. Columns read via pandas must be converted to `Decimal` immediately after reading.
 - **REQ-ING-04** `date` must be parsed to `datetime.date`, not a string or `datetime.datetime`.
 - **REQ-ING-05** Rows with a missing or unparseable value in any mandatory column must be **quarantined** (collected into a separate `list[dict]` returned alongside the valid rows) and never silently coerced.
-- **REQ-ING-06** An empty file must return an empty valid list and an empty quarantine list without raising.
+- **REQ-ING-06** An empty file, or a file containing only whitespace, must return an empty valid list and an empty quarantine list (`([], [])`) without raising. This check happens **before** dialect detection, so an empty file is never quarantined as `"ambiguous_dialect"`.
 
 #### 1.1a CSV dialect and format detection
 
@@ -37,7 +37,7 @@ Spanish bank exports and similar European sources use a distinct CSV dialect tha
   - If the delimiter is unambiguously `,` and no amount cell contains a comma decimal pattern, classify as `"plain"`.
   - In any other case (mixed signals, cannot determine, delimiter is ambiguous) the **entire file** must be quarantined with reason `"ambiguous_dialect"`. No rows from that file are emitted as valid transactions.
 - **REQ-ING-21** A quarantined-file record for `"ambiguous_dialect"` must include: the filename, the reason string `"ambiguous_dialect"`, and the first line that triggered ambiguity, so the user can identify and fix the source file.
-- **REQ-ING-22** European-format amount strings must be parsed by first stripping the thousands separator (`.`) then replacing the decimal separator (`,`) with `.` before converting to `Decimal`. A string that contains both `,` and `.` but does not match either the plain or European pattern must be quarantined at row level with reason `"unparseable_amount"`.
+- **REQ-ING-22** European-format amount strings must first be validated against the European pattern (optional leading `-`, digits optionally grouped with `.` in threes, a `,` decimal separator, then digits). Only a string that matches is converted: strip the thousands separator (`.`), replace `,` with `.`, convert to `Decimal`. A string that does not match (e.g. `12.50`, `-12.5`, `1,234.56`, `1,2,3`) must be quarantined at row level with reason `"unparseable_amount"`; it must never be converted by blind character replacement (which would turn `12.50` into `1250`).
 - **REQ-ING-23** Signed amounts (negative values indicating debits) must be accepted in both dialects. A leading minus sign is valid for both `"-12,50"` (European) and `"-12.50"` (plain).
 
 #### 1.2 Invoice parsing
@@ -69,6 +69,7 @@ Spanish bank exports and similar European sources use a distinct CSV dialect tha
   | `tags` | `object` (`list[str]`) |
 
 - **REQ-ING-14** `iban` is an optional field; its absence must not trigger quarantine. When present it must be stored verbatim (no reformatting).
+- **REQ-ING-28** `normalise` must always build its DataFrame with the canonical column list (REQ-ING-13), so that zero input transactions, or a run where every row was quarantined, returns an **empty DataFrame that still has all canonical columns** (never a column-less frame that raises `KeyError` on `ledger["source_ref"]`).
 
 #### 1.4 Signed-amount normalisation
 
@@ -124,6 +125,9 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-MOD-02** When an explicit `id` is passed to `Alert`, it is used as-is (backward-compatible). The deterministic default applies only when `id` is absent or empty.
 - **REQ-MOD-03** The `test_alert_deterministic_id` test must verify that two `Alert` instances constructed with identical `detector`, `source_refs`, and `data` fields (and no explicit `id`) produce the same `id`.
 - **REQ-MOD-04** The `test_alert_explicit_id_preserved` test must verify that passing `id="custom-id"` returns that exact value without hashing.
+- **REQ-MOD-05** Computing the deterministic id must never raise on non-JSON-native values in `Alert.data`. `Decimal` and `date` values are serialised with `json.dumps(..., default=str)`; numpy scalars are first converted to the equivalent Python type. (Otherwise a `TypeError` while building the id makes `run_all` drop every alert of that detector.)
+- **REQ-MOD-06** Constructing an `Alert` without `source_refs` (or `detector`/`data`) must raise pydantic `ValidationError`, never `KeyError`.
+- **REQ-MOD-07** Tests: `test_alert_id_with_decimal_and_date_data` (Decimal and date values in `data` give a 64-char hex id and the same id on a second construction), `test_alert_id_numpy_scalar_matches_python_value` (`numpy.int64(3)` and `3` in `data` give the same id), `test_alert_missing_source_refs_raises_validation_error`.
 
 ### 3 — Detector registry
 
@@ -177,18 +181,25 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   - `{key}` — `alert.data[key]` as a plain string.
   - `{source_refs}` — special placeholder replaced with the comma-joined `alert.source_refs`.
   Unknown placeholders are left unchanged.
-- **REQ-EXP-04** When a client is available (injected or auto-created from `OPENAI_API_KEY`), `explain_with_meta` calls the LLM once (`LLM_MAX_RETRIES = 1`; `LLM_TIMEOUT_SECONDS = 10`). The base URL and model come from `OPENAI_BASE_URL` and `LEDGER_KIT_LLM_MODEL` env vars, defaulting to the standard OpenAI endpoint and `"gpt-4o-mini"`.
+- **REQ-EXP-04** When a client is available (injected or auto-created from `OPENAI_API_KEY`), `explain_with_meta` calls the LLM once (`LLM_MAX_RETRIES = 1`; `LLM_TIMEOUT_SECONDS = 10`). The base URL and model come from `OPENAI_BASE_URL` and `LEDGER_KIT_LLM_MODEL` env vars, defaulting to the standard OpenAI endpoint and `"gpt-4o-mini"`. When the client is auto-created it is built with `openai.OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`: the SDK retries twice by default, which would silently multiply `LLM_MAX_RETRIES`. The `import openai` happens inside the guarded call, so a missing package falls back (REQ-EXP-09) instead of raising.
 - **REQ-EXP-05** The LLM call uses `temperature=0`. On any exception (timeout, API error), `explain_with_meta` returns the fallback. No back-off or retry loop. Apps cache `Explanation` objects by `(alert.id, client_mode)` where `alert.id` is the deterministic sha256 from REQ-MOD-01, ensuring the cache survives Streamlit reruns.
 - **REQ-EXP-06** The system prompt must include the Finance Rule 1 phrase verbatim.
 - **REQ-EXP-07** The system prompt must instruct the model to cite at least one `source_ref` from `alert.source_refs`.
-- **REQ-EXP-08** **Number guard** — Decimal-value comparison, not string comparison:
-  1. Extract whole dates (ISO `YYYY-MM-DD` and `DD/MM/YYYY`) from the LLM text; check each parsed `datetime.date` against the `date` fields of the cited rows and date-formatted values in `Alert.data`. Remove matched date strings from the text before step 2. Any unrecognised date triggers the fallback.
-  2. Tokenise the remaining text with regexes for European (`1.234,56`) and plain (`1234.56`, `1234`) number forms.
-  3. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
-  4. Build the allowed `Decimal` set from: `Alert.data` values (parsed), and the `date`, `amount`, `flow`, `currency`, `counterparty`, `source_ref` cells of the cited `rows` only. **Never** `id`, `description`, or full IBAN.
-  5. If any token's `Decimal` is not in the allowed set, discard the LLM text and return the fallback with `source="fallback"` and `rejected_numbers=(…token…)`.
-  6. A European-formatted `12,99` passes against `Decimal("12.99")` in the allowed set. The integer `3` passes against a row index `03` because both parse to `Decimal("3")`.
+- **REQ-EXP-08** **Number guard** — Decimal-value comparison, not string comparison, using **one tokeniser** (`_tokenise`) for both the LLM text and the allowed set (`_allowed_decimals`). The tokeniser applies its patterns in this order and removes each match from the text before the next pattern runs:
+  1. IBAN-shaped tokens. Any IBAN-shaped token in the LLM text rejects the answer.
+  2. Dates (ISO `YYYY-MM-DD`, then `DD/MM/YYYY`). Each is parsed to `datetime.date` and checked against the `date` cells of the cited rows and the date values (objects or ISO strings) in `Alert.data`. An unrecognised date, or a date-shaped string that is not a real date, triggers the fallback.
+  3. `source_ref` strings (`file:row`) of the alert and the cited rows, matched literally.
+  4. European numbers (`1.234,56`, `12,99`).
+  5. Plain numbers (`1234.56`, `1234`).
+
+  Number patterns use digit lookarounds, not word boundaries, so numbers glued to letters (`15.99EUR`, `F2026099`) are still extracted. Removing European matches before the plain pass guarantees `12,99` is read as one number, never as `12` and `99`.
+  Then:
+  6. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
+  7. The allowed `Decimal` set is built by running the same tokeniser over `str(value)` for every `Alert.data` value and over every cell of the cited `rows` (columns `amount`, `flow`, `currency`, `counterparty`, `source_ref`; the `date` column is checked as dates only). **Never** `id`, `description`, or full IBAN. Because dates and cited `source_ref` strings are removed first, **row numbers, file-name digits and date parts are never added to the allowed set.**
+  8. If any token's `Decimal` is not in the allowed set, discard the LLM text and return the fallback with `source="fallback"` and `rejected_numbers=(…token…)`.
+  9. A European-formatted `12,99` passes against `Decimal("12.99")` in the allowed set. A made-up `3 EUR` is **rejected** even when row 3 is cited (`bank.csv:3`), unless `3` is also a value in `Alert.data` or a cited cell.
 - **REQ-EXP-09** On any API error or timeout, `explain_with_meta` returns the fallback, logs the reason, and never propagates the exception.
+- **REQ-EXP-10** The source rows are sent to the LLM as `rows.to_json(orient="records", date_format="iso", default_handler=str)`, so dates arrive as readable ISO strings, not epoch milliseconds.
 
 ---
 
@@ -227,6 +238,8 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-PKG-03** `ledger_kit` must not import from any app package (`apps.*`).
 - **REQ-PKG-04** Shared default configuration lives in `ledger_kit/defaults.toml`; secrets come from environment variables only.
 - **REQ-PKG-05** Linting and formatting are enforced by `ruff`; configuration lives in `pyproject.toml` with `max-line-length = 100`.
+- **REQ-PKG-06** `pyproject.toml` must set `[tool.pytest.ini_options] pythonpath = ["."]` and `testpaths = ["tests", "apps"]`, so a plain `pytest` from the repo root finds `ledger_kit` and the app tests without an editable install.
+- **REQ-PKG-07** `openai` is not a core dependency. It is pinned to an exact version in the optional extra `llm` (`[project.optional-dependencies]`) and in `requirements.txt` under an "optional" comment. `ledger_kit.explainer` imports it lazily inside the guarded call (REQ-EXP-04).
 
 ---
 
@@ -245,17 +258,28 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   - `test_explain_plain_placeholder_inserts_as_string` — `{charge_count}` with value `"12"` → `"12"` (not `"12,00 EUR"`).
   - `test_explain_source_refs_placeholder` — `{source_refs}` → comma-joined list.
   - `test_explain_unknown_placeholder_left_as_is` — `{unknown}` not in `alert.data` → left unchanged.
-  - `test_build_prompt_includes_source_refs` — the system prompt sent to the mock client contains all values from `alert.source_refs`.
-  - `test_build_prompt_includes_no_invention_instruction` — the system prompt contains the Finance Rule 1 phrase verbatim.
+  - `test_build_prompt_includes_source_refs` — the system message in `client.calls[0]["messages"]` contains all values from `alert.source_refs`.
+  - `test_build_prompt_includes_no_invention_instruction` — that system message contains the Finance Rule 1 phrase verbatim.
+  - `test_mock_client_chat_completions_create_resolves` — `MockLLMClient(["x"]).chat.completions.create(model="m")` returns a response and appends its kwargs to `client.calls` (guards against `chat` being a plain method).
   - `test_explain_with_meta_returns_explanation_dataclass` — result is an `Explanation` with `.text`, `.source`, `.rejected_numbers`.
   - `test_explain_with_meta_llm_source_on_success` — valid mock response → `source="llm"`, `rejected_numbers=()`.
-  - `test_explain_number_guard_european_format_passes` — mock returns `"12,99 EUR"` when `alert.data` has `"12.99"` → guard passes (both parse to `Decimal("12.99")`).
-  - `test_explain_number_guard_date_03_passes_for_row_index_3` — `3` in LLM text passes against row index `3` (both `Decimal("3")`).
+  - `test_explain_number_guard_european_format_passes` — mock returns `"12,99 EUR"` when `alert.data` has `"12.99"` → guard passes (both parse to `Decimal("12.99")`); `12,99 EUR` is not split into `12` and `99`.
+  - `test_explain_number_guard_european_thousands_passes` — `"1.060,00 EUR"` passes when `alert.data` has `"1060.00"`.
+  - `test_explain_number_guard_two_amounts_in_one_sentence_pass` — `"15,99 EUR monthly, 191,88 EUR yearly"` passes when both values are allowed.
+  - `test_explain_number_guard_glued_allowed_number_passes` — `"15.99EUR"` passes when `15.99` is allowed.
+  - `test_explain_number_guard_rejects_made_up_number_equal_to_row_index` — cited ref `bank.csv:3`, response `"3 EUR ... (bank.csv:3)"`, no value 3 in `alert.data` or cited cells → `source="fallback"`, `rejected_numbers=("3",)`; the same response without the made-up `3 EUR` passes.
+  - `test_explain_number_guard_rejects_invented_number_glued_to_letters` — `"invoice F2026099"` (not allowed) → fallback, `"2026099"` in `rejected_numbers`.
+  - `test_explain_number_guard_rejects_iban_shaped_token` — response containing `"DE00 0000 0000 0000 0000 00"` → fallback.
+  - `test_explain_number_guard_rejects_malformed_date` — response containing `"31/02/2026"` → fallback.
   - `test_explain_number_guard_rejects_hallucinated_number` — mock returns response with `"999.99"` not in alert data or rows → `source="fallback"`, `rejected_numbers=("999.99",)` (or equivalent token).
   - `test_explain_number_guard_passes_valid_response` — mock returns response repeating only figures from `alert.data` → `source="llm"`.
   - `test_explain_date_guard_rejects_hallucinated_date` — mock returns a date not in cited rows → fallback.
-  - `test_explain_date_guard_passes_row_date` — mock mentions an ISO date matching a row → passes.
+  - `test_explain_date_guard_passes_row_date` — mock mentions an ISO date matching a row → passes, and the date's parts (`2026`, `01`, `15`) are not treated as numbers.
   - `test_explain_fallback_on_api_error` — mock raises `RuntimeError` → `source="fallback"`, no exception propagated.
-  - `test_explain_only_safe_columns_sent` — the DataFrame passed to the LLM never contains `id` or `description` columns.
+  - `test_explain_openai_import_error_falls_back` — `OPENAI_API_KEY` set, no client injected, `openai` made unimportable (`monkeypatch.setitem(sys.modules, "openai", None)`) → fallback, no exception.
+  - `test_explain_openai_client_built_with_no_sdk_retries` — with a fake `openai` module in `sys.modules` whose `OpenAI` records its kwargs: `timeout == LLM_TIMEOUT_SECONDS` and `max_retries == 0`.
+  - `test_explain_rows_json_has_iso_dates` — the user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and no epoch-millisecond number for the row's date.
+  - `test_explain_only_safe_columns_sent` — the user message in `client.calls[0]["messages"]` contains neither an `id` nor a `description` key for the rows.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: inject a random Decimal (not in allowed set) into a valid answer → guard always rejects. Use a fixed `alert` and rows; generate foreign values via `st.decimals(min_value=Decimal("10000"), max_value=Decimal("99999"), places=2)`.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: an LLM answer that only uses Decimal strings from `alert.data` always passes the guard.
+- **REQ-TST-09** Registry test isolation. Tests must not call `_clear_registry()` for isolation (it also drops already-imported app detectors, which `auto_discover` cannot re-register). A function-scoped fixture snapshots the registry with `_snapshot_registry()` and restores it with `_restore_registry()`. Hypothesis tests must not use function-scoped fixtures and must not call `@register` inside the `@given` body; their detectors are registered once at module scope in `tests/detectors/test_registry_properties.py`.

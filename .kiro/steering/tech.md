@@ -11,7 +11,7 @@
 |---|---|---|
 | Data wrangling | **pandas ≥ 2.0** | Primary in-memory ledger format is `pd.DataFrame`. Use `pd.ArrowDtype` where applicable. |
 | UI | **Streamlit ≥ 1.35** | Each app has its own `app.py` entry point. No shared Streamlit state between apps. |
-| LLM calls | **openai ≥ 1.0** (or any OpenAI-compatible SDK) | Only used in the explanation layer. Calls are isolated in `explainer.py` modules. |
+| LLM calls | **openai** (optional extra `llm`, exact pin; or any OpenAI-compatible SDK) | Only used in the explanation layer. Imported lazily inside the guarded call in `explainer.py`; without it the fallback template is used. |
 | Testing | **pytest ≥ 8.0** + **Hypothesis ≥ 6.100** | See `testing.md` for strategy. |
 | CSV parsing | stdlib `csv` + pandas | No third-party CSV parsers needed. |
 | Invoice parsing | stdlib `csv` + stdlib `json` | CSV and JSON invoice formats (e.g. FATURA annotations). Only used in the ingestion layer. No PDF parsing. |
@@ -39,7 +39,7 @@ class Transaction(BaseModel):
 ### Alert
 ```python
 class Alert(BaseModel):
-    id: str                  # UUID assigned at detection time
+    id: str                  # sha256 of canonical JSON of detector + sorted source_refs + data, unless given
     detector: str            # name of the detector function that raised it
     severity: Literal["info", "warning", "critical"]
     title: str
@@ -56,8 +56,9 @@ class Alert(BaseModel):
 ## LLM integration constraints
 - The explanation layer must call the LLM with a **system prompt** that includes the phrase: *"You must not invent any number, date, name, or amount. Every figure you mention must appear verbatim either in the source rows provided or in the structured fields of the alert (such as yearly_cost). Do not derive, round, or estimate any figure not explicitly present in those inputs."*
 - The LLM is called with `temperature=0` to maximise determinism.
-- The raw LLM response is stored alongside the explanation for auditability.
-- LLM calls are wrapped in a retry decorator (max 3 attempts, exponential back-off) and must time out after 30 s.
+- The result is an `Explanation(text, source, rejected_numbers)`. `source` is `"llm"` or `"fallback"`; a rejected answer is discarded, not stored (the offending tokens are kept in `rejected_numbers`).
+- A single attempt per call: `LLM_MAX_RETRIES = 1`, `LLM_TIMEOUT_SECONDS = 10` (Streamlit renders synchronously). There is no back-off loop. The auto-created `openai.OpenAI` client uses `max_retries=0` so the SDK does not retry on top of this. Apps cache explanations by `(alert.id, client_mode)`.
+- Any error, timeout, missing key/package or number-guard rejection returns the filled fallback template; the exception never propagates.
 
 ## Configuration
 - App-level configuration (thresholds, currency, locale) lives in `config.toml` at the app root.

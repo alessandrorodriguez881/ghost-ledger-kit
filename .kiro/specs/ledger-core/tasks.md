@@ -8,16 +8,20 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 ## Task 1 — Project scaffold and package metadata
 
-**Covers**: REQ-PKG-01, REQ-PKG-02, REQ-PKG-05
+**Covers**: REQ-PKG-01, REQ-PKG-02, REQ-PKG-05, REQ-PKG-06, REQ-PKG-07
 
 - [ ] Create `pyproject.toml` at the workspace root with:
   - `[build-system]` using `setuptools` and `setuptools-scm` (PEP 517/518, no `setup.py`)
   - `[project]` metadata: name `ledger-kit`, requires-python `>=3.11`
-  - `[project.optional-dependencies]` groups: `dev` (pytest, hypothesis, freezegun, pytest-cov, ruff)
+  - `[project.optional-dependencies]` groups: `dev` (pytest, hypothesis, freezegun, pytest-cov, ruff) and `llm` (`openai`, exact pinned version; REQ-PKG-07)
   - `[tool.ruff]` section: `line-length = 100`, `select = ["E","F","I","UP"]`
   - `[tool.ruff.format]` section
-  - `[tool.pytest.ini_options]` section: `testpaths = ["tests"]`
-- [ ] Create `requirements.txt` with pinned exact versions for all runtime deps (pandas, pydantic, streamlit) and dev deps.
+  - `[tool.pytest.ini_options]` section: `pythonpath = ["."]` and `testpaths = ["tests", "apps"]` (REQ-PKG-06)
+- [ ] Create `requirements.txt` with pinned exact versions for all runtime deps (pandas, pydantic, streamlit) and dev deps; list `openai` pinned under an "optional (llm extra)" comment.
+- [ ] Write `tests/test_packaging.py` (first, before the config is final):
+  - `test_pytest_config_sets_pythonpath_and_testpaths` — parse `pyproject.toml` with `tomllib`; assert `pythonpath == ["."]` and `testpaths == ["tests", "apps"]`.
+  - `test_ledger_kit_importable_without_editable_install` — `import ledger_kit` succeeds under plain `pytest` (no `pip install -e .`); verify by running `pytest tests/test_packaging.py` in a fresh venv that has only `requirements.txt` installed.
+  - `test_openai_is_optional_extra_only` — `openai` is absent from `[project].dependencies`, and present with an `==` pin in `[project.optional-dependencies].llm`.
 - [ ] Create the top-level package skeleton — empty `__init__.py` files for:
   - `ledger_kit/`
   - `ledger_kit/ingestion/`
@@ -32,7 +36,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 ## Task 2 — Canonical data models
 
-**Covers**: REQ-ING-13 (Transaction schema), REQ-DET-03 (Alert schema), design §2
+**Covers**: REQ-ING-13 (Transaction schema), REQ-DET-03 (Alert schema), REQ-MOD-01 to REQ-MOD-07, design §2
 
 - [ ] Write `tests/test_models.py` with:
   - `test_transaction_source_ref_computed` — building a `Transaction` produces correct `source_ref`.
@@ -42,6 +46,9 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_alert_is_frozen` — attempting to mutate a field raises an error.
   - `test_alert_deterministic_id` — two `Alert` instances with identical `detector`, `source_refs`, and `data` (no explicit `id`) produce the same `id` (REQ-MOD-01).
   - `test_alert_explicit_id_preserved` — passing `id="custom-id"` returns that exact value (REQ-MOD-02).
+  - `test_alert_id_with_decimal_and_date_data` — `data={"yearly_cost": Decimal("155.88"), "last": date(2026, 1, 15)}` builds without `TypeError`; `id` is 64 hex chars and identical on a second construction (REQ-MOD-05).
+  - `test_alert_id_numpy_scalar_matches_python_value` — `data={"n": numpy.int64(3)}` and `data={"n": 3}` give the same `id` (REQ-MOD-05).
+  - `test_alert_missing_source_refs_raises_validation_error` — `Alert(detector="x.y", severity="info", title="t", data={})` raises `pydantic.ValidationError`, not `KeyError` (REQ-MOD-06).
   - `test_quarantine_dict_shape` — document expected quarantine record keys via a helper.
 - [ ] Implement `ledger_kit/models.py`:
   - `Transaction` Pydantic v2 model exactly as in design §2.1.
@@ -49,7 +56,8 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - Both with `model_config = {"frozen": True}`.
   - Add a Pydantic validator that enforces `amount >= 0` on `Transaction`.
   - Add a Pydantic validator that enforces `len(source_refs) >= 1` on `Alert`.
-  - `_deterministic_alert_id` helper using sha256 of canonical JSON.
+  - `_deterministic_alert_id` helper using sha256 of canonical JSON, serialised with `json.dumps(..., default=_json_default)` (numpy scalars → Python types via `.item()`, everything else → `str`; design §2.2).
+  - `Alert._set_deterministic_id` imports `model_validator` from `pydantic`, copies the input dict instead of mutating it, and computes the id only when `detector`, `source_refs` and `data` are all present, so a missing field surfaces as `ValidationError`.
 - [ ] Update `ledger_kit/__init__.py` to re-export `Transaction` and `Alert`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -92,6 +100,9 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_parse_amount_european_no_thousands` — `"12,50"` → `Decimal("12.50")`.
   - `test_parse_amount_european_negative` — `"-12,50"` → `Decimal("-12.50")`.
   - `test_parse_amount_european_invalid` — `"1,2,3"` → raises `InvalidOperation`.
+  - `test_parse_amount_european_rejects_plain_decimal` — `"12.50"` with `EUROPEAN` → raises `InvalidOperation` (not `Decimal("1250")`).
+  - `test_parse_amount_european_rejects_negative_plain_decimal` — `"-12.5"` with `EUROPEAN` → raises `InvalidOperation` (not `Decimal("-125")`).
+  - `test_parse_amount_european_rejects_anglo_thousands` — `"1,234.56"` with `EUROPEAN` → raises `InvalidOperation` (not `Decimal("1.23456")`).
   - `test_parse_date_plain` — `"2026-12-31"` → `date(2026, 12, 31)`.
   - `test_parse_date_european` — `"31/12/2026"` → `date(2026, 12, 31)`.
   - `test_parse_date_plain_invalid` — `"31/12/2026"` with `PLAIN` dialect → raises `ValueError`.
@@ -99,7 +110,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 - [ ] Implement `ledger_kit/ingestion/dialect.py`:
   - `CsvDialect` enum.
   - `detect_dialect(first_line: str) -> CsvDialect | None`.
-  - `parse_amount(raw: str, dialect: CsvDialect) -> Decimal`.
+  - `parse_amount(raw, dialect)`: for `EUROPEAN`, `fullmatch` against `_EUROPEAN_AMOUNT_RE` first and raise `InvalidOperation` when it does not match; only then strip `.`, replace `,`, convert (design §3.1).
   - `parse_date(raw: str, dialect: CsvDialect) -> date`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -129,6 +140,8 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 - [ ] Write `tests/ingestion/test_csv_reader.py` normal-case and edge-case tests:
   - `test_parse_csv_plain_valid` — well-formed plain CSV with 3 rows → 3 `Transaction` objects, zero quarantine.
   - `test_parse_csv_empty_file_returns_empty` — empty file → `([], [])`.
+  - `test_parse_csv_whitespace_only_file_returns_empty` — file containing only `"  \n\n\t\n"` → `([], [])` (not quarantined as `ambiguous_dialect`; REQ-ING-06).
+  - `test_parse_csv_empty_bytes_stream_returns_empty` — `io.BytesIO(b"")` → `([], [])`.
   - `test_parse_csv_single_row_plain` — one data row → one transaction.
   - `test_parse_csv_source_ref_assigned` — `source_ref` equals `f"{source_file}:{row_index}"`.
   - `test_parse_csv_source_row_zero_based` — first data row has `source_row=0`.
@@ -149,6 +162,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `IngestionResult` type alias.
   - `parse_csv(source, *, dialect=None, source_file=None) -> IngestionResult`.
   - Encoding detection: try `utf-8-sig`, then `cp1252`, else quarantine whole file.
+  - After decoding, if the text is empty or whitespace-only, return `([], [])` **before** `detect_dialect` is called (REQ-ING-06).
   - Uses `csv.DictReader` with appropriate separator.
   - Calls `dialect.parse_amount` and `dialect.parse_date`; quarantines on parse errors.
   - Applies sign-to-flow mapping (REQ-ING-24/25/26).
@@ -167,6 +181,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_parse_csv_european_negative_amount` — `"-12,50"` → `flow="debit"`, `amount=Decimal("12.50")`.
   - `test_parse_csv_european_date` — `"31/12/2026"` → `date(2026, 12, 31)`.
   - `test_parse_csv_ambiguous_dialect_quarantines_file` — header with `,;` → `([], [quarantine])`.
+  - `test_parse_csv_european_plain_decimal_amount_quarantined` — semicolon file with amount `"12.50"` (and, in a second row, `"1,234.56"`) → each row quarantined with `reason="unparseable_amount"`; no transaction with amount `1250` or `1.23456` is emitted (REQ-ING-22).
   - `test_parse_csv_ambiguous_quarantine_includes_first_line` — quarantine record has `first_line` key.
   - `test_parse_csv_explicit_dialect_overrides_sniff` — `dialect="european"` passed explicitly → no auto-detection attempted.
   - `test_parse_csv_auto_detect_plain` — comma-header file with no explicit dialect → detected as plain.
@@ -178,16 +193,17 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 8 — Shared test fixtures and property-based tests for the normaliser
 
-**Covers**: REQ-TST-01, REQ-TST-02, REQ-TST-03, REQ-TST-04, REQ-ING-15, REQ-ING-16, REQ-ING-27, design §8.2 + §8.3
+**Covers**: REQ-TST-01, REQ-TST-02, REQ-TST-03, REQ-TST-04, REQ-ING-15, REQ-ING-16, REQ-ING-27, REQ-ING-28, design §8.2 + §8.3
 
 - [ ] Implement `tests/conftest.py` with `empty_ledger`, `single_row_ledger`, and `clean_ledger_10` fixtures using synthetic PII-safe data (Finance Rule 5 names and IBANs).
 - [ ] Write `tests/ingestion/test_normaliser.py` with:
   - **Tier 1**: `test_normalise_returns_dataframe`, `test_normalise_schema_columns_present`, `test_normalise_empty_source_returns_empty_df`.
+  - **Tier 2**: `test_normalise_all_quarantined_returns_empty_df_with_columns` — every input transaction fails validation → empty DataFrame whose columns equal `CANONICAL_COLUMNS`, and `ledger["source_ref"]` does not raise `KeyError` (REQ-ING-28). `test_normalise_no_sources_returns_empty_df_with_columns` — `normalise()` with no arguments, same assertions.
   - **Tier 2**: `test_normalise_single_transaction`, `test_normalise_multiple_sources_merged`, `test_normalise_quarantines_null_required_field`, `test_normalise_amount_dtype_is_object_decimal`, `test_normalise_date_dtype_is_object_date`, `test_normalise_source_row_dtype_is_int`.
   - **Tier 3 — Property 1** (REQ-ING-15): `test_signed_amount_round_trip` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 2** (REQ-ING-16): `test_date_round_trip_plain` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 3** (REQ-ING-27): `test_european_amount_round_trip` — `@settings(max_examples=200)`, uses `format_as_european` from `money.py` as inverse.
-- [ ] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources) -> NormaliseResult` as in design §3.4.
+- [ ] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS` tuple and `pd.DataFrame(rows, columns=CANONICAL_COLUMNS)`.
 - [ ] Verify: all three property tests pass with 200 examples each, `ruff check` clean.
 
 ---
@@ -200,6 +216,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Tier 1**: `test_parse_invoice_csv_valid` — well-formed plain CSV → transactions, zero quarantine.
   - **Tier 1**: `test_parse_invoice_json_valid` — well-formed FATURA JSON array → transactions.
   - **Tier 2**: `test_parse_invoice_csv_empty` — empty CSV → `([], [])`.
+  - **Tier 2**: `test_parse_invoice_csv_whitespace_only` — whitespace-only CSV → `([], [])`.
   - **Tier 2**: `test_parse_invoice_json_empty_array` — `[]` JSON → `([], [])`.
   - **Tier 2**: `test_parse_invoice_json_amount_as_string` — `"amount": "123.45"` → `Decimal("123.45")`.
   - **Tier 2**: `test_parse_invoice_json_amount_as_float` — `"amount": 123.45` → `Decimal` (exact, not float).
@@ -215,7 +232,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 10 — Detector base types and registry
 
-**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-05, REQ-DET-07, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, design §4
+**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-05, REQ-DET-07, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, REQ-TST-09, REQ-MOD-05, design §4
 
 - [ ] Write `tests/detectors/test_registry.py` with:
   - `test_register_adds_detector` — `@register("ns.foo")` → `"ns.foo"` in `registered_names()`.
@@ -235,11 +252,17 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_registered_names_namespace_filter` — `registered_names(namespace="zs")` returns only `"zs.*"` names.
   - `test_auto_discover_sorted_order` — create two fake modules in a temp package; `auto_discover` imports them in alphabetical order regardless of `pkgutil` traversal order.
   - `test_auto_discover_does_not_double_register` — calling `auto_discover` twice does not raise.
-  - `test_clear_registry_removes_all` — after `_clear_registry()`, `registered_names()` is empty.
+  - `test_clear_registry_removes_all` — after `_clear_registry()`, `registered_names()` is empty (the test itself restores the registry via the snapshot fixture).
+  - `test_snapshot_restore_roundtrip` — register `"ns.tmp"`, take a snapshot, register `"ns.other"`, restore; `registered_names()` equals the snapshot's names and the original function objects are intact.
+  - `test_clear_then_restore_keeps_preexisting_detectors` — a detector `"tfix.keep"` is registered at module scope of the test file; snapshot, `_clear_registry()`, restore; `"tfix.keep"` is registered again (this is why fixtures restore instead of clearing; REQ-TST-09).
   - `test_run_all_empty_ledger` — all registered detectors return `[]` for an empty DataFrame (detector contract enforcement).
-  - A `conftest.py` in `tests/detectors/` that calls `_clear_registry()` in an `autouse` fixture to prevent test pollution.
+  - `test_run_all_keeps_alerts_with_decimal_and_date_data` — a detector returning an `Alert` whose `data` holds `Decimal` and `date` values is **not** dropped by `run_all` (regression for the id `TypeError`; REQ-MOD-05).
+  - A `conftest.py` in `tests/detectors/` providing two function-scoped fixtures:
+    - `isolated_registry` (autouse for `test_registry.py`): `snap = _snapshot_registry()`; yield; `_restore_registry(snap)`.
+    - `empty_registry`: snapshot, `_clear_registry()`, yield, restore. Used only by tests that need an empty registry (e.g. `test_run_all_empty_registry_returns_empty`).
+    Neither fixture is used by the Hypothesis tests (REQ-TST-09).
 - [ ] Implement `ledger_kit/detectors/base.py` with `DetectorResult` and `DetectorError` as in design §4.1.
-- [ ] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry` as in design §4.2.
+- [ ] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry`, `_snapshot_registry`, `_restore_registry` as in design §4.2.
 - [ ] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -247,22 +270,23 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 11 — Property-based registry tests (Tier 3)
 
-**Covers**: REQ-TST-01 (detector layer), testing strategy §Tier 3 properties: no invention, idempotency, empty input, source ref coverage
+**Covers**: REQ-TST-01 (detector layer), REQ-TST-09, testing strategy §Tier 3 properties: no invention, idempotency, empty input, source ref coverage
 
-- [ ] Extend `tests/detectors/test_registry.py` with a helper `trivial_detector` fixture that registers a detector emitting one alert for any non-empty ledger, using a real `source_ref` from the input.
-- [ ] Add property-based tests using Hypothesis `data_frames` strategy:
+- [ ] Create `tests/detectors/test_registry_properties.py`. At **module scope** (executed once at import, never inside a test or `@given` body) register the test detectors with distinct names: `"tprop.trivial"` (one alert citing a real `source_ref` from the input, for any non-empty ledger), `"tprop_zs.a"` and `"tprop_pi.b"` (each appends its name to a module-level `CALLS` list). No function-scoped fixture is used in this file; no `_clear_registry`.
+- [ ] Add property-based tests using Hypothesis `data_frames` strategy. Each calls `run_all(ledger, namespace=...)` with a `tprop`-prefixed namespace so unrelated registered detectors cannot interfere:
   - `test_source_refs_are_subset_of_input` — for any generated ledger, every `source_ref` in every alert exists in the ledger's `source_ref` column (`@settings(max_examples=200)`).
   - `test_run_all_idempotent` — running `run_all` twice on the same ledger returns structurally identical results (`@settings(max_examples=200)`).
   - `test_run_all_empty_input_always_empty` — for all randomly generated DataFrames with zero rows, all detectors return `[]` (`@settings(max_examples=200)`).
-  - `test_namespace_filter_never_calls_other_ns` — with detectors registered in two namespaces (`"zs"` and `"pi"`), `run_all(ledger, namespace="zs")` never invokes any `"pi.*"` detector for any generated ledger (`@settings(max_examples=200)`).
+  - `test_namespace_filter_never_calls_other_ns` — `CALLS.clear()` then `run_all(ledger, namespace="tprop_zs")`; `CALLS` never contains `"tprop_pi.b"` for any generated ledger (`@settings(max_examples=200)`).
   - `test_context_is_immutable_proxy` — for any generated `context` dict, the `MappingProxyType` received by the detector raises `TypeError` on any attempted mutation (`@settings(max_examples=200)`).
-- [ ] Verify: all Hypothesis tests pass with 200 examples, `ruff check` clean.
+  - `test_module_scope_registration_is_not_duplicated` — (plain test) `registered_names("tprop")` contains each `tprop*` name exactly once after the Hypothesis tests have run many examples.
+- [ ] Verify: the Hypothesis tests run without a `function_scoped_fixture` health-check failure and without a duplicate-name `ValueError`; all pass with 200 examples, `ruff check` clean.
 
 ---
 
 ## Task 11a — Explainer layer (test-first)
 
-**Covers**: REQ-EXP-01 through REQ-EXP-09, REQ-TST-08, design §4a
+**Covers**: REQ-EXP-01 through REQ-EXP-10, REQ-TST-08, REQ-PKG-07, design §4a
 
 - [ ] Write `tests/test_explainer.py` — all tests inject `MockLLMClient` via `client=` parameter; no network calls, no patching of `openai.OpenAI`:
   - `test_explain_fallback_when_no_api_key` — `OPENAI_API_KEY` unset, no client → filled fallback, `source="fallback"`.
@@ -270,21 +294,34 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_explain_plain_placeholder_inserts_as_string` — `{charge_count}` with `"12"` → `"12"` (not `"12,00 EUR"`).
   - `test_explain_source_refs_placeholder` — `{source_refs}` → comma-joined refs string.
   - `test_explain_unknown_placeholder_left_as_is` — unknown key left unchanged.
-  - `test_build_prompt_includes_source_refs` — system prompt contains all `alert.source_refs` values.
-  - `test_build_prompt_includes_no_invention_instruction` — system prompt contains Finance Rule 1 phrase verbatim.
+  - `test_build_prompt_includes_source_refs` — system message in `client.calls[0]["messages"]` contains all `alert.source_refs` values.
+  - `test_build_prompt_includes_no_invention_instruction` — that system message contains Finance Rule 1 phrase verbatim.
+  - `test_mock_client_chat_completions_create_resolves` — `MockLLMClient(["x"]).chat.completions.create(model="m")` returns a response and appends its kwargs to `client.calls` (`chat` is a property).
   - `test_explain_with_meta_returns_explanation_dataclass` — result is `Explanation` with correct fields.
   - `test_explain_with_meta_llm_source_on_success` — valid mock response → `source="llm"`, `rejected_numbers=()`.
-  - `test_explain_number_guard_european_format_passes` — `"12,99 EUR"` in response passes when `alert.data` has `"12.99"`.
-  - `test_explain_number_guard_date_03_passes_for_row_index_3` — integer `3` in text matches row index `3` (both `Decimal("3")`).
+  - `test_explain_number_guard_european_format_passes` — `"12,99 EUR"` in response passes when `alert.data` has `"12.99"` (not split into `12` and `99`).
+  - `test_explain_number_guard_european_thousands_passes` — `"1.060,00 EUR"` passes when `alert.data` has `"1060.00"`.
+  - `test_explain_number_guard_two_amounts_in_one_sentence_pass` — `"15,99 EUR monthly, 191,88 EUR yearly"` passes when both values are allowed.
+  - `test_explain_number_guard_glued_allowed_number_passes` — `"15.99EUR"` passes when `15.99` is allowed.
+  - `test_explain_number_guard_rejects_made_up_number_equal_to_row_index` — cited ref `bank.csv:3`; response with a made-up `3 EUR` plus `(bank.csv:3)`, and no value 3 in `alert.data` or cited cells → fallback, `rejected_numbers=("3",)`; the same response without the made-up `3 EUR` passes.
+  - `test_explain_number_guard_rejects_invented_number_glued_to_letters` — `"invoice F2026099"` (not allowed) → fallback, `"2026099"` in `rejected_numbers`.
+  - `test_explain_number_guard_rejects_iban_shaped_token` — response containing `"DE00 0000 0000 0000 0000 00"` → fallback.
+  - `test_explain_number_guard_rejects_malformed_date` — response containing `"31/02/2026"` → fallback.
+  - `test_tokenise_removes_dates_then_refs_then_numbers` — `_tokenise("on 2026-01-15, see bank.csv:3: 12,99 EUR and 15.99EUR", ["bank.csv:3"])` → dates `{date(2026,1,15)}`, numbers `("12,99", "15.99")`; unit test of the shared tokeniser.
+  - `test_allowed_decimals_excludes_row_numbers_and_date_parts` — for cited row `bank.csv:3` dated 2026-01-15 with amount `12.99`, `_allowed_decimals` is exactly `{Decimal("12.99")}` plus any `Alert.data` values; it contains none of `3`, `2026`, `1`, `15`.
   - `test_explain_number_guard_rejects_hallucinated_number` — response with `"999.99"` (not in alert/rows) → `source="fallback"`.
   - `test_explain_number_guard_passes_valid_response` — response with only known figures → `source="llm"`.
   - `test_explain_date_guard_rejects_hallucinated_date` — response mentions a date not in cited rows → fallback.
-  - `test_explain_date_guard_passes_row_date` — response mentions an ISO date matching a row → passes.
+  - `test_explain_date_guard_passes_row_date` — response mentions an ISO date matching a row → passes; its parts are not treated as numbers.
   - `test_explain_fallback_on_api_error` — mock raises `RuntimeError` → fallback, no re-raise.
-  - `test_explain_only_safe_columns_sent` — the `rows` DataFrame reaching the LLM never contains `id` or `description`.
+  - `test_explain_openai_import_error_falls_back` — `OPENAI_API_KEY` set, no client, `monkeypatch.setitem(sys.modules, "openai", None)` → fallback, no exception.
+  - `test_explain_openai_client_built_with_no_sdk_retries` — fake `openai` module in `sys.modules` whose `OpenAI` records kwargs: `timeout == LLM_TIMEOUT_SECONDS` and `max_retries == 0`.
+  - `test_explain_rows_json_has_iso_dates` — user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and no epoch-millisecond number for the row's date. (If pandas emits a time part, convert the `date` column to ISO strings before `to_json` and update design §4a.5.)
+  - `test_explain_only_safe_columns_sent` — user message in `client.calls[0]["messages"]` has no `id` or `description` key for the rows.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: generate foreign Decimal values in `[10000, 99999]` range (well outside alert data); always rejected.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: LLM answer repeating only `alert.data` Decimal strings always passes.
-- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta`, `_AlertFormatter`, `_fill_fallback`, `_select_llm_columns`, `_parse_decimal`, `_extract_dates_and_strip`, `_allowed_decimals`, `_allowed_dates`, `_passes_number_guard`, `_call_llm` as in design §4a.
+- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta`, `_AlertFormatter`, `_fill_fallback`, `_select_llm_columns`, `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_allowed_decimals`, `_allowed_dates`, `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", date_format="iso", default_handler=str)`.
+- [ ] `MockLLMClient` (in `tests/test_explainer.py` or `tests/conftest.py`): `chat` and `completions` are properties, `create` appends its kwargs to `self.calls`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
