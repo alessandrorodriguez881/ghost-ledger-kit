@@ -1,0 +1,10 @@
+[ingestion]
+default_currency = "EUR"
+encodings = ["utf-8-sig", "cp1252"]  # tried in order; updated from OD-3
+
+[display]
+currency = "EUR"
+locale = "european"
+
+[detectors]
+# no defaults at library level; apps supply their own thresholds

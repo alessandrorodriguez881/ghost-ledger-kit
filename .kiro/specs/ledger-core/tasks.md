@@ -10,26 +10,26 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 **Covers**: REQ-PKG-01, REQ-PKG-02, REQ-PKG-05, REQ-PKG-06, REQ-PKG-07
 
-- [ ] Create `pyproject.toml` at the workspace root with:
+- [x] Create `pyproject.toml` at the workspace root with:
   - `[build-system]` using `setuptools` and `setuptools-scm` (PEP 517/518, no `setup.py`)
   - `[project]` metadata: name `ledger-kit`, requires-python `>=3.11`
   - `[project.optional-dependencies]` groups: `dev` (pytest, hypothesis, freezegun, pytest-cov, ruff) and `llm` (`openai`, exact pinned version; REQ-PKG-07)
   - `[tool.ruff]` section: `line-length = 100`, `select = ["E","F","I","UP"]`
   - `[tool.ruff.format]` section
   - `[tool.pytest.ini_options]` section: `pythonpath = ["."]` and `testpaths = ["tests", "apps"]` (REQ-PKG-06)
-- [ ] Create `requirements.txt` with pinned exact versions for all runtime deps (pandas, pydantic, streamlit) and dev deps; list `openai` pinned under an "optional (llm extra)" comment.
-- [ ] Write `tests/test_packaging.py` (first, before the config is final):
+- [x] Create `requirements.txt` with pinned exact versions for all runtime deps (pandas, pydantic, streamlit) and dev deps; list `openai` pinned under an "optional (llm extra)" comment.
+- [x] Write `tests/test_packaging.py` (first, before the config is final):
   - `test_pytest_config_sets_pythonpath_and_testpaths` — parse `pyproject.toml` with `tomllib`; assert `pythonpath == ["."]` and `testpaths == ["tests", "apps"]`.
   - `test_ledger_kit_importable_without_editable_install` — `import ledger_kit` succeeds under plain `pytest` (no `pip install -e .`); verify by running `pytest tests/test_packaging.py` in a fresh venv that has only `requirements.txt` installed.
   - `test_openai_is_optional_extra_only` — `openai` is absent from `[project].dependencies`, and present with an `==` pin in `[project.optional-dependencies].llm`.
-- [ ] Create the top-level package skeleton — empty `__init__.py` files for:
+- [x] Create the top-level package skeleton — empty `__init__.py` files for:
   - `ledger_kit/`
   - `ledger_kit/ingestion/`
   - `ledger_kit/detectors/`
   - `ledger_kit/ui/`
   - `ledger_kit/utils/`
-- [ ] Create `ledger_kit/defaults.toml` with the content from design §9.
-- [ ] Create `.env.example` documenting any required environment variables.
+- [x] Create `ledger_kit/defaults.toml` with the content from design §9.
+- [x] Create `.env.example` documenting any required environment variables.
 - [ ] Verify: `ruff check .` and `ruff format --check .` pass with zero warnings.
 
 ---
@@ -38,7 +38,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 **Covers**: REQ-ING-13 (Transaction schema), REQ-DET-03 (Alert schema), REQ-MOD-01 to REQ-MOD-10, design §2
 
-- [ ] Write `tests/test_models.py` with:
+- [x] Write `tests/test_models.py` with:
   - `test_transaction_source_ref_computed` — building a `Transaction` produces correct `source_ref`.
   - `test_transaction_amount_must_be_positive` — constructing with a negative amount raises `ValidationError`.
   - `test_transaction_is_frozen` — attempting to mutate a field raises an error.
@@ -57,7 +57,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - *(CR-LC-3b)* `test_supplier_iban_optional_and_verbatim` — `iban=None` allowed; `" es88 2100 "` stored unchanged (REQ-MOD-10).
   - *(CR-LC-3b)* `test_supplier_is_frozen`.
   - *(CR-LC-3a)* `test_package_reexports_models` — `from ledger_kit import Transaction, Invoice, Supplier, Alert` works.
-- [ ] Implement `ledger_kit/models.py`:
+- [x] Implement `ledger_kit/models.py`:
   - `Transaction` Pydantic v2 model exactly as in design §2.1.
   - `Alert` Pydantic v2 model with deterministic `id` validator as in design §2.2 (CR-LC-1b).
   - Both with `model_config = {"frozen": True}`.
@@ -66,7 +66,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `_deterministic_alert_id` helper using sha256 of canonical JSON, serialised with `json.dumps(..., default=_json_default)` (numpy scalars → Python types via `.item()`, everything else → `str`; design §2.2).
   - `Alert._set_deterministic_id` imports `model_validator` from `pydantic`, copies the input dict instead of mutating it, and computes the id only when `detector`, `source_refs` and `data` are all present, so a missing field surfaces as `ValidationError`.
   - *(CR-LC-3a/3b)* `Invoice` and `Supplier` Pydantic v2 models exactly as in design §2.1a/§2.1b (frozen; non-negative validator on the six `Invoice` amount fields; no normalisation of identifiers).
-- [ ] Update `ledger_kit/__init__.py` to re-export `Transaction`, `Invoice`, `Supplier` and `Alert`.
+- [x] Update `ledger_kit/__init__.py` to re-export `Transaction`, `Invoice`, `Supplier` and `Alert`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
@@ -75,7 +75,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 **Covers**: REQ-MON-01, REQ-MON-02, REQ-MON-03, REQ-MON-04, REQ-MON-05, REQ-MON-06, REQ-ING-27 (format_as_european), design §5
 
-- [ ] Write `tests/test_money.py` with:
+- [x] Write `tests/test_money.py` with:
   - `test_round_to_cents_half_up` — `Decimal("2.345")` → `Decimal("2.35")`.
   - `test_round_to_cents_half_up_negative` — `Decimal("-2.345")` → `Decimal("-2.35")`.
   - `test_round_to_cents_already_exact` — `Decimal("1.23")` → unchanged.
@@ -94,7 +94,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - *(CR-LC-3e)* `test_within_tolerance_negative_tol_raises` — `ValueError`.
   - *(CR-LC-3e)* `test_net_total` — `net_total([1000.00, 210.00], [150.00])` → `Decimal("1060.00")`; `net_total([100.00, 21.00, 5.20])` → `Decimal("126.20")`; empty inputs → `Decimal("0")`.
   - *(CR-LC-3e)* Property (`max_examples=200`): `test_percent_of_matches_quantize` — for any base in `[0, 1 000 000]` (2 places) and rate in `{21, 10, 4, 0}`, `percent_of` equals `(base * rate / 100).quantize(Decimal("0.01"), ROUND_HALF_UP)`.
-- [ ] Implement `ledger_kit/utils/money.py` with `round_to_cents`, `format_amount`, `format_as_european`, `_group_thousands`, and (CR-LC-3e) `percent_of`, `within_tolerance`, `net_total` as in design §5.
+- [x] Implement `ledger_kit/utils/money.py` with `round_to_cents`, `format_amount`, `format_as_european`, `_group_thousands`, and (CR-LC-3e) `percent_of`, `within_tolerance`, `net_total` as in design §5.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---

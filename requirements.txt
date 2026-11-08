@@ -1,0 +1,15 @@
+# runtime
+pandas==3.1.1
+numpy==2.5.4
+pydantic==2.14.3
+streamlit==1.67.0
+
+# dev / test
+pytest==9.2.0
+hypothesis==6.170.15
+freezegun==1.5.5
+pytest-cov==7.1.0
+ruff==0.17.4
+
+# optional (llm extra)
+openai==3.46.0
