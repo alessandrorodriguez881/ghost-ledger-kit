@@ -664,7 +664,7 @@ def explain_with_meta(
     source='llm' on success, source='fallback' if the guard fires or on any error.
     """
     _narrow_rows = _select_llm_columns(rows, row_columns)
-    fallback = _fill_fallback(fallback_template, alert)
+    fallback = fill_fallback(fallback_template, alert)
 
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key and client is None:
@@ -732,10 +732,14 @@ class _AlertFormatter(string.Formatter):
         return str(value)
 
 
-def _fill_fallback(template: str, alert: Alert) -> str:
-    """Fill the fallback template using _AlertFormatter."""
+def fill_fallback(template: str, alert: Alert) -> str:
+    """Fill the fallback template using _AlertFormatter (public: apps call it directly)."""
     return _AlertFormatter(alert).vformat(template, [], {})
 ```
+
+`fill_fallback` is public API of `ledger_kit.explainer` (apps must not import a private name; they
+use `from ledger_kit.explainer import fill_fallback`). `_AlertFormatter` stays private. Nothing else
+uses the old private name, so no alias is kept.
 
 ### 4a.4 Number guard (Decimal-value comparison)
 

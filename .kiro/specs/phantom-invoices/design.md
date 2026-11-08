@@ -28,7 +28,7 @@ apps/phantom_invoices/
 ├── config.toml                  # [demo] paths (+ optional as_of); no thresholds
 ├── settings.py                  # load_config, demo_inputs, run_pipeline (testable without Streamlit)
 ├── prepare.py                   # quarantine_multi_rate()
-├── explain_support.py           # ROW_COLUMNS, TEMPLATES, template_for, fill_template,
+├── explain_support.py           # ROW_COLUMNS, TEMPLATES, template_for,
 │                                # build_explain_rows, guard_badge, HallucinatingStubClient
 ├── flashlight.py                # HAUNTED_CSS, render_ledger_html(df, lit_refs) — pure, escapes cells
 └── detectors/
@@ -1366,8 +1366,9 @@ explanation may mention comes from `Alert.data` (REQ-DET-09).
 
 ### 12.3 Template completeness (REQ-PI-43)
 
-`fill_template(template, alert)` wraps ledger-core's `_fill_fallback(template, alert)` (design note
-DN-9) and is what the stub client and the tests use. `test_pi_explain_support.py` builds one real
+The app has no wrapper of its own: the stub client and the tests call ledger-core's public
+`ledger_kit.explainer.fill_fallback(template, alert)` directly (design note DN-9; an app never
+imports a private name). `test_pi_explain_support.py` builds one real
 alert of each of the 11 variants, fills its template, asserts that no `{` or `}` remains, and
 asserts that a sentence restating only `Alert.data` values and cited cells passes the number guard.
 
@@ -1458,7 +1459,7 @@ class HallucinatingStubClient:
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=self._text))])
 ```
 
-The app builds it per alert: `HallucinatingStubClient(fill_template(template_for(alert), alert))`.
+The app builds it per alert: `HallucinatingStubClient(fill_fallback(template_for(alert), alert))`.
 The filled fallback passes the guard (all its figures are allowed), so the only rejected token is
 `99999.99` and the ⚠️ badge appears without an API key. It is a separate copy of App 1's stub
 because apps must not import each other. Explanations are cached in
@@ -1961,8 +1962,10 @@ Clarifications made while writing the design; none changes a requirement except 
   shown as the tax id as written or the row's own `source_ref`, never as an invented value.
 - **DN-8 (badge).** With an API key present and a fallback caused by an error, the 📋 badge reads
   "Template (LLM unavailable)" instead of claiming there is no key.
-- **DN-9 (`_fill_fallback`).** `fill_template` wraps ledger-core's `_fill_fallback`; if ledger-core
-  later exports a public name, only that one line changes.
+- **DN-9 (`fill_fallback`).** An app must not import a private function. ledger-core's fallback
+  filler is the public `ledger_kit.explainer.fill_fallback`; App 2 calls it directly (no wrapper)
+  and `test_pi_scaffold.py` scans the package for imports of underscore-prefixed names from
+  `ledger_kit`.
 - **DN-10 (line endings).** `.gitattributes` marks the demo CSVs `-text`, otherwise `core.autocrlf`
   on Windows would break the byte-equality test.
 - **DN-11 (`as_of` widget).** `UI_DEFAULT_AS_OF` only seeds the date widget; it reaches no detector
