@@ -16,7 +16,8 @@ is produced by `apps/phantom_invoices/`.
 Detector namespace: `pi` (registered names `pi.duplicate_invoice`, `pi.iban_change`,
 `pi.vat_error`, `pi.reconciliation`). Test files are prefixed `test_pi_`.
 
-This document contains requirements only. `design.md` and `tasks.md` follow after review.
+This document contains requirements only. `design.md` follows it; `tasks.md` follows after review
+of the design. All open decisions of section 16 are resolved.
 
 ---
 
@@ -176,8 +177,11 @@ All helpers are pure functions in `apps/phantom_invoices/detectors/utils.py` and
 
 Constants (module level, each with a business-meaning comment): `DUPLICATE_WINDOW_DAYS: int = 7`
 (two invoices of one supplier with the same total are suspicious when issued fewer than this many
-days apart); `DUPLICATE_TOTAL_TOLERANCE: Decimal = Decimal("0.00")` ("same total" means equal to the
-cent; compared with `within_tolerance`).
+days apart); `SAME_NUMBER_WINDOW_DAYS: int = 180` (two invoices of one supplier with the same
+invoice number are suspicious only when issued fewer than this many days apart, so a numbering
+series that restarts every year does not fire; OD-PI-07);
+`DUPLICATE_TOTAL_TOLERANCE: Decimal = Decimal("0.00")` ("same total" means equal to the cent;
+compared with `within_tolerance`).
 
 - **REQ-PI-17** The detector signature is
   `detect_duplicate_invoices(ledger: pd.DataFrame, context: Mapping[str, Any]) -> list[Alert]`.
@@ -189,12 +193,17 @@ cent; compared with `within_tolerance`).
 
   | Rule | Condition | Severity | `variant` |
   |---|---|---|---|
-  | A | `N1(a) == N1(b)` | `critical` | `same_number` |
+  | A | `N1(a) == N1(b)` and `abs(issue_date(a) - issue_date(b)).days < SAME_NUMBER_WINDOW_DAYS` | `critical` | `same_number` |
   | B | `N1(a) != N1(b)`, `N2(a) == N2(b)` and totals equal | `warning` | `near_identical_number` |
   | C | `N2(a) != N2(b)`, totals equal and `abs(issue_date(a) - issue_date(b)).days < DUPLICATE_WINDOW_DAYS` | `warning` | `same_total_close_dates` |
 
   Totals are equal when `within_tolerance(a.total, b.total, DUPLICATE_TOTAL_TOLERANCE)`. Rule B has
-  no date window. Rule C applies to any numbers with different `N2`, including consecutive numbers
+  no date window. Two invoices with equal `N1` are related by rule A alone: rule B needs different
+  `N1`, and a gap of `SAME_NUMBER_WINDOW_DAYS` or more days exceeds `DUPLICATE_WINDOW_DAYS`, so
+  rule C cannot apply either (a test asserts `DUPLICATE_WINDOW_DAYS <= SAME_NUMBER_WINDOW_DAYS`).
+  The same number `SAME_NUMBER_WINDOW_DAYS` or more days apart is therefore **not related** at all
+  (OD-PI-07). Only invoices with equal `currency` are ever paired (REQ-PI-05). Rule C applies to
+  any numbers with different `N2`, including consecutive numbers
   that happen to carry the same total (OD-PI-06). **No rule uses edit distance or any similarity
   score.**
 - **REQ-PI-19** **One alert per group.** The pair relations of REQ-PI-18 are closed transitively;
@@ -223,8 +232,13 @@ cent; compared with `within_tolerance`).
 - **REQ-PI-21** Edge behaviour required (each a named Tier 2 test): `N1` empty → row skipped;
   non-string or missing invoice numbers → skipped; a missing `issue_date` or `total` → row skipped;
   two rows with identical `source_ref` → one used (REQ-PI-11); multi-rate group → no alert
-  (REQ-PI-16); same number for **different** suppliers → no alert; boundary: 6 days apart alerts,
-  7 days apart does not; totals differing by 0.01 are not equal.
+  (REQ-PI-16); same number for **different** suppliers → no alert; boundaries: rule C 6 days
+  apart alerts, 7 days apart does not; rule A 179 days apart alerts, 180 days apart does not;
+  totals differing by 0.01 are not equal.
+- **REQ-PI-21a** *(OD-PI-07)* Two further Tier 1 tests, with minimal fixtures (same supplier and
+  same invoice number, any totals): `test_pi_same_number_2_days_apart_is_critical` → exactly
+  one `critical` alert, `variant="same_number"`; `test_pi_same_number_200_days_apart_no_alert` →
+  no alert (an annual numbering restart is not a duplicate).
 
 ---
 
@@ -418,7 +432,9 @@ an unmatched invoice is reported as overdue); `MATCH_AMOUNT_TOLERANCE: Decimal =
   - A supplier payment that was matched is `matched`; otherwise `unmatched`.
 
   `Reconciliation` exposes `invoice_buckets: dict[str, str]` and `payment_buckets: dict[str, str]`
-  (keyed by `source_ref`) and `matches: list[tuple[str, str]]` (invoice ref, payment ref).
+  (keyed by `source_ref`), `matches: list[tuple[str, str]]` (invoice ref, payment ref) and
+  `payment_supplier: dict[str, str]` (payment ref → `tax_key` of the master supplier it is
+  attributed to, REQ-PI-25), so the alert builder never repeats the attribution.
 - **REQ-PI-39** **Alerts.** Only two bucket outcomes alert; `matched` and `open_not_due` are silent.
   `detector`: `"pi.reconciliation"`, severity `warning` for both.
 
@@ -587,8 +603,8 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
 
   A root-level `requirements.txt` lists all runtime dependencies (no `-e .` line). The app folder
   must **not** contain its own `requirements.txt` (Community Cloud would read it first and hide the
-  root one). This supersedes the per-app `requirements.txt` shown in `.kiro/steering/structure.md`
-  (OD-PI-14).
+  root one). This supersedes the per-app `requirements.txt` shown in `.kiro/steering/structure.md`;
+  one task of `tasks.md` updates the phantom section of that steering file to match (OD-PI-14).
 
 ---
 
@@ -621,8 +637,9 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
   case.
 - **REQ-PI-58** **Identifiers (Finance Rule 5, CR-LC-3h).** Every IBAN in the demo has a valid
   mod-97 checksum and **deliberately wrong Spanish national check digits** (example
-  `ES88 2100 0418 5602 0005 1332`: mod-97 valid, national check digits `56` instead of `45`), so it
-  cannot be a real account; the generator derives the two ISO check digits algorithmically. The
+  `ES88 2100 0418 5602 0005 1332`: mod-97 valid, national check digits `56` instead of `45`; checked
+  by running it: the mod-97 remainder is 1 and the correct Spanish national check digits are `45`),
+  so it cannot be a real account; the generator derives the two ISO check digits algorithmically. The
   demo contains no checksum-invalid IBAN (the checksum warning is planted only by unit tests, and
   P12's hyphenated IBAN is derived from a valid one). Every supplier tax id has a **wrong control
   character**, a different one per supplier (examples `B00000001`, `B00000002` for companies;
@@ -635,7 +652,8 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
 
 ## 11 — Configuration (`apps/phantom_invoices/config.toml`)
 
-- **REQ-PI-59** All thresholds (`DUPLICATE_WINDOW_DAYS`, `VAT_TOLERANCE`, `TOTAL_TOLERANCE`,
+- **REQ-PI-59** All thresholds (`DUPLICATE_WINDOW_DAYS`, `SAME_NUMBER_WINDOW_DAYS`, `VAT_TOLERANCE`,
+  `TOTAL_TOLERANCE`,
   `ALLOWED_VAT_RATES`, `PAYMENT_MATCH_WINDOW_DAYS`, `UNPAID_GRACE_DAYS`, `MATCH_AMOUNT_TOLERANCE`,
   `DUPLICATE_TOTAL_TOLERANCE`) live **only** as named constants in the detector modules; they are
   **not** duplicated in `config.toml` (as REQ-ZS-42). `DEFAULT_PAYMENT_TERM_DAYS = 30` lives in
@@ -648,8 +666,9 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
 
 ## 12 — Package structure
 
-The following list is **definitive** for this app and supersedes the illustrative list in
-`.kiro/steering/structure.md` (OD-PI-14).
+The following list is **definitive** for this app. It supersedes the illustrative phantom section
+of `.kiro/steering/structure.md` until the dedicated task of `tasks.md` (OD-PI-14) rewrites that
+section to this file list (which has no per-app `requirements.txt`).
 
 ```
 apps/phantom_invoices/
@@ -712,7 +731,8 @@ Root-level `requirements.txt` serves both apps; there is no app-level one.
   | `ledger_with_unpaid_invoice` | One overdue invoice and a later payment date to fix `as_of` |
   | `ledger_with_double_payment` | P9 |
 
-- **REQ-PI-63** Acceptance examples P1–P12 are each a named Tier 1 test (section 7).
+- **REQ-PI-63** Acceptance examples P1–P12 are each a named Tier 1 test (section 7); so are the two
+  tests of REQ-PI-21a.
 - **REQ-PI-64** **Mandatory Hypothesis properties**, all `@settings(max_examples=200)`:
 
   | Property | File | Description |
@@ -734,6 +754,7 @@ Root-level `requirements.txt` serves both apps; there is no app-level one.
   monkeypatching `date.today` to raise) with identical alert lists (REQ-PI-12).
 - **REQ-PI-66** Tier 2 edge cases listed in REQ-PI-21, 28, 33, 40 are named tests; every
   threshold constant is tested on both sides of its boundary (`DUPLICATE_WINDOW_DAYS` 6/7,
+  `SAME_NUMBER_WINDOW_DAYS` 179/180,
   `VAT_TOLERANCE` 0.01/0.02, `TOTAL_TOLERANCE` 0.01/0.02, `UNPAID_GRACE_DAYS` 15/16,
   `PAYMENT_MATCH_WINDOW_DAYS` 60/61, `MATCH_AMOUNT_TOLERANCE` 0.01/0.02).
 - **REQ-PI-67** Coverage across `apps/phantom_invoices/` must not fall below **80 %**
@@ -799,27 +820,27 @@ its REQs in ledger-core `requirements.md` §9 and mirrored in its `design.md` an
 
 ## 16 — Open decisions
 
-Items that go beyond the brief, resolve an ambiguity, or accept a known limitation. Each needs a
-yes/no before `design.md`.
+Every item was reviewed. Items marked **Resolved (accepted)** were accepted as proposed; items
+marked **Resolved (changed)** were changed by the review and the affected requirements were edited.
 
-| # | Decision | Proposed resolution |
-|---|---|---|
-| OD-PI-01 | The brief names two money helpers (`percent_of`, `within_tolerance`) but the total check needs `base + VAT + surcharge − withholding`. | Add a third helper `net_total` to `money.py` (REQ-MON-06) so REQ-MON-03 still holds. |
-| OD-PI-02 | The brief lists no flag for a derived `due_date`. Finance Rule 1 forbids silently filled data. | Add `Invoice.due_date_is_default: bool` (REQ-MOD-08) and carry it into the overdue alert and the UI caption. |
-| OD-PI-03 | Supplier master needs a DataFrame like the other inputs. | `Supplier` model + `normalise(kind="supplier")`; one model kind per `normalise` call, mixing raises `ValueError` (REQ-ING-33). |
-| OD-PI-04 | Registered names. | `pi.duplicate_invoice`, `pi.iban_change`, `pi.vat_error`, `pi.reconciliation`, matching the module names in `structure.md` and the fixture name `ledger_with_iban_change`. "Poltergeist IBAN" is a UI label only. |
-| OD-PI-05 | "Sorted by `(date, source_ref)`": text order puts `f.csv:10` before `f.csv:9`. | Use natural order of `(file, row number)` (REQ-PI-10); still fully deterministic. |
-| OD-PI-06 | Rule C (same total, different numbers, fewer than 7 days) also fires for consecutive numbers that happen to carry equal totals (two identical-price services in one week). | Accept: consecutive numbers prevent only rules A/B, not C, as specified. Tier 2 test documents it. |
-| OD-PI-07 | Rule A flags the same number from the same supplier even years apart (annual numbering restart, e.g. `1`). | Accept the known false positive; no date window on rule A. |
-| OD-PI-08 | Multi-rate invoices are quarantined by an app-level step (REQ-PI-15) and also skipped inside the duplicate detector (REQ-PI-16). Limitations: a *duplicated* multi-rate invoice goes unnoticed and its payment shows as `payment_without_invoice`. | Accept; documented in the UI notice for the quarantine panel. |
-| OD-PI-09 | Payment attribution order. | Counterparty name first, then IBAN (REQ-PI-25), so "addressed to a known supplier, sent to another account" is critical. |
-| OD-PI-10 | A malformed IBAN that is not equal to the master. | Validity first: invalid → `warning` only; `critical` only for a valid, different IBAN (REQ-PI-24). |
-| OD-PI-11 | Invoices of suppliers absent from the master. | No IBAN comparison; reconciliation treats them as unpaid (never matched), so they can become `overdue`. |
-| OD-PI-12 | The hallucination stub exists in App 1; apps cannot import each other. | Duplicate it in App 2's `explain_support.py` rather than promote it to `ledger_kit` (which would be a further ledger-core change). |
-| OD-PI-13 | Dialect of the demo files. | Plain dialect for all three, to keep the demo independent of dialect detection. |
-| OD-PI-14 | `structure.md` lists a per-app `requirements.txt` and omits `supplier_reader.py`, `reconciliation.py`. | This spec's list is definitive (as zombie-subscriptions did). `structure.md` was not edited; update it in a later housekeeping step. |
-| OD-PI-15 | IBAN validation depth. | Regex + mod-97 only; no per-country length table, no Spanish national check-digit validation. |
-| OD-PI-16 | Surcharge (*recargo de equivalencia*) and withholding (*IRPF*) amounts. | Not recomputed from rates; only used in the total (P8, P11). |
-| OD-PI-17 | Payments dated before the issue date or partial/over-payments. | Not matched; they become `unmatched` and the invoice stays open/overdue. |
-| OD-PI-18 | "Hook 1 test template" in the brief: no hook file exists in the repository. | Interpreted as the Tier 3 property template in `testing.md`, which was updated (CR-LC-3d). |
-| OD-PI-19 | The fixed phone-verification message is advice text. | Allowed because it is deterministic code, shown by the UI and the fallback template; the LLM stays bound by Finance Rule 8. |
+| # | Status | Decision | Resolution |
+|---|---|---|---|
+| OD-PI-01 | Resolved (accepted) | The brief names two money helpers (`percent_of`, `within_tolerance`) but the total check needs `base + VAT + surcharge − withholding`. | Add a third helper `net_total` to `money.py` (REQ-MON-06) so REQ-MON-03 still holds. |
+| OD-PI-02 | Resolved (accepted) | The brief lists no flag for a derived `due_date`. Finance Rule 1 forbids silently filled data. | Add `Invoice.due_date_is_default: bool` (REQ-MOD-08) and carry it into the overdue alert and the UI caption. |
+| OD-PI-03 | Resolved (accepted) | Supplier master needs a DataFrame like the other inputs. | `Supplier` model + `normalise(kind="supplier")`; one model kind per `normalise` call, mixing raises `ValueError` (REQ-ING-33). |
+| OD-PI-04 | Resolved (accepted) | Registered names. | `pi.duplicate_invoice`, `pi.iban_change`, `pi.vat_error`, `pi.reconciliation`, matching the module names in `structure.md` and the fixture name `ledger_with_iban_change`. "Poltergeist IBAN" is a UI label only. |
+| OD-PI-05 | Resolved (accepted) | "Sorted by `(date, source_ref)`": text order puts `f.csv:10` before `f.csv:9`. | Use natural order of `(file, row number)` (REQ-PI-10); still fully deterministic. |
+| OD-PI-06 | Resolved (accepted) | Rule C (same total, different numbers, fewer than 7 days) also fires for consecutive numbers that happen to carry equal totals (two identical-price services in one week). | Accept: consecutive numbers prevent only rules A/B, not C, as specified. Tier 2 test documents it. |
+| OD-PI-07 | Resolved (changed) | Rule A flags the same number from the same supplier even years apart (annual numbering restart, e.g. `1`). | **Changed:** rule A fires only when the two issue dates are fewer than `SAME_NUMBER_WINDOW_DAYS = 180` apart (REQ-PI-18, REQ-PI-21, REQ-PI-59), so an annual restart does not fire. Tier 1 tests REQ-PI-21a: 2 days apart → `critical`; 200 days apart → no alert. |
+| OD-PI-08 | Resolved (accepted) | Multi-rate invoices are quarantined by an app-level step (REQ-PI-15) and also skipped inside the duplicate detector (REQ-PI-16). Limitations: a *duplicated* multi-rate invoice goes unnoticed and its payment shows as `payment_without_invoice`. | Accept; documented in the UI notice for the quarantine panel. |
+| OD-PI-09 | Resolved (accepted) | Payment attribution order. | Counterparty name first, then IBAN (REQ-PI-25), so "addressed to a known supplier, sent to another account" is critical. |
+| OD-PI-10 | Resolved (accepted) | A malformed IBAN that is not equal to the master. | Validity first: invalid → `warning` only; `critical` only for a valid, different IBAN (REQ-PI-24). |
+| OD-PI-11 | Resolved (accepted) | Invoices of suppliers absent from the master. | No IBAN comparison; reconciliation treats them as unpaid (never matched), so they can become `overdue`. |
+| OD-PI-12 | Resolved (accepted) | The hallucination stub exists in App 1; apps cannot import each other. | Duplicate it in App 2's `explain_support.py` rather than promote it to `ledger_kit` (which would be a further ledger-core change). |
+| OD-PI-13 | Resolved (accepted) | Dialect of the demo files. | Plain dialect for all three, to keep the demo independent of dialect detection. |
+| OD-PI-14 | Resolved (changed) | `structure.md` lists a per-app `requirements.txt` and omits `supplier_reader.py`, `reconciliation.py`. | **Changed:** this spec's list (section 12) is definitive, and `tasks.md` will contain **one task** that updates the phantom section of `.kiro/steering/structure.md` (file list, no per-app `requirements.txt`). `structure.md` is not edited by the spec phase. |
+| OD-PI-15 | Resolved (accepted) | IBAN validation depth. | Regex + mod-97 only; no per-country length table, no Spanish national check-digit validation. |
+| OD-PI-16 | Resolved (accepted) | Surcharge (*recargo de equivalencia*) and withholding (*IRPF*) amounts. | Not recomputed from rates; only used in the total (P8, P11). |
+| OD-PI-17 | Resolved (accepted) | Payments dated before the issue date or partial/over-payments. | Not matched; they become `unmatched` and the invoice stays open/overdue. |
+| OD-PI-18 | Resolved (accepted) | "Hook 1 test template" in the brief: no hook file exists in the repository. | Interpreted as the Tier 3 property template in `testing.md`, which was updated (CR-LC-3d). |
+| OD-PI-19 | Resolved (accepted) | The fixed phone-verification message is advice text. | Allowed because it is deterministic code, shown by the UI and the fallback template; the LLM stays bound by Finance Rule 8. |
