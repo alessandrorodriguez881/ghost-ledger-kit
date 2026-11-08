@@ -67,7 +67,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `Alert._set_deterministic_id` imports `model_validator` from `pydantic`, copies the input dict instead of mutating it, and computes the id only when `detector`, `source_refs` and `data` are all present, so a missing field surfaces as `ValidationError`.
   - *(CR-LC-3a/3b)* `Invoice` and `Supplier` Pydantic v2 models exactly as in design §2.1a/§2.1b (frozen; non-negative validator on the six `Invoice` amount fields; no normalisation of identifiers).
 - [x] Update `ledger_kit/__init__.py` to re-export `Transaction`, `Invoice`, `Supplier` and `Alert`.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -95,7 +95,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - *(CR-LC-3e)* `test_net_total` — `net_total([1000.00, 210.00], [150.00])` → `Decimal("1060.00")`; `net_total([100.00, 21.00, 5.20])` → `Decimal("126.20")`; empty inputs → `Decimal("0")`.
   - *(CR-LC-3e)* Property (`max_examples=200`): `test_percent_of_matches_quantize` — for any base in `[0, 1 000 000]` (2 places) and rate in `{21, 10, 4, 0}`, `percent_of` equals `(base * rate / 100).quantize(Decimal("0.01"), ROUND_HALF_UP)`.
 - [x] Implement `ledger_kit/utils/money.py` with `round_to_cents`, `format_amount`, `format_as_european`, `_group_thousands`, and (CR-LC-3e) `percent_of`, `within_tolerance`, `net_total` as in design §5.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -127,7 +127,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `detect_dialect(first_line: str) -> CsvDialect | None`.
   - `parse_amount(raw, dialect)`: for `EUROPEAN`, `fullmatch` against `_EUROPEAN_AMOUNT_RE` first and raise `InvalidOperation` when it does not match; only then strip `.`, replace `,`, convert (design §3.1).
   - `parse_date(raw: str, dialect: CsvDialect) -> date`.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -146,7 +146,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - *(CR-LC-3g)* `test_mask_iban_short_value_reveals_nothing` — `""`, `"AB"`, `"1234"` → `"****"`.
   - *(CR-LC-3g)* `test_mask_iban_never_contains_full_value_and_is_not_iban_shaped` — property (`max_examples=200`) over random strings of length 5–34: result has length 8 and does not match the explainer `_IBAN_RE`.
 - [x] Implement `ledger_kit/utils/anonymise.py` with `scrub(transaction: Transaction) -> Transaction` and `mask_iban(iban: str) -> str` as in design §6.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -156,7 +156,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 This task covers plain-dialect parsing and the encoding detection strategy. European dialect is added in Task 7.
 
-- [ ] Write `tests/ingestion/test_csv_reader.py` normal-case and edge-case tests:
+- [x] Write `tests/ingestion/test_csv_reader.py` normal-case and edge-case tests:
   - `test_parse_csv_plain_valid` — well-formed plain CSV with 3 rows → 3 `Transaction` objects, zero quarantine.
   - `test_parse_csv_empty_file_returns_empty` — empty file → `([], [])`.
   - `test_parse_csv_whitespace_only_file_returns_empty` — file containing only `"  \n\n\t\n"` → `([], [])` (not quarantined as `ambiguous_dialect`; REQ-ING-06).
@@ -181,7 +181,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - *(CR-LC-3c)* `test_parse_csv_iban_column_absent_is_none` — no `iban` column → `iban is None`, no quarantine.
   - *(CR-LC-3c)* `test_parse_csv_iban_empty_or_blank_cell_is_none` — empty cell and whitespace-only cell → `iban is None`, row not quarantined.
   - *(CR-LC-3c)* `test_parse_csv_iban_column_european_dialect` — the same verbatim behaviour in a semicolon file.
-- [ ] Implement `ledger_kit/ingestion/csv_reader.py`:
+- [x] Implement `ledger_kit/ingestion/csv_reader.py`:
   - `IngestionResult` type alias.
   - `parse_csv(source, *, dialect=None, source_file=None) -> IngestionResult`.
   - Encoding detection: try `utf-8-sig`, then `cp1252`, else quarantine whole file.
@@ -199,7 +199,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-ING-17, REQ-ING-18, REQ-ING-19, REQ-ING-20, REQ-ING-21, REQ-ING-22, design §3.1 + §3.2
 
-- [ ] Extend `tests/ingestion/test_csv_reader.py` with:
+- [x] Extend `tests/ingestion/test_csv_reader.py` with:
   - `test_parse_csv_single_row_european` — semicolon-separated file, European amount/date → parsed correctly.
   - `test_parse_csv_european_thousands_separator` — `"1.234,56"` → `Decimal("1234.56")`.
   - `test_parse_csv_european_negative_amount` — `"-12,50"` → `flow="debit"`, `amount=Decimal("12.50")`.
@@ -210,7 +210,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_parse_csv_explicit_dialect_overrides_sniff` — `dialect="european"` passed explicitly → no auto-detection attempted.
   - `test_parse_csv_auto_detect_plain` — comma-header file with no explicit dialect → detected as plain.
   - `test_parse_csv_auto_detect_european` — semicolon-header file with no explicit dialect → detected as European.
-- [ ] Update `parse_csv` to wire `detect_dialect` into the auto-detection path and use the resulting `CsvDialect` value when calling `parse_amount` and `parse_date`.
+- [x] Update `parse_csv` to wire `detect_dialect` into the auto-detection path and use the resulting `CsvDialect` value when calling `parse_amount` and `parse_date`.
 - [ ] Verify: full `test_csv_reader.py` passes, `ruff check` clean.
 
 ---
