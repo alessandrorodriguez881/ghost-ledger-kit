@@ -75,9 +75,7 @@ def _build_invoice(row: _Row, file_name: str, row_index: int) -> Invoice | dict:
             amounts[column] = parse_amount(cells[column], CsvDialect.PLAIN)
         for column in _OPTIONAL_AMOUNTS:
             cell = cells.get(column)
-            amounts[column] = (
-                Decimal("0") if _blank(cell) else parse_amount(cell, CsvDialect.PLAIN)
-            )
+            amounts[column] = Decimal("0") if _blank(cell) else parse_amount(cell, CsvDialect.PLAIN)
     except InvalidOperation:
         return _quarantine(file_name, row_index, "unparseable_amount", row)
 

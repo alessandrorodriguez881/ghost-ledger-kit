@@ -191,9 +191,7 @@ def test_parse_invoice_json_amount_as_float() -> None:
 @pytest.mark.parametrize("column", MANDATORY)
 def test_parse_invoice_csv_missing_field_quarantined(column: str) -> None:
     row = _full_csv_row(**{column: ""})
-    invoices, quarantined = parse_invoice(
-        _csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv"
-    )
+    invoices, quarantined = parse_invoice(_csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv")
     assert invoices == []
     assert len(quarantined) == 1
     record = quarantined[0]
@@ -226,9 +224,7 @@ def test_parse_invoice_valid_rows_returned_alongside_quarantine() -> None:
 @pytest.mark.parametrize("column", ["total", "base_amount", "vat_rate", "vat_amount"])
 def test_parse_invoice_negative_amount_quarantined(column: str) -> None:
     row = _full_csv_row(**{column: "-1.00"})
-    invoices, quarantined = parse_invoice(
-        _csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv"
-    )
+    invoices, quarantined = parse_invoice(_csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv")
     assert invoices == []
     assert quarantined[0]["reason"] == "negative_amount"
 
@@ -242,9 +238,7 @@ def test_parse_invoice_negative_optional_amount_quarantined(column: str) -> None
 
 def test_parse_invoice_percent_sign_vat_rate_quarantined() -> None:
     row = _full_csv_row(vat_rate="21%")
-    invoices, quarantined = parse_invoice(
-        _csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv"
-    )
+    invoices, quarantined = parse_invoice(_csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv")
     assert invoices == []
     assert quarantined[0]["reason"] == "unparseable_amount"
 
@@ -257,9 +251,7 @@ def test_parse_invoice_unparseable_amount_quarantined() -> None:
 
 def test_parse_invoice_unparseable_issue_date_quarantined() -> None:
     row = _full_csv_row(issue_date="15/01/2026")
-    invoices, quarantined = parse_invoice(
-        _csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv"
-    )
+    invoices, quarantined = parse_invoice(_csv(FULL_HEADER, row), fmt="csv", source_file="inv.csv")
     assert invoices == []
     assert quarantined[0]["reason"] == "unparseable_date"
 

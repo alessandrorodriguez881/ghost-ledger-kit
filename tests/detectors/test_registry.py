@@ -393,9 +393,7 @@ def test_context_reading_detector_may_alert_on_empty_ledger():
         pd.DataFrame(), namespace="rt8", context={"payments": _ledger("pay.csv:0")}
     )
     without_payments = run_all(pd.DataFrame(), namespace="rt8", context={})
-    empty_payments = run_all(
-        pd.DataFrame(), namespace="rt8", context={"payments": pd.DataFrame()}
-    )
+    empty_payments = run_all(pd.DataFrame(), namespace="rt8", context={"payments": pd.DataFrame()})
 
     assert [len(r.alerts) for r in with_payments] == [1]
     assert with_payments[0].alerts[0].source_refs == ["pay.csv:0"]
