@@ -230,7 +230,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Tier 3 — Property 2** (REQ-ING-16): `test_date_round_trip_plain` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 3** (REQ-ING-27): `test_european_amount_round_trip` — `@settings(max_examples=200)`, uses `format_as_european` from `money.py` as inverse.
 - [x] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources, kind=None) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS`, `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS` tuples and `pd.DataFrame(rows, columns=COLUMNS[kind])`.
-- [ ] Verify: all three property tests pass with 200 examples each, `ruff check` clean.
+- [x] Verify: all three property tests pass with 200 examples each, `ruff check` clean.
 
 ---
 
@@ -262,7 +262,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Tier 2**: `test_parse_suppliers_empty_and_whitespace_only` → `([], [])`; `test_parse_suppliers_missing_name_or_tax_id_quarantined` (`missing_field:supplier_name`, `missing_field:tax_id`); `test_parse_suppliers_iban_optional_and_verbatim`; `test_parse_suppliers_undecodable_file_quarantined`; `test_parse_suppliers_tax_id_and_iban_not_normalised` (REQ-MOD-10).
 - [x] Implement `ledger_kit/ingestion/invoice_reader.py` with `DEFAULT_PAYMENT_TERM_DAYS = 30` and `parse_invoice(source, *, fmt=None, source_file=None) -> IngestionResult[Invoice]` as in design §3.3.
 - [x] Implement `ledger_kit/ingestion/supplier_reader.py` with `parse_suppliers` as in design §3.3a.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -270,7 +270,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-04, REQ-DET-05, REQ-DET-07, REQ-DET-08, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, REQ-TST-09, REQ-TST-10, REQ-MOD-05, design §4
 
-- [ ] Write `tests/detectors/test_registry.py` with:
+- [x] Write `tests/detectors/test_registry.py` with:
   - `test_register_adds_detector` — `@register("ns.foo")` → `"ns.foo"` in `registered_names()`.
   - `test_register_duplicate_name_raises` — second `@register("ns.foo")` on a different function raises `ValueError`.
   - `test_register_invalid_name_no_dot_raises` — `@register("nodot")` raises `ValueError`.
@@ -300,9 +300,9 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
     - `isolated_registry` (autouse for `test_registry.py`): `snap = _snapshot_registry()`; yield; `_restore_registry(snap)`.
     - `empty_registry`: snapshot, `_clear_registry()`, yield, restore. Used only by tests that need an empty registry (e.g. `test_run_all_empty_registry_returns_empty`).
     Neither fixture is used by the Hypothesis tests (REQ-TST-09).
-- [ ] Implement `ledger_kit/detectors/base.py` with `DetectorResult`, `DetectorError` and `loaded_source_refs` (CR-LC-3d) as in design §4.1.
-- [ ] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry`, `_snapshot_registry`, `_restore_registry` as in design §4.2.
-- [ ] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols (including `loaded_source_refs`).
+- [x] Implement `ledger_kit/detectors/base.py` with `DetectorResult`, `DetectorError` and `loaded_source_refs` (CR-LC-3d) as in design §4.1.
+- [x] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry`, `_snapshot_registry`, `_restore_registry` as in design §4.2.
+- [x] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols (including `loaded_source_refs`).
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
@@ -311,8 +311,8 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-TST-01 (detector layer), REQ-TST-09, testing strategy §Tier 3 properties: no invention, idempotency, empty input, source ref coverage
 
-- [ ] Create `tests/detectors/test_registry_properties.py`. At **module scope** (executed once at import, never inside a test or `@given` body) register the test detectors with distinct names: `"tprop.trivial"` (one alert citing a real `source_ref` from the input, for any non-empty ledger), `"tprop_zs.a"` and `"tprop_pi.b"` (each appends its name to a module-level `CALLS` list). No function-scoped fixture is used in this file; no `_clear_registry`.
-- [ ] Add property-based tests using Hypothesis `data_frames` strategy. Each calls `run_all(ledger, namespace=...)` with a `tprop`-prefixed namespace so unrelated registered detectors cannot interfere:
+- [x] Create `tests/detectors/test_registry_properties.py`. At **module scope** (executed once at import, never inside a test or `@given` body) register the test detectors with distinct names: `"tprop.trivial"` (one alert citing a real `source_ref` from the input, for any non-empty ledger), `"tprop_zs.a"` and `"tprop_pi.b"` (each appends its name to a module-level `CALLS` list). No function-scoped fixture is used in this file; no `_clear_registry`.
+- [x] Add property-based tests using Hypothesis `data_frames` strategy. Each calls `run_all(ledger, namespace=...)` with a `tprop`-prefixed namespace so unrelated registered detectors cannot interfere:
   - `test_source_refs_are_subset_of_input` — for any generated ledger **and any generated context frames** (e.g. a `payments` frame with its own `source_ref` column), every `source_ref` in every alert is in `loaded_source_refs(ledger, context)`, the union of all loaded inputs (CR-LC-3d, REQ-TST-10). `tprop.trivial` is extended to also cite the first `source_ref` of a context frame when one is present (`@settings(max_examples=200)`).
   - `test_run_all_idempotent` — running `run_all` twice on the same ledger returns structurally identical results (`@settings(max_examples=200)`).
   - `test_run_all_empty_input_always_empty` — for all randomly generated DataFrames with zero rows, all detectors return `[]` (`@settings(max_examples=200)`).
