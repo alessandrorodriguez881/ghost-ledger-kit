@@ -1,0 +1,67 @@
+[
+  {
+    "invoice_number": "AUR-2026-001",
+    "supplier_name": "Suministros Ibéricos Aurora S.L.",
+    "supplier_tax_id": "B00000019",
+    "issue_date": "2026-01-10",
+    "due_date": "2026-02-09",
+    "base_amount": 1000.00,
+    "vat_rate": 21,
+    "vat_amount": 210.00,
+    "total": 1210.00,
+    "currency": "EUR",
+    "iban": "ES71 2100 0418 5500 0765 4321"
+  },
+  {
+    "invoice_number": "AUR-2026-002",
+    "supplier_name": "Suministros Ibéricos Aurora S.L.",
+    "supplier_tax_id": "B00000019",
+    "issue_date": "2026-02-10",
+    "base_amount": "450.50",
+    "vat_rate": "21",
+    "vat_amount": "94.61",
+    "total": "545.11",
+    "currency": "EUR",
+    "iban": "ES71 2100 0418 5500 0765 4321"
+  },
+  {
+    "invoice_number": "VAL-2026-003",
+    "supplier_name": "Inmuebles Valdemar S.L.",
+    "supplier_tax_id": "B00000027",
+    "issue_date": "2026-01-05",
+    "due_date": "2026-01-20",
+    "base_amount": 800.00,
+    "vat_rate": 21,
+    "vat_amount": 168.00,
+    "total": 968.00,
+    "currency": "EUR",
+    "iban": "ES84 0049 1500 1200 1530 8642"
+  },
+  {
+    "invoice_number": "ASE-2026-007",
+    "supplier_name": "Ana García (Asesoría Fiscal)",
+    "supplier_tax_id": "00001003S",
+    "issue_date": "2026-02-01",
+    "due_date": "2026-02-15",
+    "base_amount": "200.00",
+    "vat_rate": "21",
+    "vat_amount": "42.00",
+    "surcharge_amount": "10.40",
+    "withholding_amount": "30.00",
+    "total": "222.40",
+    "currency": "EUR"
+  },
+  {
+    "invoice_number": "VAL-2026-004",
+    "supplier_name": "Inmuebles Valdemar S.L.",
+    "supplier_tax_id": "B00000027",
+    "issue_date": "2026-03-05",
+    "due_date": "2026-03-20",
+    "base_amount": 1234.56,
+    "vat_rate": 10,
+    "vat_amount": 123.46,
+    "total": 1358.02,
+    "currency": "EUR",
+    "iban": "ES84 0049 1500 1200 1530 8642"
+  }
+]

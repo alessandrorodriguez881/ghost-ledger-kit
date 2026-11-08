@@ -1,0 +1,6 @@
+invoice_number,supplier_name,supplier_tax_id,issue_date,due_date,base_amount,vat_rate,vat_amount,surcharge_amount,withholding_amount,total,currency,iban
+AUR-2026-001,Suministros Ibéricos Aurora S.L.,B00000019,2026-01-10,2026-02-09,1000.00,21,210.00,,,1210.00,EUR,ES71 2100 0418 5500 0765 4321
+AUR-2026-002,Suministros Ibéricos Aurora S.L.,B00000019,2026-02-10,,450.50,21,94.61,,,545.11,EUR,ES71 2100 0418 5500 0765 4321
+VAL-2026-003,Inmuebles Valdemar S.L.,B00000027,2026-01-05,2026-01-20,800.00,21,168.00,,,968.00,EUR,ES84 0049 1500 1200 1530 8642
+ASE-2026-007,Ana García (Asesoría Fiscal),00001003S,2026-02-01,2026-02-15,200.00,21,42.00,10.40,30.00,222.40,EUR,
+VAL-2026-004,Inmuebles Valdemar S.L.,B00000027,2026-03-05,2026-03-20,1234.56,10,123.46,,,1358.02,EUR,ES84 0049 1500 1200 1530 8642

@@ -364,7 +364,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: LLM answer repeating only `alert.data` Decimal strings always passes.
 - [x] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta` (both with the keyword-only `row_columns` parameter, CR-LC-3g), `_AlertFormatter`, the **public** `fill_fallback(template, alert)` (DN-9: apps call it directly via `from ledger_kit.explainer import fill_fallback`, never a private name), `_select_llm_columns(rows, row_columns=None)` (drops `id`/`description`/`iban` even when listed), `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_is_date_column`, `_allowed_decimals`, `_allowed_dates` (every date cell of every whitelisted column), `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", default_handler=str)` after mapping every date-holding column through `date.isoformat` (missing values stay `None`; design §4a.5).
 - [x] `MockLLMClient` (in `tests/test_explainer.py` or `tests/conftest.py`): `chat` and `completions` are properties, `create` appends its kwargs to `self.calls`.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -372,18 +372,18 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-UI-01, REQ-UI-02, REQ-UI-03, REQ-UI-04, REQ-UI-05, REQ-UI-06, REQ-UI-07, REQ-UI-08, design §7
 
-- [ ] Implement `ledger_kit/ui/__init__.py` (empty).
-- [ ] Implement `ledger_kit/ui/reference_app.py`:
-  - File uploader accepting multiple CSVs (`st.file_uploader`).
-  - Per-file caching in `st.session_state` keyed by SHA-256 of file bytes.
-  - Pass `IO[bytes]` directly to `parse_csv` (no `TextIOWrapper`).
-  - Call `normalise` then `run_all`.
-  - Severity summary row at the top (🔴/🟡/🔵 counts).
-  - Collapsible quarantine section (only shown when quarantine list is non-empty).
-  - Alert cards: `st.expander` per alert, severity badge, title, detector name, source refs.
-  - For each source ref: display the matching ledger row with `pandas.Styler` yellow highlight (`background-color: #fff3cd`).
-  - All `amount` values formatted with `format_amount`.
-  - Encoding used surfaced as a tooltip/caption on the file summary.
+- [x] Implement `ledger_kit/ui/__init__.py` (empty).
+- [x] Implement `ledger_kit/ui/reference_app.py`:
+  - [x] File uploader accepting multiple CSVs (`st.file_uploader`).
+  - [x] Per-file caching in `st.session_state` keyed by SHA-256 of file bytes.
+  - [x] Pass `IO[bytes]` directly to `parse_csv` (no `TextIOWrapper`).
+  - [x] Call `normalise` then `run_all`.
+  - [x] Severity summary row at the top (🔴/🟡/🔵 counts).
+  - [x] Collapsible quarantine section (only shown when quarantine list is non-empty).
+  - [x] Alert cards: `st.expander` per alert, severity badge, title, detector name, source refs.
+  - [x] For each source ref: display the matching ledger row with `pandas.Styler` yellow highlight (`background-color: #fff3cd`).
+  - [x] All `amount` values formatted with `format_amount`.
+  - [x] Encoding used surfaced as a tooltip/caption on the file summary.
 - [ ] Verify: `streamlit run ledger_kit/ui/reference_app.py` starts without import errors (manual smoke test; no automated Streamlit tests at this stage).
 - [ ] Verify: `ruff check` clean.
 
@@ -393,16 +393,16 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-PKG-04 (data directory), structure rule (data/samples only synthetic or public-domain), Finance Rules 5 + 6, REQ-ING-30 to REQ-ING-32 (invoice and supplier samples; CR-LC-3a/3b)
 
-- [ ] Create `scripts/generate_samples.py` — a seeded random generator that produces synthetic bank-statement CSVs, invoice files and supplier-master files with PII-safe data (Finance Rule 5 names, test IBANs, tax ids with a wrong control character). Accepts CLI args for dialect, row count, and seed. Used by ledger-core and the zombie-subscriptions / phantom-invoices demo fixtures (`--mode zombie-demo`, `--mode phantom-demo`; the phantom mode is specified in that spec).
-- [ ] Create `data/samples/README.md` documenting that all files are synthetically generated and listing the generation script.
-- [ ] Use `scripts/generate_samples.py` to create:
-  - `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, mix of debits and credits; includes an `iban` column on at least 3 rows (CR-LC-3c).
-  - `data/samples/bank_statement_sample_es.csv` — 10 rows, European dialect (semicolon, comma-decimal, DD/MM/YYYY).
-  - `data/samples/invoice_sample.csv` — 5 rows, plain format, **the Invoice schema of REQ-ING-30** (including one row without `due_date` and one with `surcharge_amount` and `withholding_amount`; CR-LC-3a).
-  - `data/samples/invoice_sample.json` — the same 5 invoices as a JSON array (amounts as strings and as numbers).
-  - `data/samples/suppliers_sample.csv` — 3 rows (`supplier_name,tax_id,iban`), one with an empty `iban` (CR-LC-3b).
-- [ ] Update `.gitignore` to exclude `data/real/` and loose `*.csv` / `*.json` / `*.pdf` outside `data/samples/`.
-- [ ] Identifier rules (Finance Rule 5, CR-LC-3h): every IBAN in the samples is mod-97 valid with deliberately wrong Spanish national check digits (e.g. `ES88 2100 0418 5602 0005 1332`); every tax id has a wrong control character, one different per supplier (e.g. `B00000001`, `00000001T`).
+- [x] Create `scripts/generate_samples.py` — a seeded random generator that produces synthetic bank-statement CSVs, invoice files and supplier-master files with PII-safe data (Finance Rule 5 names, test IBANs, tax ids with a wrong control character). Accepts CLI args for dialect, row count, and seed. Used by ledger-core and the zombie-subscriptions / phantom-invoices demo fixtures (`--mode zombie-demo`, `--mode phantom-demo`; the phantom mode is specified in that spec).
+- [x] Create `data/samples/README.md` documenting that all files are synthetically generated and listing the generation script.
+- [x] Use `scripts/generate_samples.py` to create:
+  - [x] `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, mix of debits and credits; includes an `iban` column on at least 3 rows (CR-LC-3c).
+  - [x] `data/samples/bank_statement_sample_es.csv` — 10 rows, European dialect (semicolon, comma-decimal, DD/MM/YYYY).
+  - [x] `data/samples/invoice_sample.csv` — 5 rows, plain format, **the Invoice schema of REQ-ING-30** (including one row without `due_date` and one with `surcharge_amount` and `withholding_amount`; CR-LC-3a).
+  - [x] `data/samples/invoice_sample.json` — the same 5 invoices as a JSON array (amounts as strings and as numbers).
+  - [x] `data/samples/suppliers_sample.csv` — 3 rows (`supplier_name,tax_id,iban`), one with an empty `iban` (CR-LC-3b).
+- [x] Update `.gitignore` to exclude `data/real/` and loose `*.csv` / `*.json` / `*.pdf` outside `data/samples/`.
+- [x] Identifier rules (Finance Rule 5, CR-LC-3h): every IBAN in the samples is mod-97 valid with deliberately wrong Spanish national check digits (e.g. `ES88 2100 0418 5602 0005 1332`); every tax id has a wrong control character, one different per supplier (e.g. `B00000001`, `00000001T`).
 - [ ] Verify: `parse_csv`, `parse_invoice` and `parse_suppliers` successfully ingest all five sample files with zero quarantine, `normalise` accepts each result, and the `iban` values read from the bank sample equal the file text.
 
 ---

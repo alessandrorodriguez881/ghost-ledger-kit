@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Financial data (Finance Rule 6): only synthetic or public-domain files in data/samples/ are
+# committed. Real statements and invoices must never enter the repository.
+data/real/
+*.csv
+*.json
+*.pdf
+!data/samples/
+!data/samples/**
+# Tooling configuration (hooks, settings) is JSON that must stay tracked.
+!.kiro/
+!.kiro/**

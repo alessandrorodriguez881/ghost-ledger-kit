@@ -1,0 +1,11 @@
+date,amount,currency,counterparty,description,iban
+2026-01-02,2450.00,EUR,Luminar Estudio S.L.,Payroll January,
+2026-01-03,-650.00,EUR,Inmuebles Valdemar S.L.,Rent January,ES84 0049 1500 1200 1530 8642
+2026-01-05,-54.32,EUR,Supermercados Aurora,Groceries,
+2026-01-09,-12.99,EUR,Streamly Plus,Monthly subscription,
+2026-01-12,120.00,EUR,Ana García,Transfer received,ES8821000418560200051332
+2026-01-15,-1234.56,EUR,Taller Mecánico Norte,Car repair,
+2026-01-20,-45.00,EUR,Suministros Ibéricos Aurora S.L.,Office supplies,ES71 2100 0418 5500 0765 4321
+2026-01-26,-29.90,EUR,Luigi Rossi,Shared dinner,
+2026-01-28,15.75,EUR,Inmuebles Valdemar S.L.,Rent adjustment refund,es84 0049 1500 1200 1530 8642
+2026-01-31,-12.99,EUR,Streamly Plus,Monthly subscription,
