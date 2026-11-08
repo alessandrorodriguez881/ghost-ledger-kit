@@ -191,7 +191,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - Applies sign-to-flow mapping (REQ-ING-24/25/26).
   - *(CR-LC-3c)* Reads the optional `iban` cell verbatim into `Transaction.iban` (`None` when the column is absent or the cell is empty/whitespace-only).
   - For this task: only plain dialect. Dialect detection and European parsing are wired up fully in Task 7.
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -211,7 +211,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_parse_csv_auto_detect_plain` — comma-header file with no explicit dialect → detected as plain.
   - `test_parse_csv_auto_detect_european` — semicolon-header file with no explicit dialect → detected as European.
 - [x] Update `parse_csv` to wire `detect_dialect` into the auto-detection path and use the resulting `CsvDialect` value when calling `parse_amount` and `parse_date`.
-- [ ] Verify: full `test_csv_reader.py` passes, `ruff check` clean.
+- [x] Verify: full `test_csv_reader.py` passes, `ruff check` clean.
 
 ---
 
@@ -219,8 +219,8 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-TST-01, REQ-TST-02, REQ-TST-03, REQ-TST-04, REQ-ING-10, REQ-ING-15, REQ-ING-16, REQ-ING-27, REQ-ING-28, REQ-ING-33, REQ-ING-34, design §8.2 + §8.3
 
-- [ ] Implement `tests/conftest.py` with `empty_ledger`, `single_row_ledger`, and `clean_ledger_10` fixtures using synthetic PII-safe data (Finance Rule 5 names and IBANs).
-- [ ] Write `tests/ingestion/test_normaliser.py` with:
+- [x] Implement `tests/conftest.py` with `empty_ledger`, `single_row_ledger`, and `clean_ledger_10` fixtures using synthetic PII-safe data (Finance Rule 5 names and IBANs).
+- [x] Write `tests/ingestion/test_normaliser.py` with:
   - **Tier 1**: `test_normalise_returns_dataframe`, `test_normalise_schema_columns_present`, `test_normalise_empty_source_returns_empty_df`.
   - **Tier 2**: `test_normalise_all_quarantined_returns_empty_df_with_columns` — every input transaction fails validation → empty DataFrame whose columns equal `CANONICAL_COLUMNS`, and `ledger["source_ref"]` does not raise `KeyError` (REQ-ING-28). `test_normalise_no_sources_returns_empty_df_with_columns` — `normalise()` with no arguments, same assertions.
   - **Tier 2**: `test_normalise_single_transaction`, `test_normalise_multiple_sources_merged`, `test_normalise_quarantines_null_required_field`, `test_normalise_amount_dtype_is_object_decimal`, `test_normalise_date_dtype_is_object_date`, `test_normalise_source_row_dtype_is_int`.
@@ -229,7 +229,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Tier 3 — Property 1** (REQ-ING-15): `test_signed_amount_round_trip` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 2** (REQ-ING-16): `test_date_round_trip_plain` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 3** (REQ-ING-27): `test_european_amount_round_trip` — `@settings(max_examples=200)`, uses `format_as_european` from `money.py` as inverse.
-- [ ] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources, kind=None) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS`, `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS` tuples and `pd.DataFrame(rows, columns=COLUMNS[kind])`.
+- [x] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources, kind=None) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS`, `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS` tuples and `pd.DataFrame(rows, columns=COLUMNS[kind])`.
 - [ ] Verify: all three property tests pass with 200 examples each, `ruff check` clean.
 
 ---
@@ -238,7 +238,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-ING-07, REQ-ING-08, REQ-ING-09, REQ-ING-30, REQ-ING-31, REQ-ING-32, design §3.3 + §3.3a (revised by CR-LC-3a/3b)
 
-- [ ] Write `tests/ingestion/test_invoice_reader.py` with:
+- [x] Write `tests/ingestion/test_invoice_reader.py` with:
   - **Tier 1**: `test_parse_invoice_csv_valid` — well-formed plain CSV with all columns → `Invoice` objects (not `Transaction`), zero quarantine; every field of the first invoice asserted, including `vat_rate == Decimal("21")` and `source_ref == "inv.csv:0"`.
   - **Tier 1**: `test_parse_invoice_json_valid` — well-formed JSON array → `Invoice` objects.
   - **Tier 1**: `test_parse_invoice_optional_columns_default` — CSV without `due_date`, `surcharge_amount`, `withholding_amount`, `iban` → `surcharge_amount == Decimal("0")`, `withholding_amount == Decimal("0")`, `iban is None`, `due_date == issue_date + 30 days`, `due_date_is_default is True`.
@@ -257,11 +257,11 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - **Tier 2**: `test_parse_invoice_format_auto_detect_csv` — `.csv` extension → CSV path.
   - **Tier 2**: `test_parse_invoice_utf8_bom_decoded` — same encoding strategy as csv_reader.
   - **Tier 2**: `test_parse_invoice_cp1252_decoded`.
-- [ ] Write `tests/ingestion/test_supplier_reader.py` (CR-LC-3b) with:
+- [x] Write `tests/ingestion/test_supplier_reader.py` (CR-LC-3b) with:
   - **Tier 1**: `test_parse_suppliers_valid` — 3 rows → 3 `Supplier` objects, `source_ref == "sup.csv:0"` for the first.
   - **Tier 2**: `test_parse_suppliers_empty_and_whitespace_only` → `([], [])`; `test_parse_suppliers_missing_name_or_tax_id_quarantined` (`missing_field:supplier_name`, `missing_field:tax_id`); `test_parse_suppliers_iban_optional_and_verbatim`; `test_parse_suppliers_undecodable_file_quarantined`; `test_parse_suppliers_tax_id_and_iban_not_normalised` (REQ-MOD-10).
-- [ ] Implement `ledger_kit/ingestion/invoice_reader.py` with `DEFAULT_PAYMENT_TERM_DAYS = 30` and `parse_invoice(source, *, fmt=None, source_file=None) -> IngestionResult[Invoice]` as in design §3.3.
-- [ ] Implement `ledger_kit/ingestion/supplier_reader.py` with `parse_suppliers` as in design §3.3a.
+- [x] Implement `ledger_kit/ingestion/invoice_reader.py` with `DEFAULT_PAYMENT_TERM_DAYS = 30` and `parse_invoice(source, *, fmt=None, source_file=None) -> IngestionResult[Invoice]` as in design §3.3.
+- [x] Implement `ledger_kit/ingestion/supplier_reader.py` with `parse_suppliers` as in design §3.3a.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---

@@ -64,6 +64,17 @@ def _quarantine(source_file: str, row_index: int, reason: str, raw: dict[str, An
     return {"source_file": source_file, "source_row": row_index, "reason": reason, "raw": raw}
 
 
+def _undecodable(file_name: str) -> dict:
+    """Build the whole-file quarantine record for an undecodable file."""
+    return {
+        "source_file": file_name,
+        "source_row": None,
+        "reason": "undecodable_file",
+        "raw": "",
+        "encoding_tried": list(ENCODINGS_TRIED),
+    }
+
+
 def parse_csv(
     source: Path | str | IO[str] | IO[bytes],
     *,
@@ -76,15 +87,7 @@ def parse_csv(
 
     text = _decode(content)
     if text is None:
-        return [], [
-            {
-                "source_file": file_name,
-                "source_row": None,
-                "reason": "undecodable_file",
-                "raw": "",
-                "encoding_tried": list(ENCODINGS_TRIED),
-            }
-        ]
+        return [], [_undecodable(file_name)]
 
     if not text.strip():
         return [], []
