@@ -148,7 +148,7 @@ def test_run_all_order_is_insertion_order():
     assert [r.name for r in results] == ["rt3.c", "rt3.a", "rt3.b"]
 
 
-def test_run_all_namespace_filter_excludes_other_ns():
+def test_run_all_namespace_filter_excludes_other_ns(empty_registry):
     register("zs.a")(lambda ledger, context: [])
     register("pi.b")(lambda ledger, context: [])
 
@@ -156,14 +156,14 @@ def test_run_all_namespace_filter_excludes_other_ns():
     assert [r.name for r in results] == ["zs.a"]
 
 
-def test_run_all_namespace_filter_requires_dot_boundary():
+def test_run_all_namespace_filter_requires_dot_boundary(empty_registry):
     register("zs.a")(lambda ledger, context: [])
     register("zsx.b")(lambda ledger, context: [])
 
     assert [r.name for r in run_all(_ledger("t.csv:0"), namespace="zs")] == ["zs.a"]
 
 
-def test_run_all_namespace_filter_none_runs_all():
+def test_run_all_namespace_filter_none_runs_all(empty_registry):
     register("zs.a")(lambda ledger, context: [])
     register("pi.b")(lambda ledger, context: [])
 
@@ -218,7 +218,7 @@ def test_run_all_does_not_mutate_callers_context():
     assert context == {"aliases": {}}
 
 
-def test_registered_names_namespace_filter():
+def test_registered_names_namespace_filter(empty_registry):
     register("zs.a")(lambda ledger, context: [])
     register("pi.b")(lambda ledger, context: [])
     register("zs.c")(lambda ledger, context: [])

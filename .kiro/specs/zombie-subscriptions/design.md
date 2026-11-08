@@ -1195,9 +1195,10 @@ def monthly_series_strategy(n_charges: int, base_amount: Decimal):
     """
 
 def noisy_step_series_strategy():
-    """6 monthly charges (gaps exactly 30 days). base: whole euros in [50, 500]. The first k
-    charges (k in 1..5) are at `base`, the rest at the new level; every amount is multiplied by a
-    noise factor in [0.995, 1.005] and rounded to cents."""
+    """6 monthly charges (gaps exactly 30 days). base: whole euros in [20, 500]. The first k
+    charges (k in 1..5) are at `base`, the rest at the new level (step 7-45%); every amount is
+    multiplied by a noise factor in [0.995, 1.005] and rounded to cents. For the "never fires"
+    property the base is restricted to whole euros in [100, 500] and the step to -3.9%..+3.9%."""
 
 def exact_step_series_strategy():
     """Same, but noise-free; base whole euros in [20, 500] and the step an integer percent in
@@ -1210,6 +1211,19 @@ fire in the worst case `s ≥ 1.05·1.005/0.995 − 1 ≈ 6.06%`; to never fire 
 `s ≤ 1.05·0.995/1.005 − 1 ≈ 3.95%`. The tests therefore use `s ≥ 7%` and `s ≤ 3.9%`. Between them
 the outcome depends on the noise and is not asserted.
 
+Two further bounds keep the noisy properties inside the guarantees of the algorithm:
+
+- **Upper step bound 45%, not 50%.** A lone first or last charge is only read as a new price when
+  the step is within `MAX_EDGE_STEP_RATIO` (±50%). With ±0.5% noise a nominal 50% step can measure
+  slightly above 50% and be rejected; at 45% the worst case is `1.45·1.005/0.995 − 1 ≈ 46.5%`. The
+  noise-free exact-step properties still cover 5–50%.
+- **Bases 100–500 for the "never fires" property.** At the worst case `s = 3.9%` the measured ratio
+  is about 4.94%, only 0.06 percentage points below the 5% threshold. Rounding each amount to cents
+  can move the ratio by up to `2·0.005/base`, i.e. 0.05 points at base 20 but at most 0.01 points
+  at base 100, so bases below 100 could cross the threshold for reasons unrelated to the detector.
+  The "fires" properties keep bases 20–500: their worst-case margin is about 0.9 points (5.94% at
+  a 7% step), far larger than the rounding effect.
+
 Key properties (all `@settings(max_examples=200)`):
 
 | Test | Property |
@@ -1218,9 +1232,9 @@ Key properties (all `@settings(max_examples=200)`):
 | `test_insufficient_occurrences_never_detected` | n < MIN_OCCURRENCES_MONTHLY → no alert. |
 | `test_row_order_invariant` | Shuffled rows → same alerts (order-agnostic comparison). |
 | `test_yearly_cost_equals_current_price_times_12` | `Alert.data["yearly_cost"] == str(round_to_cents(current_amount × 12))`. |
-| `test_price_step_above_5pct_always_fires` | Noise within ±0.5% of each level; an upward step of 7–50% after k = 1..5 of 6 charges → exactly one price-increase alert. |
+| `test_price_step_above_5pct_always_fires` | Noise within ±0.5% of each level; base 20–500; an upward step of 7–45% after k = 1..5 of 6 charges → exactly one price-increase alert. |
 | `test_price_step_exactly_5pct_fires` | Noise-free step of exactly 5% at any k = 1..5 → one price-increase alert. |
-| `test_price_step_below_5pct_never_fires` | Noise within ±0.5%; step 0–3.9% (up or down) → no price-increase alert. |
+| `test_price_step_below_5pct_never_fires` | Noise within ±0.5%; base 100–500; step 0–3.9% (up or down) → no price-increase alert. |
 | `test_stable_series_never_fires_price_increase` | Noise within ±0.5% around one level → no price-increase alert. |
 | `test_early_step_fires_exactly_once` | Noise-free step of 5–50% at any position k = 1..5 of 6 monthly charges → exactly one price-increase alert and one recurring series. |
 | `test_source_refs_subset_of_input` (all detectors) | `Alert.source_refs ⊆ ledger["source_ref"]`. |

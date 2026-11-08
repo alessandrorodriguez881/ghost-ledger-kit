@@ -81,7 +81,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_longest_cadence_run_empty_and_single_row`; `test_gap_boundaries_inclusive` — gaps 27 and 33 accepted, 26 and 34 rejected; `test_group_by_price_level_empty`; `test_duplicate_source_ref_rows_do_not_crash`.
   - **Tier 3**: `test_buckets_partition_rows`; `test_run_is_subsequence_with_valid_gaps`; `test_bucket_membership_independent_of_input_order`.
 - [x] Implement `group_by_price_level` (buckets returned sorted by `date_key`) and `longest_cadence_run`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -97,7 +97,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_step_ratio_uses_rounded_medians`; `test_equal_rounded_medians_not_a_step`; `test_run_of_one_row`; `test_current_amount_rounded_half_up`.
   - **Tier 3**: `test_noise_within_half_percent_of_one_level_is_stable` (never a step); `test_segment_result_rows_equal_input_rows`; `test_current_amount_is_median_of_last_level`.
 - [x] Implement `is_level`, `_segment_by_price`, the `Series` dataclass in `detectors/utils.py` (steps stored as rounded medians; `round_to_cents` from `ledger_kit.utils.money`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -112,7 +112,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_find_series_empty_and_single_row`; `test_below_minimum_occurrences_no_series` (2 monthly, 3 weekly); `test_gap_tolerance_boundaries`; `test_duplicate_source_ref_does_not_crash`; `test_interleaved_series_not_merged`.
   - **Tier 3**: `test_find_series_row_order_invariant` — shuffled input gives identical series; `test_series_rows_are_subset_and_disjoint` — no row in two series; `test_series_rows_are_date_sorted`.
 - [x] Implement `_other_rows_in_span`, `_accept`, `find_series` Phase 1 and Phase 3 (Phase 2 stubbed as "no change" until Z8).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -128,7 +128,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_extension_tolerance_boundaries`; `test_extension_picks_closest_candidate`; `test_phase2_terminates_on_many_rows` (200-row ledger finishes).
   - **Tier 3**: `test_step_at_every_position_found_once` — noise-free step 5–50% (whole percent, base whole euros 20–500) at k = 1..5 of 6 monthly charges → exactly one series with one step; `test_row_order_invariant_with_steps`.
 - [x] Implement `_closest` and Phase 2a (forward and backward extension, re-segmenting the whole series) and 2b (merge consecutive non-overlapping series) in `find_series`; final sort of the result.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -136,12 +136,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-13a, REQ-ZS-13 (`yearly_cost`), design §3.1, §4.7
 
-- [ ] Write `tests/test_zs_active.py`:
+- [x] Write `tests/test_zs_active.py`:
   - **Tier 1**: `test_is_active_within_nominal_plus_tolerance`; `test_is_active_boundary_inclusive` — exactly `nominal + 3` days is active, one more is not; `test_service_yearly_cost_sums_active_series_only`.
   - **Tier 2**: `test_service_yearly_cost_no_series_is_zero`; `test_service_yearly_cost_max_date_none_is_zero`; `test_service_yearly_cost_two_aliased_keys_found_per_key` — rows of the two keys are never passed to one `find_series` call.
   - **Tier 3**: `test_is_active_monotone_in_max_date`.
-- [ ] Implement `is_active` and `service_yearly_cost`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Implement `is_active` and `service_yearly_cost`.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -149,13 +149,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-12, REQ-ZS-13, REQ-ZS-45, REQ-ZS-47, REQ-ZS-48, Guiding principle 5, §5.1
 
-- [ ] Write `tests/test_zs_recurring_charge.py`:
+- [x] Write `tests/test_zs_recurring_charge.py`:
   - **Tier 1**: `test_recurring_charge_fires_on_typical_input` — 1 alert, `detector == "zs.recurring_charge"`, `severity == "info"`, `source_refs` match the fixture rows in date order, all `data` keys of REQ-ZS-13 present; `test_recurring_charge_silent_on_clean_ledger`; `test_yearly_cost_is_current_amount_times_ppy`; `test_zs_acceptance_e1_yearly_cost_191_88`; `test_zs_acceptance_e3_two_alerts`; `test_zs_acceptance_e4_two_alerts`; `test_alias_resolves_counterparty_display_name`.
   - **Tier 1 — shopping**: `test_zs_acceptance_e7b_weekly_shopping_no_alerts_of_any_kind` (runs all five detectors through `run_all(namespace="zs")` once Z16 exists; here the recurring detector alone must return `[]`).
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_none_aliases_does_not_raise`; `test_duplicate_source_ref_handled`; `test_two_monthly_charges_below_minimum`; `test_is_active_true_and_false` (dates relative to the ledger maximum); `test_amount_boundary_at_stable_ratio`; `test_source_refs_sorted_by_date_not_text` (`f.csv:9` before `f.csv:10`).
   - **Tier 3** (`max_examples=200`): `test_monthly_series_always_detected` (gap = 30 + jitter in [−3, 3], amounts within ±4%); `test_insufficient_occurrences_never_detected`; `test_row_order_invariant`; `test_yearly_cost_equals_current_price_times_12`; `test_source_refs_subset_of_input`; `test_detector_idempotent`.
-- [ ] Implement `detectors/recurring_charge.py` (`@register("zs.recurring_charge")`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Implement `detectors/recurring_charge.py` (`@register("zs.recurring_charge")`).
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -163,13 +163,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-14, REQ-ZS-15, REQ-ZS-16, REQ-ZS-48, REQ-ZS-10c, §5.2
 
-- [ ] Write `tests/test_zs_price_increase.py`:
+- [x] Write `tests/test_zs_price_increase.py`:
   - **Tier 1**: `test_zs_acceptance_e1_price_increase_alert` — old 12.99, new 15.99, `extra_cost_per_year == "36.00"`, `yearly_cost == "191.88"`; `test_zs_acceptance_e2_price_increase_alert` (old 9.99, new 12.99); `test_downgrade_never_alerts`; `test_price_increase_silent_on_clean_ledger`; `test_step_between_5_and_10_pct_alerts` (12.99 → 13.79 × 3 each).
   - **Tier 1 — shopping**: `test_e7b_no_price_increase_alerts`.
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_threshold_boundary_exactly_5pct_fires` and `test_just_below_5pct_does_not` (20.00 → 21.00 fires; 20.00 → 20.99 does not); `test_ratio_computed_from_rounded_medians`; `test_duplicate_source_ref_handled`; `test_two_steps_in_one_service_each_reported`.
-  - **Tier 3** (`max_examples=200`): `test_price_step_above_5pct_always_fires` (±0.5% noise, step 7–50%, k = 1..5 of 6); `test_price_step_exactly_5pct_fires` (noise-free, k = 1..5); `test_price_step_below_5pct_never_fires` (±0.5% noise, step 0–3.9%, up or down); `test_stable_series_never_fires_price_increase`; `test_early_step_fires_exactly_once` (noise-free, 5–50%, k = 1..5); `test_source_refs_subset_of_input`.
-- [ ] Implement `detectors/price_increase.py` (`@register("zs.price_increase")`).
-- [ ] Verify: tests pass, `ruff check` clean.
+  - **Tier 3** (`max_examples=200`): `test_price_step_above_5pct_always_fires` (±0.5% noise, step 7–45%, base 20–500, k = 1..5); `test_price_step_exactly_5pct_fires` (noise-free, k = 1..5); `test_price_step_below_5pct_never_fires` (±0.5% noise, base 100–500, step at most 3.9%, up or down); `test_stable_series_never_fires_price_increase`; `test_early_step_fires_exactly_once` (noise-free, 5–50%, k = 1..5); `test_source_refs_subset_of_input`.
+- [x] Implement `detectors/price_increase.py` (`@register("zs.price_increase")`).
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -177,12 +177,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-17, REQ-ZS-18, REQ-ZS-19, REQ-ZS-20, §5.3
 
-- [ ] Write `tests/test_zs_duplicate_subscription.py`:
+- [x] Write `tests/test_zs_duplicate_subscription.py`:
   - **Tier 1**: `test_zs_acceptance_e4_duplicate_alert_without_aliases` (one alert, `series_count == 2`); `test_zs_acceptance_e5_aliased_duplicate_alert` (`canonical_name == "STREAMING"`, regardless of amounts); `test_zs_acceptance_e3_no_duplicate_alert`; `test_duplicate_silent_on_clean_ledger`; `test_yearly_cost_is_sum_of_series_yearly_costs`.
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_none_and_empty_aliases_do_not_raise`; `test_dormant_series_is_not_a_duplicate`; `test_same_key_amounts_exactly_10pct_apart_is_duplicate_and_beyond_is_not`; `test_three_series_two_qualifying_counts_only_qualifying`; `test_duplicate_source_ref_handled`.
   - **Tier 3** (`max_examples=200`): `test_source_refs_subset_of_input`; `test_row_order_invariant`; `test_idempotent`.
-- [ ] Implement `detectors/duplicate_subscription.py` (`@register("zs.duplicate_subscription")`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Implement `detectors/duplicate_subscription.py` (`@register("zs.duplicate_subscription")`).
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -190,12 +190,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-21, REQ-ZS-22, REQ-ZS-23, §5.4
 
-- [ ] Write `tests/test_zs_free_trial_to_paid.py`:
+- [x] Write `tests/test_zs_free_trial_to_paid.py`:
   - **Tier 1**: `test_free_trial_fires_on_typical_input` (0.49 fourteen days before 14.99 × 3); `test_free_trial_silent_on_clean_ledger`; `test_trial_row_not_part_of_series`; `test_source_refs_include_trial_and_series_sorted_by_date_then_row` — trial `f.csv:10` before series rows `f.csv:9`-style refs are ordered by `(date, source_row)`, not as text.
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_amount_boundaries_0_01_and_1_00_inclusive_1_01_excluded_0_00_absent`; `test_day_boundaries_1_and_35_inclusive_0_and_36_excluded`; `test_closest_trial_charge_chosen`; `test_trial_28_to_33_days_before_series_still_a_trial` (not absorbed into the series); `test_duplicate_source_ref_handled`.
   - **Tier 3** (`max_examples=200`): `test_source_refs_subset_of_input`; `test_row_order_invariant`; `test_never_fires_without_a_series`.
-- [ ] Implement `detectors/free_trial_to_paid.py` (`@register("zs.free_trial_to_paid")`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Implement `detectors/free_trial_to_paid.py` (`@register("zs.free_trial_to_paid")`).
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 

@@ -424,3 +424,26 @@ def find_series(rows_for_key: list[dict]) -> list[Series]:
             claimed.update(r["source_ref"] for r in run)
 
     return sorted(found, key=lambda s: (date_key(s.rows[0]), s.interval_type))
+
+
+# --- Active series and service cost (design §3.1, §4.7) ----------------------------------------
+
+KeyGroups = list[tuple[str, list[dict]]]  # [(normalised_key, rows)] of one service
+
+
+def is_active(series: Series, max_date: date) -> bool:
+    """Return True when the last charge is within nominal + tolerance days of max_date."""
+    last_date = series.rows[-1]["date"]
+    return (max_date - last_date).days <= series.nominal_days + INTERVAL_TOLERANCE_DAYS
+
+
+def service_yearly_cost(key_groups: KeyGroups, max_date: date | None) -> Decimal:
+    """Sum the yearly cost of the active series of every key of one service."""
+    if max_date is None:
+        return Decimal("0.00")
+    total = Decimal("0.00")
+    for _key, rows in key_groups:
+        for series in find_series(rows):
+            if is_active(series, max_date):
+                total += round_to_cents(series.current_amount * ppy_for(series.interval_type))
+    return round_to_cents(total)
