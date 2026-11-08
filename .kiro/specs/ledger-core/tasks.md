@@ -30,7 +30,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `ledger_kit/utils/`
 - [x] Create `ledger_kit/defaults.toml` with the content from design §9.
 - [x] Create `.env.example` documenting any required environment variables.
-- [ ] Verify: `ruff check .` and `ruff format --check .` pass with zero warnings.
+- [x] Verify: `ruff check .` and `ruff format --check .` pass with zero warnings.
 
 ---
 
@@ -384,8 +384,8 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - [x] For each source ref: display the matching ledger row with `pandas.Styler` yellow highlight (`background-color: #fff3cd`).
   - [x] All `amount` values formatted with `format_amount`.
   - [x] Encoding used surfaced as a tooltip/caption on the file summary.
-- [ ] Verify: `streamlit run ledger_kit/ui/reference_app.py` starts without import errors (manual smoke test; no automated Streamlit tests at this stage).
-- [ ] Verify: `ruff check` clean.
+- [x] Verify: `streamlit run ledger_kit/ui/reference_app.py` starts without import errors (manual smoke test; no automated Streamlit tests at this stage).
+- [x] Verify: `ruff check` clean.
 
 ---
 
@@ -403,7 +403,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - [x] `data/samples/suppliers_sample.csv` — 3 rows (`supplier_name,tax_id,iban`), one with an empty `iban` (CR-LC-3b).
 - [x] Update `.gitignore` to exclude `data/real/` and loose `*.csv` / `*.json` / `*.pdf` outside `data/samples/`.
 - [x] Identifier rules (Finance Rule 5, CR-LC-3h): every IBAN in the samples is mod-97 valid with deliberately wrong Spanish national check digits (e.g. `ES88 2100 0418 5602 0005 1332`); every tax id has a wrong control character, one different per supplier (e.g. `B00000001`, `00000001T`).
-- [ ] Verify: `parse_csv`, `parse_invoice` and `parse_suppliers` successfully ingest all five sample files with zero quarantine, `normalise` accepts each result, and the `iban` values read from the bank sample equal the file text.
+- [x] Verify: `parse_csv`, `parse_invoice` and `parse_suppliers` successfully ingest all five sample files with zero quarantine, `normalise` accepts each result, and the `iban` values read from the bank sample equal the file text.
 
 ---
 
@@ -412,10 +412,10 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 **Covers**: REQ-TST-06, REQ-TST-07, REQ-TST-08, all requirements end-to-end
 
 - [ ] Run the full test suite: `pytest --cov=ledger_kit --cov-fail-under=80`.
-- [ ] Confirm all three test tiers are present for each module (ingestion, detectors, explainer, money, anonymise).
+- [x] Confirm all three test tiers are present for each module (ingestion, detectors, explainer, money, anonymise).
 - [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
-- [ ] Confirm all Hypothesis property tests are decorated with `@settings(max_examples=200)`.
-- [ ] Confirm every "no invention" property test compares `Alert.source_refs` with `loaded_source_refs(ledger, context)` (the union of all loaded inputs), not with the ledger alone (CR-LC-3d, REQ-TST-10).
-- [ ] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
-- [ ] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
+- [x] Confirm all Hypothesis property tests are decorated with `@settings(max_examples=200)`.
+- [x] Confirm every "no invention" property test compares `Alert.source_refs` with `loaded_source_refs(ledger, context)` (the union of all loaded inputs), not with the ledger alone (CR-LC-3d, REQ-TST-10).
+- [x] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
+- [x] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
 - [ ] Fix any coverage gaps or lint issues found.

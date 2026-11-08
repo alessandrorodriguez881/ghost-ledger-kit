@@ -37,6 +37,8 @@ fallback_version = "0.0.0"
 
 [tool.ruff]
 line-length = 100
+# Spec documents under .kiro contain illustrative pseudocode snippets, not real code.
+extend-exclude = [".kiro"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
