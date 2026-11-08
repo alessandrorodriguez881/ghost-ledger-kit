@@ -411,11 +411,11 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-TST-06, REQ-TST-07, REQ-TST-08, all requirements end-to-end
 
-- [ ] Run the full test suite: `pytest --cov=ledger_kit --cov-fail-under=80`.
+- [x] Run the full test suite: `pytest --cov=ledger_kit --cov-fail-under=80`.
 - [x] Confirm all three test tiers are present for each module (ingestion, detectors, explainer, money, anonymise).
-- [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
+- [x] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
 - [x] Confirm all Hypothesis property tests are decorated with `@settings(max_examples=200)`.
 - [x] Confirm every "no invention" property test compares `Alert.source_refs` with `loaded_source_refs(ledger, context)` (the union of all loaded inputs), not with the ledger alone (CR-LC-3d, REQ-TST-10).
 - [x] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
 - [x] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
-- [ ] Fix any coverage gaps or lint issues found.
+- [x] Fix any coverage gaps or lint issues found.

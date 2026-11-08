@@ -15,11 +15,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-41, §1, §8
 
-- [ ] Write `apps/zombie_subscriptions/tests/test_zs_scaffold.py`:
+- [x] Write `apps/zombie_subscriptions/tests/test_zs_scaffold.py`:
   - `test_app_package_importable` — `import apps.zombie_subscriptions` and `apps.zombie_subscriptions.detectors` succeed under plain `pytest`.
   - `test_no_app_level_requirements_txt` — `apps/zombie_subscriptions/requirements.txt` does not exist (it would hide the root file on Streamlit Community Cloud).
   - `test_app_does_not_import_other_app` — no module under the app imports `apps.phantom_invoices`; `ledger_kit` imports nothing from `apps`.
-- [ ] Create empty `apps/__init__.py`, `apps/zombie_subscriptions/__init__.py`, `apps/zombie_subscriptions/detectors/__init__.py`, `apps/zombie_subscriptions/tests/` (no `__init__.py` needed beyond what ledger-core Task 1 pytest config requires).
+- [x] Create empty `apps/__init__.py`, `apps/zombie_subscriptions/__init__.py`, `apps/zombie_subscriptions/detectors/__init__.py`, `apps/zombie_subscriptions/tests/` (no `__init__.py` needed beyond what ledger-core Task 1 pytest config requires).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -28,14 +28,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-05, REQ-ZS-06, REQ-ZS-07, REQ-ZS-08 (constants), REQ-ZS-10, REQ-ZS-42, §2, §3
 
-- [ ] Write `tests/test_zs_utils_normalise.py` (in `apps/zombie_subscriptions/tests/`):
+- [x] Write `tests/test_zs_utils_normalise.py` (in `apps/zombie_subscriptions/tests/`):
   - **Tier 1**: `test_normalise_examples` — `"Streamflix Intl."` → `"STREAMFLIX INTL"`, `"STREAMFLIX.COM"` → `"STREAMFLIXCOM"`, `"BEATSTREAM P2A3B4C5"` → `"BEATSTREAM"`.
   - **Tier 1**: `test_resolve_alias_hit_and_miss`, `test_normalise_alias_map_normalises_names_and_members`, `test_normalise_date_map_normalises_keys`.
   - **Tier 2**: `test_normalise_all_tokens_have_digits_falls_back`, `test_normalise_empty_string`, `test_resolve_alias_none_and_empty`, `test_normalise_alias_map_none`, `test_normalise_date_map_none`.
   - **Tier 3**: `test_normalise_idempotent`, `test_normalise_output_only_letters_and_spaces`, `test_normalise_case_and_whitespace_invariant`.
   - `test_constants_values` — every constant in design §2 exists with the stated value, including `STABLE_AMOUNT_RATIO == Decimal("0.02")`, `MAX_EDGE_STEP_RATIO == Decimal("0.50")`, `MIN_SIDE_ROWS == 2`; `INTERVAL_TYPES` order is weekly, monthly, quarterly, yearly; `INTERVALS_BY_NAME` matches.
   - `test_no_thresholds_in_config_toml` — once Z17 adds `config.toml`, it contains none of the constant names (REQ-ZS-42).
-- [ ] Implement the constants block, `INTERVAL_TYPES`, `INTERVALS_BY_NAME`, `normalise_counterparty`, `resolve_alias`, `normalise_alias_map`, `normalise_date_map` in `detectors/utils.py`.
+- [x] Implement the constants block, `INTERVAL_TYPES`, `INTERVALS_BY_NAME`, `normalise_counterparty`, `resolve_alias`, `normalise_alias_map`, `normalise_date_map` in `detectors/utils.py`.
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -44,13 +44,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-03 (debit-only input), REQ-ZS-13 (ordering of source_refs), REQ-ZS-13a, REQ-ZS-30, REQ-ZS-49, §3.1
 
-- [ ] Write `tests/test_zs_utils_helpers.py`:
+- [x] Write `tests/test_zs_utils_helpers.py`:
   - **Tier 1**: `test_date_key_orders_by_date_then_source_row`; `test_sorted_source_refs_by_date_not_text` — refs `f.csv:9` and `f.csv:10` on consecutive dates come out `[f.csv:9, f.csv:10]`, and with the same date by `source_row`, never as text.
   - **Tier 1**: `test_group_by_normalised_key_groups_and_sorts` — keys alphabetical, rows by `date_key`; `test_group_by_canonical_collects_aliased_keys` — two aliased keys land under one canonical name, each with its own rows.
   - **Tier 1**: `test_ppy_for_all_interval_types`; `test_ledger_max_date`; `test_median_odd_even_decimal`.
   - **Tier 2**: `test_group_helpers_empty_ledger_return_empty`; `test_ledger_max_date_empty_returns_none`; `test_sorted_source_refs_dedupes_duplicate_source_ref`; `test_single_row_ledger_groups`.
   - **Tier 3**: `test_group_by_normalised_key_partitions_rows` — every input row appears in exactly one group.
-- [ ] Implement `date_key`, `sorted_source_refs`, `group_by_normalised_key`, `group_by_canonical`, `ppy_for`, `ledger_max_date`, `median` in `detectors/utils.py`.
+- [x] Implement `date_key`, `sorted_source_refs`, `group_by_normalised_key`, `group_by_canonical`, `ppy_for`, `ledger_max_date`, `median` in `detectors/utils.py`.
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -59,12 +59,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-46, REQ-ZS-50, REQ-ZS-09 (E1–E7b input data), design §4.8, §11.1
 
-- [ ] Write `tests/test_zs_fixtures.py` first (each fixture has the right shape):
+- [x] Write `tests/test_zs_fixtures.py` first (each fixture has the right shape):
   - `test_fixture_columns_match_canonical_columns` — every fixture frame has `CANONICAL_COLUMNS` from `ledger_kit.ingestion.normaliser`.
   - `test_fixtures_are_debit_only_with_unique_source_refs`.
-  - `test_fixture_counterparties_are_fictional_merchants` — all fixture counterparties come from a fixed allow-list (`CLOUDVAULT`, `STREAMFLEX INTL`, `MUSICBOX`, `STREAMFLIX INTL`, `STREAMFLIXCOM`, `SECUREPASS`, `GYMPLUS`, `FRESHCO`, `APPLEBILL`, `SUPERMART`, …); none is a person name, none is Spotify/Adobe/Dropbox/Netflix.
+  - `test_fixture_counterparties_are_fictional_merchants` — all fixture counterparties come from a fixed allow-list (`CLOUDVAULT`, `STREAMFLEX INTL`, `MUSICBOX`, `STREAMFLIX INTL`, `STREAMFLIXCOM`, `SECUREPASS`, `GYMPLUS`, `FRESHCO`, `GLOWBILL`, `SUPERMART`, …); none is a person name, none is Spotify/Adobe/Dropbox/Netflix.
   - `test_weekly_shopping_fixture_matches_spec` — 26 rows, dates `2026-05-04 + 7·i`, amounts `round_to_cents(40.00 × 1.11^k)` with `k = (5·i) mod 13`; 13 distinct amounts, each exactly twice, 91 days apart, adjacent levels more than 10% apart.
-- [ ] Implement `apps/zombie_subscriptions/tests/conftest.py`: the `_debit_row` helper (explicit dates, no clock), builders for monthly/weekly rows, and the fixtures `empty_ledger`, `single_row_ledger`, `clean_ledger_10`, `ledger_with_recurring`, `ledger_with_price_increase`, `ledger_with_duplicate_sub`, `ledger_with_aliased_duplicate`, `ledger_with_free_trial`, `ledger_with_post_cancellation`, `ledger_with_zombie`, `ledger_with_weekly_shopping`, plus builder functions for the E2, E3, E6, E7 and downgrade series (design §4.8).
+- [x] Implement `apps/zombie_subscriptions/tests/conftest.py`: the `_debit_row` helper (explicit dates, no clock), builders for monthly/weekly rows, and the fixtures `empty_ledger`, `single_row_ledger`, `clean_ledger_10`, `ledger_with_recurring`, `ledger_with_price_increase`, `ledger_with_duplicate_sub`, `ledger_with_aliased_duplicate`, `ledger_with_free_trial`, `ledger_with_post_cancellation`, `ledger_with_zombie`, `ledger_with_weekly_shopping`, plus builder functions for the E2, E3, E6, E7 and downgrade series (design §4.8).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---

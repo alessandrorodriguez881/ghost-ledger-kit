@@ -586,7 +586,7 @@ two levels, both sides have 3 rows → `price_steps=[(9.99, 12.99)]`.
 
 ---
 
-**E3** — Parallel series, different amounts: interleaved 2.99 / 0.99 monthly for `"APPLEBILL"`.
+**E3** — Parallel series, different amounts: interleaved 2.99 / 0.99 monthly for `"GLOWBILL"`.
 
 ```
 Jan-01 2.99 | Jan-15 0.99 | Feb-01 2.99 | Feb-15 0.99 | Mar-01 2.99 | Mar-15 0.99
@@ -1101,7 +1101,7 @@ names apply to salary/transfer counterparties only.
 |---|---|---|---|
 | E1 (step change) | `STREAMFLEX INTL 4412` | `STREAMFLEX INTL` | 5 × 12.99 + 1 × 15.99 monthly |
 | E2 (step change) | `CLOUDVAULT` | `CLOUDVAULT` | 3 × 9.99 + 3 × 12.99 monthly |
-| E3 (parallel, different amounts) | `APPLEBILL` | `APPLEBILL` | Interleaved 2.99 + 0.99 monthly |
+| E3 (parallel, different amounts) | `GLOWBILL` | `GLOWBILL` | Interleaved 2.99 + 0.99 monthly |
 | E4 (parallel, same amount) | `MUSICBOX` | `MUSICBOX` | Two interleaved 10.99 monthly |
 | E5 (alias duplicate) | `STREAMFLIX INTL 7731` + `STREAMFLIXCOM` | `STREAMFLIX INTL`, `STREAMFLIXCOM` | Monthly, aliased to `streaming` |
 | Free trial | `SECUREPASS` | `SECUREPASS` | 0.49 debit 14 days before first monthly 14.99 |
