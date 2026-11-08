@@ -20,7 +20,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_no_app_level_requirements_txt` — `apps/zombie_subscriptions/requirements.txt` does not exist (it would hide the root file on Streamlit Community Cloud).
   - `test_app_does_not_import_other_app` — no module under the app imports `apps.phantom_invoices`; `ledger_kit` imports nothing from `apps`.
 - [x] Create empty `apps/__init__.py`, `apps/zombie_subscriptions/__init__.py`, `apps/zombie_subscriptions/detectors/__init__.py`, `apps/zombie_subscriptions/tests/` (no `__init__.py` needed beyond what ledger-core Task 1 pytest config requires).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -36,7 +36,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_constants_values` — every constant in design §2 exists with the stated value, including `STABLE_AMOUNT_RATIO == Decimal("0.02")`, `MAX_EDGE_STEP_RATIO == Decimal("0.50")`, `MIN_SIDE_ROWS == 2`; `INTERVAL_TYPES` order is weekly, monthly, quarterly, yearly; `INTERVALS_BY_NAME` matches.
   - `test_no_thresholds_in_config_toml` — once Z17 adds `config.toml`, it contains none of the constant names (REQ-ZS-42).
 - [x] Implement the constants block, `INTERVAL_TYPES`, `INTERVALS_BY_NAME`, `normalise_counterparty`, `resolve_alias`, `normalise_alias_map`, `normalise_date_map` in `detectors/utils.py`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -51,7 +51,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_group_helpers_empty_ledger_return_empty`; `test_ledger_max_date_empty_returns_none`; `test_sorted_source_refs_dedupes_duplicate_source_ref`; `test_single_row_ledger_groups`.
   - **Tier 3**: `test_group_by_normalised_key_partitions_rows` — every input row appears in exactly one group.
 - [x] Implement `date_key`, `sorted_source_refs`, `group_by_normalised_key`, `group_by_canonical`, `ppy_for`, `ledger_max_date`, `median` in `detectors/utils.py`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -65,7 +65,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_fixture_counterparties_are_fictional_merchants` — all fixture counterparties come from a fixed allow-list (`CLOUDVAULT`, `STREAMFLEX INTL`, `MUSICBOX`, `STREAMFLIX INTL`, `STREAMFLIXCOM`, `SECUREPASS`, `GYMPLUS`, `FRESHCO`, `GLOWBILL`, `SUPERMART`, …); none is a person name, none is Spotify/Adobe/Dropbox/Netflix.
   - `test_weekly_shopping_fixture_matches_spec` — 26 rows, dates `2026-05-04 + 7·i`, amounts `round_to_cents(40.00 × 1.11^k)` with `k = (5·i) mod 13`; 13 distinct amounts, each exactly twice, 91 days apart, adjacent levels more than 10% apart.
 - [x] Implement `apps/zombie_subscriptions/tests/conftest.py`: the `_debit_row` helper (explicit dates, no clock), builders for monthly/weekly rows, and the fixtures `empty_ledger`, `single_row_ledger`, `clean_ledger_10`, `ledger_with_recurring`, `ledger_with_price_increase`, `ledger_with_duplicate_sub`, `ledger_with_aliased_duplicate`, `ledger_with_free_trial`, `ledger_with_post_cancellation`, `ledger_with_zombie`, `ledger_with_weekly_shopping`, plus builder functions for the E2, E3, E6, E7 and downgrade series (design §4.8).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -73,14 +73,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-08, REQ-ZS-09, §4.4, §4.5
 
-- [ ] Write `tests/test_zs_series_primitives.py`:
+- [x] Write `tests/test_zs_series_primitives.py`:
   - **Tier 1**: `test_group_by_price_level_splits_on_10pct` — 9.99 and 12.99 separate; 12.99 and 13.79 together.
   - **Tier 1**: `test_group_by_price_level_buckets_are_date_sorted` — a bucket built from amounts in non-date order comes back ordered by `date_key` (regression: buckets were returned sorted by amount).
   - **Tier 1**: `test_longest_cadence_run_skips_interleaved_rows` — E4 dates `Jan-01, Jan-15, Feb-01, Feb-15, Mar-01, Mar-15` → run `[Jan-01, Feb-01, Mar-01]` (length 3, no stride-2 step needed).
   - **Tier 1**: `test_longest_cadence_run_per_interval` — weekly 7±3, monthly 30±3, quarterly 91±3, yearly 365±3.
   - **Tier 2**: `test_longest_cadence_run_empty_and_single_row`; `test_gap_boundaries_inclusive` — gaps 27 and 33 accepted, 26 and 34 rejected; `test_group_by_price_level_empty`; `test_duplicate_source_ref_rows_do_not_crash`.
   - **Tier 3**: `test_buckets_partition_rows`; `test_run_is_subsequence_with_valid_gaps`; `test_bucket_membership_independent_of_input_order`.
-- [ ] Implement `group_by_price_level` (buckets returned sorted by `date_key`) and `longest_cadence_run`.
+- [x] Implement `group_by_price_level` (buckets returned sorted by `date_key`) and `longest_cadence_run`.
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -89,14 +89,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-09, REQ-ZS-10a, REQ-ZS-14, §4.3
 
-- [ ] Write `tests/test_zs_segment_by_price.py` (table-driven, runs built from amount lists):
+- [x] Write `tests/test_zs_segment_by_price.py` (table-driven, runs built from amount lists):
   - **Tier 1 — Branch 1**: `test_stable_run_is_one_series_no_steps` (12.99 × 5); `test_two_percent_boundary` — amounts exactly 2% from the median are a level, just above are not.
   - **Tier 1 — Branch 2**: `test_step_up_recorded` (3 × 9.99 + 3 × 12.99 → `(9.99, 12.99)`, `current_amount=12.99`); `test_step_down_recorded` (14.99 → 9.99); `test_step_between_5_and_10_pct_is_recorded` — 12.99 × 3 then 13.79 × 3 (+6.2%) records a step (regression: it fell in one 10% bucket and was never recorded); `test_final_single_row_after_enough_rows_is_step` (12.99 × 5 + 15.99 → E1); `test_first_single_row_before_enough_rows_is_step` (12.99 + 15.99 × 5).
   - **Tier 1 — shopping guards**: `test_stray_low_amount_is_not_a_new_price` — 12.99 × 4 + 4.99 → `None`; `test_single_row_side_needs_interval_minimum` — monthly 12.99 × 2 + 15.99 → `None`; `test_trial_amount_before_series_is_not_a_step` — 0.49 + 14.99 × 3 → `None`; `test_two_row_run_must_be_one_level` — `[10.00, 10.90]` → `None`, `[10.00, 10.10]` → series; `test_one_row_each_side_not_a_step`; `test_edge_step_beyond_50pct_rejected` (+50% accepted, +51% rejected); `test_two_valid_splits_is_ambiguous_falls_to_branch3`.
   - **Tier 1 — Branch 3**: `test_variable_bill_within_10pct_uses_median` — amounts ±4% around 50.00, no step → `current_amount` = rounded median, `price_steps == []`; `test_amounts_beyond_10pct_of_median_rejected` (E7 amounts → `None`).
   - **Tier 2**: `test_step_ratio_uses_rounded_medians`; `test_equal_rounded_medians_not_a_step`; `test_run_of_one_row`; `test_current_amount_rounded_half_up`.
   - **Tier 3**: `test_noise_within_half_percent_of_one_level_is_stable` (never a step); `test_segment_result_rows_equal_input_rows`; `test_current_amount_is_median_of_last_level`.
-- [ ] Implement `is_level`, `_segment_by_price`, the `Series` dataclass in `detectors/utils.py` (steps stored as rounded medians; `round_to_cents` from `ledger_kit.utils.money`).
+- [x] Implement `is_level`, `_segment_by_price`, the `Series` dataclass in `detectors/utils.py` (steps stored as rounded medians; `round_to_cents` from `ledger_kit.utils.money`).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -105,13 +105,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-08, REQ-ZS-09 (E3, E4, E6, E7, E7b), REQ-ZS-10, REQ-ZS-10b, REQ-ZS-11, §4.6
 
-- [ ] Write `tests/test_zs_find_series.py` (part 1):
+- [x] Write `tests/test_zs_find_series.py` (part 1):
   - **Tier 1 acceptance**: `test_zs_acceptance_e3_parallel_different_amounts_two_series`; `test_zs_acceptance_e4_parallel_same_amount_two_series` (trace per design §4.8: both series found by the `while` loop, no stride-2); `test_zs_acceptance_e6_two_supermarket_charges_no_series`; `test_zs_acceptance_e7_weekly_varying_amounts_no_series`; `test_zs_acceptance_e7b_weekly_shopping_no_series` — `find_series` on the `ledger_with_weekly_shopping` rows returns `[]`.
   - **Tier 1**: `test_stable_monthly_series_found`; `test_stable_weekly_needs_four`; `test_quarterly_pair_accepted_when_no_other_rows_in_span`; `test_yearly_pair_accepted_when_no_other_rows_in_span`.
   - **Tier 1 — span guard**: `test_quarterly_pair_rejected_when_other_rows_in_span`; `test_yearly_pair_rejected_when_other_rows_in_span`; `test_weekly_supermarket_key_makes_no_quarterly_series` — the E7b fixture plus a 27th row: still `[]`.
   - **Tier 2**: `test_find_series_empty_and_single_row`; `test_below_minimum_occurrences_no_series` (2 monthly, 3 weekly); `test_gap_tolerance_boundaries`; `test_duplicate_source_ref_does_not_crash`; `test_interleaved_series_not_merged`.
   - **Tier 3**: `test_find_series_row_order_invariant` — shuffled input gives identical series; `test_series_rows_are_subset_and_disjoint` — no row in two series; `test_series_rows_are_date_sorted`.
-- [ ] Implement `_other_rows_in_span`, `_accept`, `find_series` Phase 1 and Phase 3 (Phase 2 stubbed as "no change" until Z8).
+- [x] Implement `_other_rows_in_span`, `_accept`, `find_series` Phase 1 and Phase 3 (Phase 2 stubbed as "no change" until Z8).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -120,14 +120,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-09 (E1, E2), REQ-ZS-10c, REQ-ZS-14, §4.6, §4.8
 
-- [ ] Extend `tests/test_zs_find_series.py` (part 2):
+- [x] Extend `tests/test_zs_find_series.py` (part 2):
   - **Tier 1 acceptance**: `test_zs_acceptance_e1_step_change_detected` — one series, six rows, `current_amount=15.99`, `price_steps == [(12.99, 15.99)]`; `test_zs_acceptance_e2_step_change_two_levels_merged` — one series, six rows, `price_steps == [(9.99, 12.99)]`; `test_downgrade_merged_with_downward_step`.
   - **Tier 1 — backward extension**: `test_early_step_first_charge` — 1 × 9.99 then 5 × 12.99 (step above 10%) → one series, one step; `test_early_step_second_charge` — 2 × 9.99 then 4 × 12.99.
   - **Tier 1**: `test_step_within_one_bucket_found` (12.99 × 3 then 13.79 × 3 is a single bucket).
   - **Tier 1 — guards**: `test_trial_charge_28_days_before_series_not_absorbed` — 0.49, then 14.99 × 3 starting 30 days later: the series has exactly the 3 rows of 14.99 and the 0.49 row stays outside; `test_stray_row_on_cadence_with_implausible_price_not_absorbed` (12.99 × 4 then 4.99 on the next date).
   - **Tier 2**: `test_extension_tolerance_boundaries`; `test_extension_picks_closest_candidate`; `test_phase2_terminates_on_many_rows` (200-row ledger finishes).
   - **Tier 3**: `test_step_at_every_position_found_once` — noise-free step 5–50% (whole percent, base whole euros 20–500) at k = 1..5 of 6 monthly charges → exactly one series with one step; `test_row_order_invariant_with_steps`.
-- [ ] Implement `_closest` and Phase 2a (forward and backward extension, re-segmenting the whole series) and 2b (merge consecutive non-overlapping series) in `find_series`; final sort of the result.
+- [x] Implement `_closest` and Phase 2a (forward and backward extension, re-segmenting the whole series) and 2b (merge consecutive non-overlapping series) in `find_series`; final sort of the result.
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---

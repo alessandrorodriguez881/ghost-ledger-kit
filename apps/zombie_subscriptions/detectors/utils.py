@@ -2,10 +2,13 @@
 
 import re
 from collections import defaultdict
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pandas as pd
+
+from ledger_kit.utils.money import round_to_cents
 
 # --- Constants (design §2); every threshold that influences an alert lives here ----------------
 
@@ -182,3 +185,242 @@ def median(values: list[Decimal]) -> Decimal:
     if len(ordered) % 2:
         return ordered[middle]
     return (ordered[middle - 1] + ordered[middle]) / Decimal(2)
+
+
+# --- Series (design §4) ------------------------------------------------------------------------
+
+
+@dataclass
+class Series:
+    """A recurring series of charges under one normalised key (design §4.2)."""
+
+    rows: list[dict]  # ledger rows sorted by date_key ascending
+    interval_type: str  # "weekly" | "monthly" | "quarterly" | "yearly"
+    nominal_days: int
+    current_amount: Decimal  # rounded median of the charges since the last price step
+    price_steps: list[tuple[Decimal, Decimal]]  # [(old, new), ...] rounded medians, any direction
+
+
+def is_level(amounts: list[Decimal]) -> bool:
+    """Return True when every amount lies within STABLE_AMOUNT_RATIO of the median."""
+    m = median(amounts)
+    return all(abs(a - m) <= STABLE_AMOUNT_RATIO * m for a in amounts)
+
+
+def _within_match_ratio(amounts: list[Decimal]) -> bool:
+    """Return True when every amount lies within AMOUNT_MATCH_RATIO of the median."""
+    m = median(amounts)
+    return all(abs(a - m) <= AMOUNT_MATCH_RATIO * m for a in amounts)
+
+
+def _gap_ok(days: int, nominal: int) -> bool:
+    """Return True when a gap in days equals the nominal interval within the tolerance."""
+    return abs(days - nominal) <= INTERVAL_TOLERANCE_DAYS
+
+
+def _make_series(
+    run: list[dict],
+    interval: dict,
+    current_amount: Decimal,
+    price_steps: list[tuple[Decimal, Decimal]],
+) -> Series:
+    """Build a Series for `run` (assumed date-sorted) and an interval descriptor."""
+    return Series(
+        rows=list(run),
+        interval_type=interval["name"],
+        nominal_days=interval["nominal"],
+        current_amount=current_amount,
+        price_steps=price_steps,
+    )
+
+
+def _segment_by_price(run: list[dict], interval: dict) -> Series | None:
+    """Classify a cadence-consistent run as stable, step-change or variable; else None."""
+    amounts = [Decimal(r["amount"]) for r in run]
+    n = len(amounts)
+
+    # Branch 1 - stable: the whole run is one price level.
+    if is_level(amounts):
+        return _make_series(run, interval, round_to_cents(median(amounts)), [])
+
+    # A 2-row run must be a single stable level.
+    if n == 2:
+        return None
+
+    # Branch 2 - exactly one split where both sides are price levels (either direction).
+    splits: list[tuple[Decimal, Decimal]] = []
+    for p in range(1, n):
+        pre, post = amounts[:p], amounts[p:]
+        if not (is_level(pre) and is_level(post)):
+            continue
+        a, b = round_to_cents(median(pre)), round_to_cents(median(post))
+        if a == b:
+            continue
+        both_sides_big = len(pre) >= MIN_SIDE_ROWS and len(post) >= MIN_SIDE_ROWS
+        final_single = len(post) == 1 and len(pre) >= interval["min"]
+        first_single = len(pre) == 1 and len(post) >= interval["min"]
+        plausible_step = abs(b - a) <= MAX_EDGE_STEP_RATIO * a
+        edge_ok = (final_single or first_single) and plausible_step
+        if both_sides_big or edge_ok:
+            splits.append((a, b))
+    if len(splits) == 1:
+        a, b = splits[0]
+        return _make_series(run, interval, b, [(a, b)])
+
+    # Branch 3 - variable bill: no step, every amount within AMOUNT_MATCH_RATIO of the median.
+    if _within_match_ratio(amounts):
+        return _make_series(run, interval, round_to_cents(median(amounts)), [])
+
+    return None
+
+
+def longest_cadence_run(rows: list[dict], interval: dict) -> list[dict]:
+    """Return the longest date-ordered subsequence whose gaps all fit nominal +/- tolerance."""
+    nominal = interval["nominal"]
+    best: list[dict] = []
+    for start_idx, start_row in enumerate(rows):
+        run = [start_row]
+        for r in rows[start_idx + 1 :]:
+            gap = (r["date"] - run[-1]["date"]).days
+            if _gap_ok(gap, nominal):
+                run.append(r)
+            elif gap > nominal + INTERVAL_TOLERANCE_DAYS:
+                break  # every later row is even further away
+        if len(run) > len(best):
+            best = run
+    return best
+
+
+def group_by_price_level(rows: list[dict]) -> list[list[dict]]:
+    """Cluster rows into price buckets (10% of the bucket median); each bucket is date-sorted."""
+    if not rows:
+        return []
+    by_amount = sorted(rows, key=lambda r: (Decimal(r["amount"]), date_key(r)))
+    buckets: list[list[dict]] = [[by_amount[0]]]
+    for r in by_amount[1:]:
+        m = median([Decimal(x["amount"]) for x in buckets[-1]])
+        if abs(Decimal(r["amount"]) - m) <= AMOUNT_MATCH_RATIO * m:
+            buckets[-1].append(r)
+        else:
+            buckets.append([r])
+    return [sorted(b, key=date_key) for b in buckets]
+
+
+def _other_rows_in_span(series_rows: list[dict], key_rows: list[dict]) -> bool:
+    """Return True when the key has rows between the series' first and last charge not in it."""
+    first, last = series_rows[0]["date"], series_rows[-1]["date"]
+    refs = {r["source_ref"] for r in series_rows}
+    return any(first <= r["date"] <= last and r["source_ref"] not in refs for r in key_rows)
+
+
+def _accept(series: Series | None, key_rows: list[dict]) -> Series | None:
+    """Acceptance guard: a quarterly/yearly series may not span other rows of the same key."""
+    if series is None:
+        return None
+    long_interval = series.interval_type in ("quarterly", "yearly")
+    if long_interval and _other_rows_in_span(series.rows, key_rows):
+        return None
+    return series
+
+
+def _closest(candidates: list[dict], expected_date: date) -> dict | None:
+    """Return the candidate nearest to expected_date (ties: earlier date_key), or None."""
+    return min(
+        candidates,
+        key=lambda r: (abs((r["date"] - expected_date).days), date_key(r)),
+        default=None,
+    )
+
+
+def _unclaimed_rows(rows: list[dict], claimed: set[str]) -> list[dict]:
+    """Return the rows whose source_ref is not yet in a series, keeping their order."""
+    return [r for r in rows if r["source_ref"] not in claimed]
+
+
+def _extend_once(found: list[Series], key_rows: list[dict], claimed: set[str]) -> bool:
+    """Phase 2a: extend one series by one unclaimed row, forward or backward; True if changed."""
+    for idx, s in enumerate(found):
+        unclaimed = _unclaimed_rows(key_rows, claimed)
+        nominal = s.nominal_days
+        interval = INTERVALS_BY_NAME[s.interval_type]
+        last_date, first_date = s.rows[-1]["date"], s.rows[0]["date"]
+        forward = [r for r in unclaimed if _gap_ok((r["date"] - last_date).days, nominal)]
+        backward = [r for r in unclaimed if _gap_ok((first_date - r["date"]).days, nominal)]
+        for row in (
+            _closest(forward, last_date + timedelta(days=nominal)),
+            _closest(backward, first_date - timedelta(days=nominal)),
+        ):
+            if row is None:
+                continue
+            rows = sorted([*s.rows, row], key=date_key)
+            t = _accept(_segment_by_price(rows, interval), key_rows)
+            if t is not None:
+                found[idx] = t
+                claimed.add(row["source_ref"])
+                return True
+    return False
+
+
+def _merge_once(found: list[Series], key_rows: list[dict]) -> list[Series] | None:
+    """Phase 2b: merge two consecutive non-overlapping series; None when nothing merges."""
+    for i, a in enumerate(found):
+        for j in range(i + 1, len(found)):
+            b = found[j]
+            if a.interval_type != b.interval_type:
+                continue
+            earlier, later = (a, b) if a.rows[-1]["date"] < b.rows[0]["date"] else (b, a)
+            if not earlier.rows[-1]["date"] < later.rows[0]["date"]:
+                continue  # calendar-overlapping (E3, E4): never merge
+            gap = (later.rows[0]["date"] - earlier.rows[-1]["date"]).days
+            if not _gap_ok(gap, a.nominal_days):
+                continue
+            interval = INTERVALS_BY_NAME[a.interval_type]
+            t = _accept(_segment_by_price(earlier.rows + later.rows, interval), key_rows)
+            if t is not None:
+                rest = [s for k, s in enumerate(found) if k not in (i, j)]
+                return [*rest, t]
+    return None
+
+
+def find_series(rows_for_key: list[dict]) -> list[Series]:
+    """Find the recurring series of one normalised key (design §4.6, three phases)."""
+    key_rows = sorted(rows_for_key, key=date_key)
+    claimed: set[str] = set()
+    found: list[Series] = []
+
+    # Phase 1: price-bucketed cadence runs.
+    buckets = group_by_price_level(key_rows)
+    for bucket in sorted(buckets, key=len, reverse=True):
+        for interval in INTERVAL_TYPES:
+            while True:  # a bucket may hold several parallel series (E4)
+                run = longest_cadence_run(_unclaimed_rows(bucket, claimed), interval)
+                if len(run) < interval["min"]:
+                    break
+                s = _accept(_segment_by_price(run, interval), key_rows)
+                if s is None:
+                    break
+                found.append(s)
+                claimed.update(r["source_ref"] for r in run)
+
+    # Phase 2: extend, then merge, until nothing changes.
+    while True:
+        if _extend_once(found, key_rows, claimed):
+            continue
+        merged = _merge_once(found, key_rows)
+        if merged is None:
+            break
+        found = merged
+
+    # Phase 3: leftover cadence runs over all unclaimed rows.
+    for interval in INTERVAL_TYPES:
+        while True:
+            run = longest_cadence_run(_unclaimed_rows(key_rows, claimed), interval)
+            if len(run) < interval["min"]:
+                break
+            s = _accept(_segment_by_price(run, interval), key_rows)
+            if s is None:
+                break
+            found.append(s)
+            claimed.update(r["source_ref"] for r in run)
+
+    return sorted(found, key=lambda s: (date_key(s.rows[0]), s.interval_type))
