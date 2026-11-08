@@ -103,7 +103,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 **Covers**: REQ-ING-17, REQ-ING-18, REQ-ING-19, REQ-ING-20, REQ-ING-21, REQ-ING-22, REQ-ING-23, design §3.1
 
-- [ ] Write `tests/ingestion/test_dialect.py` with:
+- [x] Write `tests/ingestion/test_dialect.py` with:
   - `test_detect_dialect_semicolon_only` — `"date;amount;currency"` → `EUROPEAN`.
   - `test_detect_dialect_comma_only` — `"date,amount,currency"` → `PLAIN`.
   - `test_detect_dialect_both_separators` — `"date;amount,currency"` → `None`.
@@ -122,7 +122,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_parse_date_european` — `"31/12/2026"` → `date(2026, 12, 31)`.
   - `test_parse_date_plain_invalid` — `"31/12/2026"` with `PLAIN` dialect → raises `ValueError`.
   - `test_parse_date_european_invalid` — `"2026-12-31"` with `EUROPEAN` dialect → raises `ValueError`.
-- [ ] Implement `ledger_kit/ingestion/dialect.py`:
+- [x] Implement `ledger_kit/ingestion/dialect.py`:
   - `CsvDialect` enum.
   - `detect_dialect(first_line: str) -> CsvDialect | None`.
   - `parse_amount(raw, dialect)`: for `EUROPEAN`, `fullmatch` against `_EUROPEAN_AMOUNT_RE` first and raise `InvalidOperation` when it does not match; only then strip `.`, replace `,`, convert (design §3.1).
@@ -135,7 +135,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 **Covers**: REQ-PII-01, REQ-PII-02, REQ-PII-03, REQ-PII-04, design §6
 
-- [ ] Write `tests/test_anonymise.py` with:
+- [x] Write `tests/test_anonymise.py` with:
   - `test_scrub_replaces_counterparty` — counterparty field becomes placeholder.
   - `test_scrub_replaces_iban_when_present` — IBAN replaced with `DE00000000000000000000`.
   - `test_scrub_iban_none_stays_none` — when `iban=None`, result `iban` is still `None`.
@@ -145,7 +145,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - *(CR-LC-3g)* `test_mask_iban_cleans_spaces_case_and_nbsp` — `"es88\u00a02100 0418 5602 0005 1332"` → `"****1332"`.
   - *(CR-LC-3g)* `test_mask_iban_short_value_reveals_nothing` — `""`, `"AB"`, `"1234"` → `"****"`.
   - *(CR-LC-3g)* `test_mask_iban_never_contains_full_value_and_is_not_iban_shaped` — property (`max_examples=200`) over random strings of length 5–34: result has length 8 and does not match the explainer `_IBAN_RE`.
-- [ ] Implement `ledger_kit/utils/anonymise.py` with `scrub(transaction: Transaction) -> Transaction` and `mask_iban(iban: str) -> str` as in design §6.
+- [x] Implement `ledger_kit/utils/anonymise.py` with `scrub(transaction: Transaction) -> Transaction` and `mask_iban(iban: str) -> str` as in design §6.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
