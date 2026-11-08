@@ -303,7 +303,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 - [x] Implement `ledger_kit/detectors/base.py` with `DetectorResult`, `DetectorError` and `loaded_source_refs` (CR-LC-3d) as in design §4.1.
 - [x] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry`, `_snapshot_registry`, `_restore_registry` as in design §4.2.
 - [x] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols (including `loaded_source_refs`).
-- [ ] Verify: all tests pass, `ruff check` clean.
+- [x] Verify: all tests pass, `ruff check` clean.
 
 ---
 
@@ -319,7 +319,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_namespace_filter_never_calls_other_ns` — `CALLS.clear()` then `run_all(ledger, namespace="tprop_zs")`; `CALLS` never contains `"tprop_pi.b"` for any generated ledger (`@settings(max_examples=200)`).
   - `test_context_is_immutable_proxy` — for any generated `context` dict, the `MappingProxyType` received by the detector raises `TypeError` on any attempted mutation (`@settings(max_examples=200)`).
   - `test_module_scope_registration_is_not_duplicated` — (plain test) `registered_names("tprop")` contains each `tprop*` name exactly once after the Hypothesis tests have run many examples.
-- [ ] Verify: the Hypothesis tests run without a `function_scoped_fixture` health-check failure and without a duplicate-name `ValueError`; all pass with 200 examples, `ruff check` clean.
+- [x] Verify: the Hypothesis tests run without a `function_scoped_fixture` health-check failure and without a duplicate-name `ValueError`; all pass with 200 examples, `ruff check` clean.
 
 ---
 
@@ -327,7 +327,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 **Covers**: REQ-EXP-01 through REQ-EXP-11, REQ-TST-08, REQ-PKG-07, design §4a
 
-- [ ] Write `tests/test_explainer.py` — all tests inject `MockLLMClient` via `client=` parameter; no network calls, no patching of `openai.OpenAI`:
+- [x] Write `tests/test_explainer.py` — all tests inject `MockLLMClient` via `client=` parameter; no network calls, no patching of `openai.OpenAI`:
   - `test_explain_fallback_when_no_api_key` — `OPENAI_API_KEY` unset, no client → filled fallback, `source="fallback"`.
   - `test_explain_money_placeholder_formats_amount` — `{yearly_cost:money}` with `"155.88"` → `"155,88 EUR"`.
   - `test_explain_plain_placeholder_inserts_as_string` — `{charge_count}` with `"12"` → `"12"` (not `"12,00 EUR"`).
@@ -362,8 +362,8 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - *(CR-LC-3g)* `test_allowed_dates_collects_every_date_column` — rows with `issue_date` and `due_date` cells give both dates in `_allowed_dates`; `_allowed_decimals` adds none of their parts.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: generate foreign Decimal values in `[10000, 99999]` range (well outside alert data); always rejected.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: LLM answer repeating only `alert.data` Decimal strings always passes.
-- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta` (both with the keyword-only `row_columns` parameter, CR-LC-3g), `_AlertFormatter`, the **public** `fill_fallback(template, alert)` (DN-9: apps call it directly via `from ledger_kit.explainer import fill_fallback`, never a private name), `_select_llm_columns(rows, row_columns=None)` (drops `id`/`description`/`iban` even when listed), `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_is_date_column`, `_allowed_decimals`, `_allowed_dates` (every date cell of every whitelisted column), `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", default_handler=str)` after mapping every date-holding column through `date.isoformat` (missing values stay `None`; design §4a.5).
-- [ ] `MockLLMClient` (in `tests/test_explainer.py` or `tests/conftest.py`): `chat` and `completions` are properties, `create` appends its kwargs to `self.calls`.
+- [x] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta` (both with the keyword-only `row_columns` parameter, CR-LC-3g), `_AlertFormatter`, the **public** `fill_fallback(template, alert)` (DN-9: apps call it directly via `from ledger_kit.explainer import fill_fallback`, never a private name), `_select_llm_columns(rows, row_columns=None)` (drops `id`/`description`/`iban` even when listed), `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_is_date_column`, `_allowed_decimals`, `_allowed_dates` (every date cell of every whitelisted column), `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", default_handler=str)` after mapping every date-holding column through `date.isoformat` (missing values stay `None`; design §4a.5).
+- [x] `MockLLMClient` (in `tests/test_explainer.py` or `tests/conftest.py`): `chat` and `completions` are properties, `create` appends its kwargs to `self.calls`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---

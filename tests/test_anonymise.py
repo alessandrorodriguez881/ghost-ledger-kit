@@ -1,20 +1,14 @@
 """Tests for ledger_kit.utils.anonymise."""
 
-import re
 from datetime import date
 from decimal import Decimal
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from ledger_kit.explainer import _IBAN_RE
 from ledger_kit.models import Transaction
 from ledger_kit.utils.anonymise import mask_iban, scrub
-
-# Same pattern as design §4a.4 (explainer._IBAN_RE); copied here because the explainer
-# module is implemented in a later task.
-_IBAN_RE = re.compile(
-    r"(?<![A-Za-z0-9])[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?(?![A-Za-z0-9])"
-)
 
 _FAKE_IBAN = "ES88 2100 0418 5602 0005 1332"
 
