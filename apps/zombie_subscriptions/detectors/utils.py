@@ -146,6 +146,17 @@ def sorted_source_refs(rows: list[dict]) -> list[str]:
     return refs
 
 
+def unique_rows(rows: list[dict]) -> list[dict]:
+    """Return `rows` ordered by date_key, keeping the first row of each source_ref."""
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for row in sorted(rows, key=date_key):
+        if row["source_ref"] not in seen:
+            seen.add(row["source_ref"])
+            unique.append(row)
+    return unique
+
+
 def group_by_normalised_key(ledger: pd.DataFrame) -> list[tuple[str, list[dict]]]:
     """Return [(normalised_key, rows)] ordered by key, rows ordered by date_key."""
     if ledger.empty:
@@ -447,3 +458,45 @@ def service_yearly_cost(key_groups: KeyGroups, max_date: date | None) -> Decimal
             if is_active(series, max_date):
                 total += round_to_cents(series.current_amount * ppy_for(series.interval_type))
     return round_to_cents(total)
+
+
+# --- Zombie cost view (design §6) --------------------------------------------------------------
+
+
+@dataclass
+class ZombieCostResult:
+    """Cost of one service since its last-used date (a view computation, not an alert)."""
+
+    canonical_name: str
+    last_used_date: date
+    cost_since_last_used: Decimal  # sum of the actual amounts of the cited rows
+    source_refs: list[str]  # source_refs of every charge after last_used_date
+    yearly_cost: Decimal  # sum of the yearly costs of the service's active series
+
+
+def compute_zombie_cost(
+    ledger: pd.DataFrame,
+    last_used_dates: dict[str, date] | None,
+    *,
+    aliases: dict[str, list[str]] | None = None,
+) -> list[ZombieCostResult]:
+    """Return one ZombieCostResult per service named in last_used_dates (REQ-ZS-27..30)."""
+    if not last_used_dates:
+        return []
+    max_date = ledger_max_date(ledger)
+    by_canonical = group_by_canonical(ledger, aliases) if not ledger.empty else {}
+    results: list[ZombieCostResult] = []
+    for canonical, last_used in last_used_dates.items():  # keys are already normalised
+        key_groups = by_canonical.get(canonical, [])
+        post = unique_rows([r for _key, rows in key_groups for r in rows if r["date"] > last_used])
+        cost = round_to_cents(sum((Decimal(r["amount"]) for r in post), Decimal("0.00")))
+        results.append(
+            ZombieCostResult(
+                canonical_name=canonical,
+                last_used_date=last_used,
+                cost_since_last_used=cost,
+                source_refs=sorted_source_refs(post),
+                yearly_cost=service_yearly_cost(key_groups, max_date),
+            )
+        )
+    return results

@@ -203,12 +203,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-24, REQ-ZS-25, REQ-ZS-26, §5.5
 
-- [ ] Write `tests/test_zs_charges_after_cancellation.py`:
+- [x] Write `tests/test_zs_charges_after_cancellation.py`:
   - **Tier 1**: `test_post_cancellation_alert_fires` (`severity == "critical"`, `total_charged_after` is the exact sum of the post rows); `test_silent_without_cancellation_dates` (`None` and `{}` → `[]`); `test_silent_on_clean_ledger`; `test_rows_outside_a_series_are_still_counted`.
   - **Tier 1 — canonical grouping**: `test_two_aliased_keys_give_one_alert` — `STREAMFLIX INTL` and `STREAMFLIXCOM` aliased to `streaming`, a cancellation date for `STREAMING`, post-cancellation rows under both keys → exactly one alert whose `source_refs` contain rows of both keys; `test_yearly_cost_sums_active_series_of_all_keys`; `test_yearly_cost_zero_when_no_active_series`.
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_charge_on_cancellation_date_is_not_after` (strictly after); `test_unknown_service_in_cancellation_dates_ignored`; `test_date_map_keys_must_be_normalised_by_caller`; `test_duplicate_source_ref_handled`.
   - **Tier 3** (`max_examples=200`): `test_source_refs_subset_of_input`; `test_total_equals_sum_of_cited_rows`; `test_row_order_invariant`.
-- [ ] Implement `detectors/charges_after_cancellation.py` (`@register("zs.charges_after_cancellation")`) using `group_by_canonical` and `service_yearly_cost` (series found per key, rows aggregated per service).
+- [x] Implement `detectors/charges_after_cancellation.py` (`@register("zs.charges_after_cancellation")`) using `group_by_canonical` and `service_yearly_cost` (series found per key, rows aggregated per service).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -217,12 +217,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-27, REQ-ZS-28, REQ-ZS-29, REQ-ZS-30, REQ-ZS-45, §6
 
-- [ ] Write `tests/test_zs_compute_zombie_cost.py`:
+- [x] Write `tests/test_zs_compute_zombie_cost.py`:
   - **Tier 1**: `test_cost_is_sum_of_rows_after_last_used` (fixture `ledger_with_zombie`: the last 2 charges); `test_source_refs_are_the_rows_after_last_used_sorted_by_date_row`; `test_yearly_cost_from_active_series`; `test_charge_on_last_used_date_excluded` (strictly after).
   - **Tier 1 — canonical grouping**: `test_two_aliased_keys_give_one_result`.
   - **Tier 2**: `test_empty_ledger_returns_zero_cost_entries` — a service in `last_used_dates` with no rows yields `cost_since_last_used == Decimal("0.00")`, `source_refs == []`, `yearly_cost == Decimal("0.00")` (REQ-ZS-30); `test_last_used_dates_none_returns_empty_list`; `test_last_used_after_all_charges_is_zero_cost_not_omitted`; `test_single_row_ledger`; `test_duplicate_source_ref_handled`; `test_no_system_clock_read` (monkeypatch `datetime`/`date.today` to raise).
   - **Tier 3** (`max_examples=200`): `test_cost_equals_sum_of_cited_row_amounts`; `test_source_refs_subset_of_input`; `test_row_order_invariant`.
-- [ ] Implement `ZombieCostResult` and `compute_zombie_cost` in `detectors/utils.py`.
+- [x] Implement `ZombieCostResult` and `compute_zombie_cost` in `detectors/utils.py`.
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -231,13 +231,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: OD-ZS-01, OD-ZS-02, REQ-ZS-12, REQ-ZS-15, REQ-ZS-18, REQ-ZS-22, REQ-ZS-25
 
-- [ ] Write `tests/test_zs_registry.py` (use the ledger-core `_snapshot_registry` / `_restore_registry` fixtures; no `_clear_registry`):
+- [x] Write `tests/test_zs_registry.py` (use the ledger-core `_snapshot_registry` / `_restore_registry` fixtures; no `_clear_registry`):
   - `test_auto_discover_registers_five_zs_detectors` — names are exactly `zs.recurring_charge`, `zs.price_increase`, `zs.duplicate_subscription`, `zs.free_trial_to_paid`, `zs.charges_after_cancellation`.
   - `test_run_all_zs_namespace_on_empty_ledger_returns_empty_alerts`.
   - `test_run_all_passes_context_as_mapping_proxy_and_detectors_do_not_mutate_it`.
   - `test_e7b_run_all_produces_no_alerts_of_any_kind` — acceptance E7b through `run_all(ledger_with_weekly_shopping, namespace="zs", context={"aliases": None, "cancellation_dates": None})`.
   - `test_run_all_on_acceptance_fixtures_expected_detectors_fire`.
-- [ ] Implement `detectors/__init__.py` (`auto_discover("apps.zombie_subscriptions.detectors")` and the `run_zs_detectors` convenience wrapper).
+- [x] Implement `detectors/__init__.py` (`auto_discover("apps.zombie_subscriptions.detectors")` and the `run_zs_detectors` convenience wrapper).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
