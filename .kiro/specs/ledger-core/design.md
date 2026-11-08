@@ -825,9 +825,14 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
         "those inputs. "
         f"Cite at least one source reference from: {alert.source_refs}."
     )
-    # date_format="iso" + default_handler=str: dates reach the model as 2026-01-15, not as
-    # epoch milliseconds, so the date guard can match what the model quotes.
-    rows_json = rows.to_json(orient="records", date_format="iso", default_handler=str)
+    # pandas to_json(date_format="iso") renders datetime.date cells as
+    # "2026-01-15T00:00:00.000" (verified with pandas 3.1), which would show the model a time
+    # part. Convert the date column to plain ISO strings first (missing values stay None);
+    # default_handler=str still covers Decimal.
+    rows = rows.copy()
+    if "date" in rows.columns:
+        rows["date"] = rows["date"].map(lambda d: d.isoformat() if pd.notna(d) else None)
+    rows_json = rows.to_json(orient="records", default_handler=str)
     user_content = f"Alert: {alert.model_dump_json()}\n\nSource rows:\n{rows_json}"
 
     for attempt in range(LLM_MAX_RETRIES):

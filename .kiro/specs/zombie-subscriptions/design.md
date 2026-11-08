@@ -19,17 +19,22 @@ apps/zombie_subscriptions/
 ├── __init__.py
 ├── app.py                       # Streamlit entry point (path bootstrap + render loop)
 ├── config.toml                  # aliases, [demo] section
-├── requirements.txt             # pinned deps (app-level)
+├── settings.py                  # load config.toml, demo inputs, sidebar text parse/format
+├── explain_support.py           # TEMPLATES (fallback template per detector), HallucinatingStubClient
 └── detectors/
     ├── __init__.py              # auto_discover("apps.zombie_subscriptions.detectors")
-    ├── utils.py                 # normalise_counterparty, resolve_alias, find_series,
-    │                            # compute_zombie_cost, ZombieCostResult, CONSTANTS
+    ├── utils.py                 # normalise_counterparty, resolve_alias, grouping helpers,
+    │                            # find_series, compute_zombie_cost, ZombieCostResult, CONSTANTS
     ├── recurring_charge.py      # detect_recurring_charges  → "zs.recurring_charge"
     ├── price_increase.py        # detect_price_increases    → "zs.price_increase"
     ├── duplicate_subscription.py# detect_duplicate_subscriptions → "zs.duplicate_subscription"
     ├── free_trial_to_paid.py    # detect_free_trial_to_paid → "zs.free_trial_to_paid"
     └── charges_after_cancellation.py # detect_charges_after_cancellation → "zs.charges_after_cancellation"
 ```
+
+There is deliberately **no** `apps/zombie_subscriptions/requirements.txt`. Streamlit Community Cloud
+looks for a requirements file next to the entry point first; an app-level file would hide the
+root-level `requirements.txt` that pins the real dependencies (§8).
 
 Shared library dependencies used: `ledger_kit.models`, `ledger_kit.detectors` (registry),
 `ledger_kit.utils.money`, `ledger_kit.explainer`.
@@ -59,13 +64,17 @@ MIN_OCCURRENCES_MONTHLY: int = 3
 MIN_OCCURRENCES_QUARTERLY: int = 2
 MIN_OCCURRENCES_YEARLY: int = 2
 
-# Price-step detection
-PRICE_INCREASE_MIN_RATIO: Decimal = Decimal("0.05")   # 5%
+# Price levels and steps
+STABLE_AMOUNT_RATIO: Decimal = Decimal("0.02")         # a "price level": all amounts within 2% of their median
+PRICE_INCREASE_MIN_RATIO: Decimal = Decimal("0.05")    # 5%: smallest upward step that raises an alert
+MAX_EDGE_STEP_RATIO: Decimal = Decimal("0.50")         # a 1-row side at either edge counts as a new price only within +/-50%
+MIN_SIDE_ROWS: int = 2                                 # rows needed on each side of a recorded step (edge exception above)
 
-# Parallel-series / duplicate-subscription matching
+# Variable bills / parallel-series / duplicate-subscription matching
 AMOUNT_MATCH_RATIO: Decimal = Decimal("0.10")          # 10%
 
 # Free-trial detection
+FREE_TRIAL_MIN_TOKEN_AMOUNT: Decimal = Decimal("0.01")
 FREE_TRIAL_MAX_TOKEN_AMOUNT: Decimal = Decimal("1.00")
 TRIAL_MAX_DAYS_BEFORE_FIRST_CHARGE: int = 35
 
@@ -75,13 +84,14 @@ PERIODS_PER_YEAR_MONTHLY: int = 12
 PERIODS_PER_YEAR_QUARTERLY: int = 4
 PERIODS_PER_YEAR_YEARLY: int = 1
 
-# Interval descriptor table (used by find_series and detectors)
+# Interval descriptor table (used by find_series and detectors); order = Phase 1/3 priority
 INTERVAL_TYPES: list[dict] = [
     {"name": "weekly",    "nominal": WEEKLY_NOMINAL_DAYS,    "min": MIN_OCCURRENCES_WEEKLY,    "ppy": PERIODS_PER_YEAR_WEEKLY},
     {"name": "monthly",   "nominal": MONTHLY_NOMINAL_DAYS,   "min": MIN_OCCURRENCES_MONTHLY,   "ppy": PERIODS_PER_YEAR_MONTHLY},
     {"name": "quarterly", "nominal": QUARTERLY_NOMINAL_DAYS, "min": MIN_OCCURRENCES_QUARTERLY, "ppy": PERIODS_PER_YEAR_QUARTERLY},
     {"name": "yearly",    "nominal": YEARLY_NOMINAL_DAYS,    "min": MIN_OCCURRENCES_YEARLY,    "ppy": PERIODS_PER_YEAR_YEARLY},
 ]
+INTERVALS_BY_NAME: dict[str, dict] = {i["name"]: i for i in INTERVAL_TYPES}
 ```
 
 ---
@@ -138,11 +148,11 @@ def normalise_alias_map(
     """Normalise all keys and values in the alias map using normalise_counterparty.
 
     Call this once at startup (when reading config.toml or sidebar input) so that
-    'netflix', 'Netflix', and 'NETFLIX' all produce the same canonical key 'NETFLIX',
-    and 'NETFLIX.COM' and 'Netflix.com' both normalise to 'NETFLIXCOM'.
+    'streaming', 'Streaming', and 'STREAMING' all produce the same canonical key 'STREAMING',
+    and 'STREAMFLIX.COM' and 'Streamflix.com' both normalise to 'STREAMFLIXCOM'.
 
     The canonical name (dict key) is also normalised — user-entered names like
-    'Netflix' are stored as 'NETFLIX'.
+    'Streaming' are stored as 'STREAMING'.
     """
     if not raw_aliases:
         return raw_aliases
@@ -158,12 +168,87 @@ def normalise_date_map(
     """Normalise the keys of a {service_name: date} dict using normalise_counterparty.
 
     Used for cancellation_dates and last_used_dates from the sidebar and config.toml,
-    so 'Spotify', 'SPOTIFY', and 'spotify' all map to the same 'SPOTIFY' key.
+    so 'BeatStream', 'BEATSTREAM', and 'beatstream' all map to the same 'BEATSTREAM' key.
     """
     if not raw_map:
         return raw_map
     return {normalise_counterparty(k): v for k, v in raw_map.items()}
 ```
+
+### 3.1 Ledger helpers (`detectors/utils.py`)
+
+Every helper that the pseudocode in §4–§6 uses is defined here. Ledger rows are plain `dict`s
+(`ledger.to_dict("records")`) with at least the keys `date` (`datetime.date`), `amount`
+(`Decimal`), `counterparty`, `source_ref`, `source_file`, `source_row` (`int`).
+
+```python
+def date_key(row: dict) -> tuple[date, int]:
+    """Sort key: (date, source_row). Never sort by source_ref text ('f.csv:10' < 'f.csv:9')."""
+    return (row["date"], row["source_row"])
+
+
+def sorted_source_refs(rows: list[dict]) -> list[str]:
+    """source_ref values of `rows` ordered by date_key, duplicates removed (first one kept)."""
+    seen: set[str] = set()
+    refs: list[str] = []
+    for r in sorted(rows, key=date_key):
+        if r["source_ref"] not in seen:
+            seen.add(r["source_ref"])
+            refs.append(r["source_ref"])
+    return refs
+
+
+def group_by_normalised_key(ledger: pd.DataFrame) -> list[tuple[str, list[dict]]]:
+    """Return [(normalised_key, rows)] ordered by key; rows ordered by date_key. Empty ledger → []."""
+    if ledger.empty:
+        return []
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for row in ledger.to_dict("records"):
+        groups[normalise_counterparty(row["counterparty"])].append(row)
+    return [(k, sorted(rows, key=date_key)) for k, rows in sorted(groups.items())]
+
+
+def group_by_canonical(
+    ledger: pd.DataFrame, aliases: dict[str, list[str]] | None
+) -> dict[str, list[tuple[str, list[dict]]]]:
+    """Return {canonical_name: [(normalised_key, rows), ...]}.
+
+    Series are still found per normalised key (REQ-ZS-07); this only collects the keys that
+    belong to one service, so a service with two aliased keys is processed once.
+    """
+    out: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
+    for key, rows in group_by_normalised_key(ledger):
+        out[resolve_alias(key, aliases)].append((key, rows))
+    return dict(out)
+
+
+def ppy_for(interval_type: str) -> int:
+    """Periods per year for an interval type name."""
+    return INTERVALS_BY_NAME[interval_type]["ppy"]
+
+
+def ledger_max_date(ledger: pd.DataFrame) -> date | None:
+    """Latest `date` in the ledger, or None for an empty ledger. Never reads the clock."""
+    return None if ledger.empty else max(ledger["date"])
+
+
+def service_yearly_cost(
+    key_groups: list[tuple[str, list[dict]]], max_date: date | None
+) -> Decimal:
+    """Sum of round_to_cents(current_amount × ppy) over the ACTIVE series of every key of a service."""
+    if max_date is None:
+        return Decimal("0.00")
+    total = Decimal("0.00")
+    for _key, rows in key_groups:
+        for s in find_series(rows):
+            if is_active(s, max_date):
+                total += round_to_cents(s.current_amount * ppy_for(s.interval_type))
+    return round_to_cents(total)
+```
+
+`median(values: list[Decimal]) -> Decimal` is the usual median (mean of the two middle values for
+an even count) at full `Decimal` precision. Rounding to cents happens only when a value is stored
+in a `Series` or an `Alert`.
 
 ---
 
@@ -176,472 +261,417 @@ A single normalised key may have:
 - A **step-change series**: charges at one price level, then a sustained shift to a new level.
 - **Parallel series**: two simultaneous subscriptions billed under the same key (different prices
   like E3, or same price like E4).
-- **Noise**: supermarket visits, one-off purchases — irregular dates and/or highly varying amounts.
+- **Noise**: supermarket visits, one-off purchases — irregular dates and/or highly varying amounts,
+  including *regular dates with varying amounts* (weekly shopping, E7/E7b).
 
-The algorithm must distinguish all four cases. It is O(n²) per key (n ≤ ~1000 rows in practice).
+The algorithm must distinguish all four cases and must never turn ordinary shopping into a
+subscription. It is O(n²) per key (n ≤ ~1000 rows in practice).
 
 ### 4.2 Data structures
 
 ```python
 @dataclass
 class Series:
-    rows: list[dict]           # ledger rows (dicts) sorted by date ascending
+    rows: list[dict]           # ledger rows (dicts) sorted by date_key ascending
     interval_type: str         # "weekly" | "monthly" | "quarterly" | "yearly"
     nominal_days: int
-    current_amount: Decimal    # median of charges since last price step
-    price_steps: list[tuple[Decimal, Decimal]]  # [(old, new), ...] — any direction
+    current_amount: Decimal    # rounded median of the charges since the last price step
+    price_steps: list[tuple[Decimal, Decimal]]  # [(old, new), ...] rounded medians, any direction
 ```
 
 `price_steps` records every step (up or down). `detect_price_increases` only fires for upward
-steps exceeding `PRICE_INCREASE_MIN_RATIO`.
+steps whose ratio, computed from the stored rounded medians, is at least `PRICE_INCREASE_MIN_RATIO`.
 
-### 4.3 `_segment_by_price(run, interval_type) -> Series | None`
+### 4.3 `_segment_by_price(run, interval) -> Series | None`
 
-Decides whether a cadence-consistent run is a stable or step-change series (returns `Series`),
-or is too noisy to be a subscription (returns `None`).
+Decides whether a cadence-consistent run is a stable series, a step-change series, or a variable
+bill (returns a `Series`), or is not a subscription (returns `None`).
+
+A **price level** is a list of amounts that all lie within `STABLE_AMOUNT_RATIO` (2%) of their own
+median:
 
 ```
-def _segment_by_price(run):
+def is_level(amounts):
+    m = median(amounts)
+    return all(abs(a - m) / m <= STABLE_AMOUNT_RATIO for a in amounts)
+```
+
+```
+def _segment_by_price(run, interval):
     amounts = [Decimal(r["amount"]) for r in run]
-    overall_median = median(amounts)
+    n = len(amounts)
 
-    # Branch 1: stable series — all amounts within AMOUNT_MATCH_RATIO of overall median
-    if all(|a - overall_median| / overall_median <= AMOUNT_MATCH_RATIO for a in amounts):
-        return Series(..., current_amount=round_to_cents(overall_median), price_steps=[])
+    # Branch 1 — stable: the whole run is one price level
+    if is_level(amounts):
+        return Series(run, interval, current_amount=round_to_cents(median(amounts)), price_steps=[])
 
-    # Branch 2: single sequential step (in either direction)
-    for p in range(1, len(run)):
+    # A 2-row run must be a single stable level (quarterly / yearly minimum is 2 rows)
+    if n == 2:
+        return None
+
+    # Branch 2 — exactly one split where both sides are price levels (step in either direction)
+    splits = []
+    for p in range(1, n):
         pre, post = amounts[:p], amounts[p:]
-        level_a, level_b = median(pre), median(post)
-        pre_ok  = all(|a - level_a| / level_a <= AMOUNT_MATCH_RATIO for a in pre)
-        post_ok = all(|a - level_b| / level_b <= AMOUNT_MATCH_RATIO for a in post)
-        if pre_ok and post_ok and level_a != level_b:
-            return Series(..., current_amount=round_to_cents(level_b),
-                          price_steps=[(round_to_cents(level_a), round_to_cents(level_b))])
+        if not (is_level(pre) and is_level(post)):
+            continue
+        a, b = round_to_cents(median(pre)), round_to_cents(median(post))   # step uses ROUNDED medians
+        if a == b:
+            continue
+        step = (b - a) / a
+        both_sides_big = len(pre) >= MIN_SIDE_ROWS and len(post) >= MIN_SIDE_ROWS
+        # Edge exception: one single-row side at either end of the run, when the other side
+        # alone already satisfies the interval minimum and the step is plausible (|step| <= 50%).
+        final_single = len(post) == 1 and len(pre) >= interval["min"]
+        first_single = len(pre) == 1 and len(post) >= interval["min"]
+        edge_ok = (final_single or first_single) and abs(step) <= MAX_EDGE_STEP_RATIO
+        if both_sides_big or edge_ok:
+            splits.append((a, b))
+    if len(splits) == 1:
+        a, b = splits[0]
+        return Series(run, interval, current_amount=b, price_steps=[(a, b)])
 
-    return None  # too much variance — not a subscription
+    # Branch 3 — variable bill: no step, but every amount within AMOUNT_MATCH_RATIO of the median
+    m = median(amounts)
+    if all(abs(x - m) / m <= AMOUNT_MATCH_RATIO for x in amounts):
+        return Series(run, interval, current_amount=round_to_cents(m), price_steps=[])
+
+    return None
 ```
 
-Note: Branch 2 now accepts steps in either direction (upward or downward). The step condition is
-`level_a != level_b` after clustering — both `pre_ok` and `post_ok` being true and the two
-medians differing more than rounding is sufficient. `detect_price_increases` enforces the
-directional and magnitude filter.
+Notes:
+
+- Zero or two-or-more valid splits fall through to Branch 3: an ambiguous step is never recorded.
+- The final-single exception keeps E1 (5 × 12.99 then 15.99) and the first-single exception keeps
+  an early step (one old charge, then five new ones) findable by backward extension (§4.6 Phase 2).
+  Both are bounded by ±50%, so `12.99 × 4` followed by a stray `4.99` (−62%) or a `0.49` trial charge
+  followed by `14.99 × 3` is never read as a new price.
+- A 4% step with 5 + 1 rows is recorded as a step (the lone row is more than 2% from the median) but
+  never fires: `detect_price_increases` requires 5%.
 
 ### 4.4 `longest_cadence_run(rows, interval) -> list[dict]`
 
+`rows` must be date-sorted (callers guarantee it).
+
 ```
 def longest_cadence_run(rows, interval):
-    """Given a date-sorted list of rows, return the longest subsequence
-    whose consecutive gaps all fall within nominal ± INTERVAL_TOLERANCE_DAYS."""
+    """Return the longest subsequence whose consecutive gaps all fall within
+    nominal ± INTERVAL_TOLERANCE_DAYS. Rows that do not fit are skipped, not fatal."""
     best = []
     for start_idx, start_row in enumerate(rows):
         run = [start_row]
         for r in rows[start_idx + 1:]:
             gap = (r["date"] - run[-1]["date"]).days
-            if |gap - interval.nominal| <= INTERVAL_TOLERANCE_DAYS:
+            if abs(gap - interval["nominal"]) <= INTERVAL_TOLERANCE_DAYS:
                 run.append(r)
-            elif gap > interval.nominal + INTERVAL_TOLERANCE_DAYS:
-                break   # any later row is even further — stop early
+            elif gap > interval["nominal"] + INTERVAL_TOLERANCE_DAYS:
+                break   # every later row is even further away
         if len(run) > len(best):
             best = run
     return best
 ```
 
-O(n²) per key. `break` on large gaps keeps the inner loop short in practice.
+The first-longest run wins ties (strict `>`). The earliest matching row is taken greedily.
 
 ### 4.5 `group_by_price_level(rows) -> list[list[dict]]`
 
-Clusters rows into price buckets by greedy sort: sort by amount, start a new bucket whenever
-the gap between consecutive sorted amounts exceeds `AMOUNT_MATCH_RATIO × prev_median`.
+Clusters rows into price buckets: sort by amount, start a new bucket whenever the next amount is
+more than `AMOUNT_MATCH_RATIO` away from the median of the current bucket. **Every bucket is
+returned sorted by `date_key`**, because `longest_cadence_run` needs date order.
 
 ```python
 def group_by_price_level(rows: list[dict]) -> list[list[dict]]:
     if not rows:
         return []
-    sorted_by_amount = sorted(rows, key=lambda r: Decimal(r["amount"]))
-    buckets: list[list[dict]] = [[sorted_by_amount[0]]]
-    for r in sorted_by_amount[1:]:
-        prev_median = median([Decimal(x["amount"]) for x in buckets[-1]])
-        if abs(Decimal(r["amount"]) - prev_median) / prev_median <= AMOUNT_MATCH_RATIO:
+    by_amount = sorted(rows, key=lambda r: (Decimal(r["amount"]), date_key(r)))
+    buckets: list[list[dict]] = [[by_amount[0]]]
+    for r in by_amount[1:]:
+        m = median([Decimal(x["amount"]) for x in buckets[-1]])
+        if abs(Decimal(r["amount"]) - m) / m <= AMOUNT_MATCH_RATIO:
             buckets[-1].append(r)
         else:
             buckets.append([r])
-    return buckets
+    return [sorted(b, key=date_key) for b in buckets]
 ```
 
 ### 4.6 `find_series(rows_for_key) -> list[Series]`
 
-**Three-phase algorithm**:
+Phases:
 
 ```
-Phase 1 — price-bucketed runs (parallel and stable series)
-Phase 2 — extend-and-merge (step-change series that cross bucket boundaries)
-Phase 3 — leftover cadence runs (any remaining unclaimed rows)
+Phase 1 — per price bucket: cadence runs, segmented by price (stable, parallel, step inside a bucket)
+Phase 2 — extend each series forward and backward with unclaimed rows, then merge consecutive series
+Phase 3 — leftover cadence runs over all unclaimed rows
+```
+
+Shared acceptance guard. A candidate series is only kept if `_accept` returns it:
+
+```
+def _other_rows_in_span(series_rows, key_rows):
+    first, last = series_rows[0]["date"], series_rows[-1]["date"]
+    refs = {r["source_ref"] for r in series_rows}
+    return any(first <= r["date"] <= last and r["source_ref"] not in refs for r in key_rows)
+
+def _accept(series, key_rows):
+    if series is None:
+        return None
+    # A quarterly or yearly series needs only 2 rows, so on its own it would turn two purchases
+    # 91 or 365 days apart into a subscription. Require that the key has no other debit rows
+    # between the first and the last charge of the series.
+    if series.interval_type in ("quarterly", "yearly") and _other_rows_in_span(series.rows, key_rows):
+        return None
+    return series
 ```
 
 ```
 def find_series(rows_for_key):
-    sorted_rows = sort by date ascending
-    claimed = set()           # source_refs already in a Series
-    found_series = []
+    key_rows = sorted(rows_for_key, key=date_key)
+    claimed = set()                 # source_refs already in a Series
+    found = []
 
-    # ─────────── Phase 1: price-bucketed runs ───────────
-    buckets = group_by_price_level(sorted_rows)
-    # Sort largest bucket first so dominant series are claimed first
-    for bucket in sorted(buckets, key=len, reverse=True):
+    # ───────── Phase 1: price-bucketed runs ─────────
+    buckets = group_by_price_level(key_rows)          # each bucket is date-sorted
+    for bucket in sorted(buckets, key=len, reverse=True):   # stable: ties keep amount order
         for interval in INTERVAL_TYPES:
-            while True:
-                unclaimed_bucket = [r for r in bucket if r["source_ref"] not in claimed]
+            while True:                                # a bucket may hold several parallel series (E4)
+                unclaimed_bucket = sorted(
+                    (r for r in bucket if r["source_ref"] not in claimed), key=date_key)
                 run = longest_cadence_run(unclaimed_bucket, interval)
-                if len(run) < interval.min:
+                if len(run) < interval["min"]:
                     break
-                s = _segment_by_price(run)
-                if s is not None:
-                    found_series.append(s)
-                    claimed.update(r["source_ref"] for r in run)
-                    # Continue: same bucket may yield another parallel series (E4)
-                else:
+                s = _accept(_segment_by_price(run, interval), key_rows)
+                if s is None:
                     break
+                found.append(s)
+                claimed.update(r["source_ref"] for r in run)
 
-    # ─────────── Phase 2: extend-and-merge ───────────────
-    # For each pair of series S, T with the same interval type where T.first_date
-    # falls within S.last_date + nominal ± tolerance, and S and T are chronologically
-    # non-overlapping, attempt to merge them if _segment_by_price accepts the union.
+    # ───────── Phase 2: extend, then merge ─────────
     changed = True
     while changed:
         changed = False
-        for i, s_a in enumerate(found_series):
-            for j, s_b in enumerate(found_series):
-                if j <= i:
+        # 2a — extend one series by one unclaimed row, forward or backward
+        for s in found:
+            unclaimed = [r for r in key_rows if r["source_ref"] not in claimed]
+            nominal = s.nominal_days
+            interval = INTERVALS_BY_NAME[s.interval_type]
+            forward = [r for r in unclaimed
+                       if abs((r["date"] - s.rows[-1]["date"]).days - nominal) <= INTERVAL_TOLERANCE_DAYS]
+            backward = [r for r in unclaimed
+                        if abs((s.rows[0]["date"] - r["date"]).days - nominal) <= INTERVAL_TOLERANCE_DAYS]
+            for row in (
+                _closest(forward, s.rows[-1]["date"] + timedelta(days=nominal)),
+                _closest(backward, s.rows[0]["date"] - timedelta(days=nominal)),
+            ):
+                if row is None:
                     continue
-                if s_a.interval_type != s_b.interval_type:
-                    continue
-                # Ensure s_a ends before s_b starts
-                earlier, later = (s_a, s_b) if s_a.rows[-1]["date"] <= s_b.rows[0]["date"] else (s_b, s_a)
-                gap = (later.rows[0]["date"] - earlier.rows[-1]["date"]).days
-                nominal = earlier.nominal_days
-                if |gap - nominal| > INTERVAL_TOLERANCE_DAYS:
-                    continue   # not consecutive — cannot merge
-                combined_rows = earlier.rows + later.rows  # already date-sorted
-                merged = _segment_by_price(combined_rows)
-                if merged is not None:
-                    found_series.remove(s_a)
-                    found_series.remove(s_b)
-                    found_series.append(merged)
+                rows = sorted(s.rows + [row], key=date_key)
+                t = _accept(_segment_by_price(rows, interval), key_rows)   # re-segment the whole series
+                if t is not None:
+                    found[found.index(s)] = t
+                    claimed.add(row["source_ref"])
                     changed = True
-                    break       # restart outer loop after mutation
+                    break
+            if changed:
+                break
+        if changed:
+            continue
+        # 2b — merge two consecutive, non-overlapping series of the same key and interval
+        for i, a in enumerate(found):
+            for b in found[i + 1:]:
+                if a.interval_type != b.interval_type:
+                    continue
+                earlier, later = (a, b) if a.rows[-1]["date"] < b.rows[0]["date"] else (b, a)
+                if not earlier.rows[-1]["date"] < later.rows[0]["date"]:
+                    continue                           # calendar-overlapping (E3, E4): never merge
+                gap = (later.rows[0]["date"] - earlier.rows[-1]["date"]).days
+                if abs(gap - a.nominal_days) > INTERVAL_TOLERANCE_DAYS:
+                    continue
+                t = _accept(_segment_by_price(earlier.rows + later.rows,
+                                              INTERVALS_BY_NAME[a.interval_type]), key_rows)
+                if t is not None:
+                    found.remove(a); found.remove(b); found.append(t)
+                    changed = True
+                    break
             if changed:
                 break
 
-    # ─────────── Phase 3: leftover cadence runs ──────────
-    # Catch any unclaimed rows that did not fit a price bucket but have regular cadence
-    # (e.g. a single-row bucket that merges with another after Phase 2 exhausted)
+    # ───────── Phase 3: leftovers ─────────
     for interval in INTERVAL_TYPES:
         while True:
-            unclaimed = [r for r in sorted_rows if r["source_ref"] not in claimed]
+            unclaimed = [r for r in key_rows if r["source_ref"] not in claimed]
             run = longest_cadence_run(unclaimed, interval)
-            if len(run) < interval.min:
+            if len(run) < interval["min"]:
                 break
-            s = _segment_by_price(run)
-            if s is not None:
-                found_series.append(s)
-                claimed.update(r["source_ref"] for r in run)
-            else:
+            s = _accept(_segment_by_price(run, interval), key_rows)
+            if s is None:
                 break
+            found.append(s)
+            claimed.update(r["source_ref"] for r in run)
 
-    return found_series
+    return sorted(found, key=lambda s: (date_key(s.rows[0]), s.interval_type))
+
+
+def _closest(candidates, expected_date):
+    """Candidate whose date is nearest to expected_date (ties: earlier date_key); None if empty."""
+    return min(candidates, key=lambda r: (abs((r["date"] - expected_date).days), date_key(r)),
+               default=None)
 ```
 
-**Why three phases?**
+Termination: every change in Phase 2 either claims one more row or reduces the number of series.
 
-- Phase 1 alone breaks E1 and E2: the 12.99×5 bucket becomes a stable series and the lone
-  15.99 is below `min_occurrences`; similarly 9.99×3 and 12.99×3 become two separate stable
-  series with no step recorded.
-- Phase 2 (extend-and-merge) fixes this: it detects that the stable 12.99 series and the
-  single/short 12.99→15.99 continuation are chronologically consecutive at the right cadence,
-  attempts `_segment_by_price` on the union, and succeeds because the union has a clean step.
-- Phase 3 catches any remaining rows that had only one representative in their bucket (too few
-  for Phase 1) but form a valid cadence run when considered together.
-- For E4 (same-price parallel), Phase 1's inner `while True` loop naturally finds both runs:
-  after claiming the first every-other-row run, `longest_cadence_run` on the remaining rows
-  in the same bucket finds the second run. No special deinterleaving is needed.
+**Why three phases**
+
+- Phase 1 alone leaves a lone 15.99 (E1) or a lone early 9.99 outside any series, and leaves a step
+  across a bucket boundary (E2) as two separate stable series. Phase 2 repairs both: it extends a
+  series with a row that arrives exactly one nominal interval after its last charge (or before its
+  first charge) and re-runs `_segment_by_price` on the whole series, so the step is recorded; it
+  merges consecutive series the same way.
+- Backward extension is what finds an early step. With a step above 10% at the 1st or 2nd of 6
+  charges, the first one or two rows sit in a different price bucket that is below the interval
+  minimum, so Phase 1 never sees them.
+- E4 (same-price parallel series) needs no special deinterleaving: `longest_cadence_run` skips the
+  rows that do not fit, so the first pass returns one account's rows and the `while` loop then finds
+  the other account's rows.
+- Phase 3 catches rows that never shared a bucket with enough rows but form a cadence run together
+  (variable bills spread over several buckets).
 
 ### 4.7 Active series
 
 ```python
-def is_active(series: Series, ledger_max_date: date) -> bool:
-    """True if the last charge is within one nominal interval + tolerance of ledger_max_date."""
+def is_active(series: Series, max_date: date) -> bool:
+    """True if the last charge is within one nominal interval + tolerance of max_date."""
     last_date = series.rows[-1]["date"]  # rows are sorted
-    return (ledger_max_date - last_date).days <= series.nominal_days + INTERVAL_TOLERANCE_DAYS
+    return (max_date - last_date).days <= series.nominal_days + INTERVAL_TOLERANCE_DAYS
 ```
 
-`ledger_max_date` is always `ledger["date"].max()` — never `date.today()`.
+`max_date` is always `ledger_max_date(ledger)` — never `date.today()`.
 
-### 4.8 Walk-through: acceptance examples E1–E7 on the final algorithm
+### 4.8 Walk-through: acceptance examples E1–E7b on the final algorithm
 
 Each walk-through is a required Tier 1 test. Dates are illustrative monthly steps (~30 days).
 
 ---
 
-**E1** — Step change: 5 × 12.99 then 1 × 15.99 for key `"STREAMFLEX"`.
+**E1** — Step change: 5 × 12.99 then 1 × 15.99 for key `"STREAMFLEX INTL"`.
 
 ```
-rows (date-sorted): [12.99, 12.99, 12.99, 12.99, 12.99, 15.99]
-gaps:               [30,    30,    30,    30,    30]    ← all monthly-consistent
+amounts: [12.99, 12.99, 12.99, 12.99, 12.99, 15.99]    gaps: 30 each
 ```
 
-*Phase 1*:
-- `group_by_price_level` → bucket A = [12.99×5], bucket B = [15.99×1] (gap > 10%).
-- Bucket A: `longest_cadence_run` → 5-row monthly run. `_segment_by_price([12.99×5])` →
-  all within 10% of 12.99 → **stable series S_A**, `current_amount=12.99`, claimed = rows 1–5.
-- Bucket B: 1 row. 1 < `MIN_OCCURRENCES_MONTHLY=3` → skip.
+*Phase 1*: buckets A = [12.99 × 5], B = [15.99] (+23% apart). Bucket A, monthly: run of 5, all one
+level → stable series S (`current_amount=12.99`). Bucket B: run of 1 < 3 → nothing.
 
-*Phase 2 (extend-and-merge)*:
-- Only one series exists → no pairs to try. No merge happens.
+*Phase 2a*: unclaimed = [15.99]; it is 30 days after S's last charge → forward candidate.
+`_segment_by_price([12.99 × 5, 15.99])`: not one level (15.99 is 23% from the median); n = 6; the
+only split with two levels is p = 5 (pre 5 rows, post 1 row). Final-single exception: pre has 5 ≥ 3
+rows and the step is +23.1% ≤ 50% → one split → Series with `price_steps=[(12.99, 15.99)]`,
+`current_amount=15.99`.
 
-  Wait: Bucket B's row is **unclaimed**. The merge loop iterates over `found_series` pairs —
-  it cannot merge a series with an unclaimed row. We need Phase 3 to give bucket B's row a
-  chance to join S_A.
-
-*Phase 3*:
-- Unclaimed = [15.99 row].
-- `longest_cadence_run([15.99], monthly)` → run length 1 < 3. No new series.
-
-  **Problem**: the 15.99 row is never added to S_A. The step is not detected.
-
-**Correction**: Phase 2 must also try to extend existing series with **unclaimed rows**, not
-only merge two series. The revised extend-and-merge step:
-
-```
-Phase 2 (revised) — extend-and-merge:
-    changed = True
-    while changed:
-        changed = False
-        for series S in found_series:
-            unclaimed = [r for r in sorted_rows if r["source_ref"] not in claimed]
-            # Try appending unclaimed rows that arrive at the next expected date
-            candidates = [r for r in unclaimed
-                          if |( r["date"] - S.rows[-1]["date"] ).days - S.nominal_days|
-                             <= INTERVAL_TOLERANCE_DAYS]
-            if not candidates:
-                continue
-            next_row = the candidate with date closest to S.rows[-1]["date"] + nominal
-            extended_rows = S.rows + [next_row]
-            merged = _segment_by_price(extended_rows)
-            if merged is not None:
-                found_series.remove(S)
-                found_series.append(merged)
-                claimed.add(next_row["source_ref"])
-                changed = True
-                break
-
-        # Also try merging two existing series (original logic)
-        if not changed:
-            for each (S_a, S_b) pair ...  [as before]
-```
-
-*Revised E1 trace with extend-and-merge including unclaimed rows*:
-
-*Phase 1*: S_A = stable [12.99×5]. Claimed = rows 1–5. Row 6 (15.99) unclaimed.
-
-*Phase 2 (revised)*:
-- Try extending S_A: next expected date ≈ S_A.last + 30 days. Row 6 is 30 days after row 5 →
-  within tolerance. `_segment_by_price([12.99×5, 15.99])`:
-  - overall_median = 12.99. 15.99 fails stable check.
-  - `for p=5`: pre=[12.99×5], post=[15.99]. `level_a=12.99`, `level_b=15.99`.
-    pre_ok ✓, post_ok ✓ (single row). `level_b ≠ level_a` ✓ → returns merged Series.
-- `found_series` now contains one merged Series with rows 1–6, `price_steps=[(12.99, 15.99)]`,
-  `current_amount=15.99`. Changed=True → loop repeats.
-- Next iteration: no more unclaimed rows, no mergeable pairs → changed=False → stop.
-
-*Result*: **one series, all 6 rows**, `current_amount=15.99`,
-`yearly_cost = round_to_cents(15.99 × 12) = 191.88`. ✓
-
-`detect_price_increases` sees `price_steps=[(12.99, 15.99)]`. Step is upward,
-ratio = `(15.99 - 12.99) / 12.99 ≈ 0.231 > 0.05`. Fires alert:
-`old=12.99`, `new=15.99`, `extra=round_to_cents(3.00 × 12)=36.00`. ✓
+*Result*: one series, six rows. `yearly_cost = round_to_cents(15.99 × 12) = 191.88`.
+`detect_price_increases`: ratio 3.00 / 12.99 ≈ 0.231 ≥ 0.05 → one alert: old 12.99, new 15.99,
+`extra = round_to_cents(3.00 × 12) = 36.00`. ✓
 
 ---
 
 **E2** — Step change: 3 × 9.99 then 3 × 12.99 for key `"CLOUDVAULT"`.
 
-```
-rows: [9.99, 9.99, 9.99, 12.99, 12.99, 12.99], all gaps ~30 days
-```
+*Phase 1*: buckets A = [9.99 × 3], B = [12.99 × 3] (+30% apart). Each yields a stable monthly series.
 
-*Phase 1*:
-- Buckets: A=[9.99×3], B=[12.99×3].
-- Bucket B (size 3, first by tie-break): `longest_cadence_run([12.99×3])` → 3-row monthly run.
-  `_segment_by_price` → stable S_B, `current_amount=12.99`. Claimed = rows 4–6.
-- Bucket A (size 3): `longest_cadence_run([9.99×3])` → 3-row monthly run.
-  `_segment_by_price` → stable S_A, `current_amount=9.99`. Claimed = rows 1–3.
+*Phase 2a*: no unclaimed rows. *Phase 2b*: A ends, B starts 30 days later, non-overlapping → union
+`[9.99 × 3, 12.99 × 3]`: not one level (median 11.49, 9.99 is 13% away); only p = 3 splits it into
+two levels, both sides have 3 rows → `price_steps=[(9.99, 12.99)]`.
 
-*Phase 2 (extend existing series with unclaimed rows)*: no unclaimed rows remain. Try merging
-S_A and S_B. Same interval type (monthly). `earlier=S_A`, `later=S_B`. Gap between S_A.last
-and S_B.first ≈ 30 days → within tolerance. `_segment_by_price([9.99×3, 12.99×3])`:
-- overall_median ≈ 11.49. 9.99 is 13% below 11.49 → fails stable check.
-- `for p=3`: pre=[9.99×3], post=[12.99×3]. `level_a=9.99`, `level_b=12.99`.
-  pre_ok ✓, post_ok ✓. `level_b ≠ level_a` ✓ → merged Series.
-- `found_series` = [merged], `price_steps=[(9.99, 12.99)]`, `current_amount=12.99`.
-
-*Result*: **one series, all 6 rows**, `yearly_cost=155.88`. ✓
-
-`detect_price_increases`: ratio = `(12.99 - 9.99) / 9.99 ≈ 0.30 > 0.05`. Fires alert:
-`old=9.99`, `new=12.99`, `extra=round_to_cents(3.00 × 12)=36.00`. ✓
+*Result*: one series, six rows, `yearly_cost = 155.88`. Price-increase alert: ratio ≈ 0.30,
+`extra = 36.00`. ✓
 
 ---
 
 **E3** — Parallel series, different amounts: interleaved 2.99 / 0.99 monthly for `"APPLEBILL"`.
 
-Row layout (each same-amount gap is ~30 days, interleaved with ~15-day offsets):
 ```
-Jan-01  2.99
-Jan-15  0.99
-Feb-01  2.99
-Feb-15  0.99
-Mar-01  2.99
-Mar-15  0.99   (6 total rows)
+Jan-01 2.99 | Jan-15 0.99 | Feb-01 2.99 | Feb-15 0.99 | Mar-01 2.99 | Mar-15 0.99
 ```
 
-*Phase 1*:
-- Buckets: A=[2.99×3] (dates Jan-01, Feb-01, Mar-01), B=[0.99×3] (dates Jan-15, Feb-15, Mar-15).
-- Bucket A: `longest_cadence_run` on [Jan-01, Feb-01, Mar-01] → gaps 31, 28 → both within
-  monthly tolerance (±3). Run length 3 ≥ 3. `_segment_by_price` → stable S_A. Claimed.
-- Bucket B: `longest_cadence_run` on [Jan-15, Feb-15, Mar-15] → gaps 31, 28 → monthly ✓.
-  Run length 3 ≥ 3. Stable S_B. Claimed.
+*Phase 1*: buckets [2.99 × 3] and [0.99 × 3]; gaps 31, 28 → each is a stable monthly series.
+*Phase 2b*: the series overlap in calendar time (Mar-01 is after Jan-15) → never merged.
 
-*Phase 2*: S_A last = Mar-01, S_B first = Jan-15. S_B starts before S_A ends → overlapping in
-calendar but non-overlapping in rows (different source_refs). The merge condition requires
-`earlier.last < later.first` — S_A.last (Mar-01) > S_B.first (Jan-15), so S_A and S_B are
-**not** mergeable. No merge attempted.
-
-*Result*: **two separate monthly series**, `current_amount=2.99` and `current_amount=0.99`.
-No price-increase alert (separate series, no step within either). ✓
-
-`detect_duplicate_subscriptions`: S_A.current=2.99, S_B.current=0.99. Same key. Ratio
-`|2.99 - 0.99| / 2.99 ≈ 0.67 > AMOUNT_MATCH_RATIO=0.10` → **not a duplicate**. ✓
+*Result*: two series. `detect_duplicate_subscriptions`: same key, ratio
+`|2.99 − 0.99| / 2.99 ≈ 0.67 > 0.10` → no alert. ✓
 
 ---
 
 **E4** — Parallel series, same amount: interleaved 10.99 / 10.99 monthly for `"MUSICBOX"`.
 
 ```
-Jan-01  10.99  (account A)
-Jan-15  10.99  (account B)
-Feb-01  10.99  (account A)
-Feb-15  10.99  (account B)
-Mar-01  10.99  (account A)
-Mar-15  10.99  (account B)
+Jan-01 | Jan-15 | Feb-01 | Feb-15 | Mar-01 | Mar-15    (all 10.99)
 ```
 
-*Phase 1*:
-- `group_by_price_level` → one bucket [10.99×6] (all amounts identical).
-- `longest_cadence_run([all 6 rows], monthly)`: consecutive gaps are 14, 15, 14, 15, 14 days.
-  No gap is within monthly tolerance (|14-30|=16 > 3). Best run = 1 row. < 3 → fails.
-- Inner `while True` loop: same result on retry → break for monthly.
-- Similarly fails for weekly, quarterly, yearly.
+*Phase 1*: one bucket of 6. `longest_cadence_run` (monthly) starts at Jan-01: Jan-15 is 14 days
+later (not a monthly gap, not beyond the window, so skipped); Feb-01 is 31 days later ✓; Feb-15 is
+skipped; Mar-01 is 28 days after Feb-01 ✓; Mar-15 is skipped. Run = [Jan-01, Feb-01, Mar-01],
+length 3 ≥ 3, one level → stable series S_A. The `while` loop runs again on the remaining
+[Jan-15, Feb-15, Mar-15] → run of 3 → stable series S_B.
 
-*Phase 2*: no series yet → nothing to extend or merge.
+*Phase 2*: nothing unclaimed; S_A and S_B overlap in calendar time → no merge.
 
-*Phase 3*: `unclaimed = all 6 rows`. `longest_cadence_run([all 6], monthly)` → same failure
-(consecutive gaps ~15 days). No new series.
-
-**Problem**: E4 yields no series under the current algorithm. The while-loop in Phase 1 does
-not deinterleave; it simply retries `longest_cadence_run` on the same unclaimed rows and gets
-the same result.
-
-**Resolution (replaces OD-ZS-04)**: Inside Phase 1's while loop, after `longest_cadence_run`
-fails to reach `interval.min`, attempt **stride-2 runs** before giving up on this bucket×interval
-combination:
-
-```
-# Inside Phase 1, after longest_cadence_run fails min_occurrences check:
-if len(run) < interval.min:
-    # Try stride-2 sub-runs: even-indexed and odd-indexed rows by date order
-    for stride_start in (0, 1):
-        sub_rows = [r for i, r in enumerate(unclaimed_bucket) if i % 2 == stride_start]
-        sub_run = longest_cadence_run(sub_rows, interval)
-        if len(sub_run) >= interval.min:
-            s = _segment_by_price(sub_run)
-            if s is not None:
-                found_series.append(s)
-                claimed.update(r["source_ref"] for r in sub_run)
-                # Do not break — the other stride may also yield a series
-    break  # done with this interval for this bucket
-```
-
-*Revised E4 trace*:
-
-*Phase 1* (bucket [10.99×6], monthly):
-- `longest_cadence_run` → best run length 1 (gaps ~15 days). 1 < 3.
-- Stride-2 sub-run, stride_start=0: rows [Jan-01, Feb-01, Mar-01], gaps 31, 28 → monthly ✓.
-  `_segment_by_price` → stable S_A (10.99). Claimed = A-account rows.
-- Stride-2 sub-run, stride_start=1: rows [Jan-15, Feb-15, Mar-15], gaps 31, 28 → monthly ✓.
-  `_segment_by_price` → stable S_B (10.99). Claimed = B-account rows.
-- Break.
-
-*Phase 2*: both series start before the other ends (overlapping calendar) → no merge (correct).
-
-*Result*: **two separate monthly series**, both `current_amount=10.99`. ✓
-
-`detect_duplicate_subscriptions`: same key, both active. Ratio
-`|10.99 - 10.99| / 10.99 = 0 ≤ 0.10` → **duplicate alert**. ✓
+*Result*: two monthly series at 10.99. `detect_duplicate_subscriptions`: same key, both active,
+ratio 0 ≤ 0.10 → one duplicate alert. ✓
 
 ---
 
 **E5** — Aliased duplicate: `"STREAMFLIX INTL"` monthly + `"STREAMFLIXCOM"` monthly, alias
 `streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]`.
 
-Each key has 3+ monthly rows at the same price (~14.99). Two separate keys → `find_series`
-called independently per key; each yields one stable monthly series via Phase 1.
-
-`detect_duplicate_subscriptions`: resolves both keys to canonical `"STREAMING"`. Both series
-active. Different keys → alias-resolved → **always a duplicate regardless of amount**. ✓
+`find_series` runs once per key; each has 3+ monthly rows at ~14.99 → one stable series each.
+`detect_duplicate_subscriptions` resolves both keys to `"STREAMING"`; different keys that share a
+canonical name are a duplicate regardless of amount. ✓
 
 ---
 
 **E6** — Two supermarket charges 30 days apart: 87.50 and 143.20 for `"SUPERMART"`.
 
-*Phase 1*:
-- Buckets: [87.50], [143.20] — one row each.
-- Each bucket: longest cadence run = 1 row < `MIN_OCCURRENCES_MONTHLY=3`. Skip.
-
-*Phase 2*: no series to extend or merge.
-
-*Phase 3*: `unclaimed = [87.50, 143.20]`. `longest_cadence_run` → run=[87.50, 143.20],
-gap=30 days → monthly consistent. Run length 2 < 3. No series.
-
-*Result*: **no alerts**. ✓
+*Phase 1*: two 1-row buckets → runs of 1. *Phase 3*: `longest_cadence_run` monthly = both rows
+(gap 30), length 2 < 3. Quarterly/yearly: runs of 1. *Result*: no alerts. ✓
 
 ---
 
-**E7** — Weekly grocery shopping: 6 charges ~7 days apart, amounts 35 to 210 for `"FRESHCO"`.
+**E7** — Weekly grocery shopping: 6 charges 7 days apart, amounts 35.00, 90.00, 210.00, 60.00,
+150.00, 120.00 for `"FRESHCO"`.
 
-*Phase 1*:
-- `group_by_price_level` → many buckets (amounts vary by >10% from each other) → most buckets
-  have 1 row, none ≥ 4 (the weekly minimum).
-
-*Phase 2*: no series → nothing to process.
-
-*Phase 3*: `unclaimed = all 6 rows`. `longest_cadence_run([all 6], weekly)` → gaps ~7 days,
-all within tolerance → run length 6 ≥ 4. `_segment_by_price`:
-- overall_median ≈ 122. Amounts range 35–210 → most fall outside ±10% → stable check fails.
-- `for p` loop: no clean split (amounts are irregular, not two distinct price levels). Returns
-  `None`. → No series.
-
-*Result*: **no alerts**. ✓
+*Phase 1*: six 1-row buckets → runs of 1 < 4. *Phase 3*: weekly run = all 6 rows (≥ 4).
+`_segment_by_price`: not a level; no split has two levels; Branch 3 fails (amounts far from the
+median 105.00) → `None` → stop. Monthly run: gap 28 gives rows 1 and 5 → length 2 < 3.
+*Result*: no alerts. ✓
 
 ---
 
-**Downgrade test (new Tier 1 test)**:
+**E7b** — 26 weekly supermarket charges between 40.00 and 150.00 over 6 months for `"FRESHCO"`.
 
-Series with a downward step (e.g. 3 × 14.99 monthly → 3 × 9.99 monthly after a plan change):
-- Phase 1: bucket [14.99×3] → stable S_A; bucket [9.99×3] → stable S_B.
-- Phase 2: S_A.last + 30 days ≈ S_B.first → merge attempted. `_segment_by_price`:
-  `for p=3`, `level_a=14.99`, `level_b=9.99`. pre_ok ✓, post_ok ✓. `level_b ≠ level_a` ✓.
-  → merged Series, `price_steps=[(14.99, 9.99)]`, `current_amount=9.99`.
-- `detect_price_increases`: step is **downward** (`9.99 < 14.99`) → no alert. ✓
-- `detect_recurring_charges` still fires (one series found). ✓
+Fixture (deterministic): charge `i = 0..25` is dated `2026-05-04 + 7·i` days and has amount
+`round_to_cents(40.00 × 1.11^k)` with `k = (5·i) mod 13`. The 13 price levels (40.00 … 139.94) are
+each more than 10% apart, so each level is its own bucket and holds exactly two rows, `i` and
+`i + 13`, which are 91 days apart.
+
+*Phase 1*: 13 buckets of 2 rows. Weekly and monthly: runs of 1 < min. Quarterly: run of 2 ≥ 2 and
+one level → candidate quarterly series, **rejected by `_accept`**: the key has 12 other debit rows
+between the two charges. Yearly: runs of 1.
+*Phase 2*: nothing found, nothing to extend.
+*Phase 3*: weekly run = all 26 rows (gaps 7) → not a level, no split with two levels, Branch 3 fails
+→ `None`. Monthly run = rows `i, i+4, i+8, …` (28-day gaps), 7 rows, levels all different → `None`.
+Quarterly run = rows `i, i+13` → rejected by `_accept` again. Yearly: runs of 1.
+
+*Result*: **no series, so no alerts of any kind** (no recurring charge, no price increase, no
+duplicate, no free trial; and no cancellation alert unless the user supplies a date). Without the
+Branch 2 side-size rule and the quarterly/yearly span guard, this ledger produced about 13 quarterly
+series, 9 price-increase alerts and a duplicate alert per statement. ✓
+
+---
+
+**Downgrade** (Tier 1): 3 × 14.99 then 3 × 9.99 monthly.
+
+*Phase 1*: two stable series. *Phase 2b*: merge → p = 3 split → `price_steps=[(14.99, 9.99)]`,
+`current_amount=9.99`. `detect_price_increases`: step is downward → no alert.
+`detect_recurring_charges` fires once. ✓
 
 ---
 
@@ -655,13 +685,17 @@ from typing import Any
 import pandas as pd
 from ledger_kit.detectors import register
 from ledger_kit.models import Alert
-from .utils import find_series, resolve_alias, is_active, INTERVAL_TYPES
+from .utils import (find_series, resolve_alias, is_active, group_by_normalised_key,
+                    group_by_canonical, sorted_source_refs, ppy_for, ledger_max_date, ...)
 
 @register("zs.<name>")
 def detect_<name>(ledger: pd.DataFrame, context: Mapping[str, Any]) -> list[Alert]:
     """One-line docstring."""
     aliases: dict[str, list[str]] | None = context.get("aliases")
     alerts: list[Alert] = []
+    if ledger.empty:
+        return alerts
+    max_date = ledger_max_date(ledger)
     # ... detector logic ...
     return alerts
 ```
@@ -672,7 +706,7 @@ def detect_<name>(ledger: pd.DataFrame, context: Mapping[str, Any]) -> list[Aler
 for key, key_rows in group_by_normalised_key(ledger):
     for series in find_series(key_rows):
         canonical = resolve_alias(key, aliases)
-        yearly_cost = round_to_cents(series.current_amount * intervals[series.interval_type]["ppy"])
+        yearly_cost = round_to_cents(series.current_amount * ppy_for(series.interval_type))
         alerts.append(Alert(
             detector="zs.recurring_charge",
             severity="info",
@@ -685,9 +719,9 @@ for key, key_rows in group_by_normalised_key(ledger):
                 "current_amount": str(series.current_amount),
                 "charge_count": len(series.rows),
                 "yearly_cost": str(yearly_cost),
-                "first_charge_date": str(series.rows[0]["date"]),
-                "last_charge_date": str(series.rows[-1]["date"]),
-                "is_active": is_active(series, ledger["date"].max()),
+                "first_charge_date": series.rows[0]["date"].isoformat(),
+                "last_charge_date": series.rows[-1]["date"].isoformat(),
+                "is_active": is_active(series, max_date),
             },
         ))
 ```
@@ -697,18 +731,13 @@ for key, key_rows in group_by_normalised_key(ledger):
 ```python
 for key, key_rows in group_by_normalised_key(ledger):
     for series in find_series(key_rows):
-        if not series.price_steps:
-            continue
-        for (old, new) in series.price_steps:
-            # Only fire for upward steps exceeding PRICE_INCREASE_MIN_RATIO
+        for (old, new) in series.price_steps:          # stored rounded medians
             if new <= old:
-                continue
-            ratio = (new - old) / old
+                continue                               # downward or flat: never an alert
+            ratio = (new - old) / old                  # computed from the ROUNDED medians
             if ratio < PRICE_INCREASE_MIN_RATIO:
-                continue
-            ppy = intervals[series.interval_type]["ppy"]
-            extra = round_to_cents((new - old) * ppy)
-            yearly = round_to_cents(new * ppy)
+                continue                               # exactly 5% fires
+            ppy = ppy_for(series.interval_type)
             canonical = resolve_alias(key, aliases)
             alerts.append(Alert(
                 detector="zs.price_increase",
@@ -719,8 +748,8 @@ for key, key_rows in group_by_normalised_key(ledger):
                     "counterparty": canonical,
                     "old_median_amount": str(old),
                     "new_amount": str(new),
-                    "extra_cost_per_year": str(extra),
-                    "yearly_cost": str(yearly),
+                    "extra_cost_per_year": str(round_to_cents((new - old) * ppy)),
+                    "yearly_cost": str(round_to_cents(new * ppy)),
                     "interval_type": series.interval_type,
                 },
             ))
@@ -734,51 +763,41 @@ canonical_to_series: dict[str, list[tuple[str, Series]]] = defaultdict(list)
 
 for key, key_rows in group_by_normalised_key(ledger):
     for series in find_series(key_rows):
-        if not is_active(series, ledger_max_date):
-            continue
-        canonical = resolve_alias(key, aliases)
-        canonical_to_series[canonical].append((key, series))
+        if is_active(series, max_date):
+            canonical_to_series[resolve_alias(key, aliases)].append((key, series))
 
 for canonical, series_list in canonical_to_series.items():
     if len(series_list) < 2:
         continue
 
-    # Build the list of series that participate in at least one qualifying pair.
-    # Same-key pairs: require current_amounts within AMOUNT_MATCH_RATIO.
-    # Different-key (alias-resolved) pairs: always qualify if both active.
+    # Series that take part in at least one qualifying pair.
+    # Same-key pairs: current_amounts within AMOUNT_MATCH_RATIO (E4 ✓, E3 ✗).
+    # Different-key (alias-resolved) pairs: always qualify when both are active (E5).
     qualifying: list[tuple[str, Series]] = []
     for i, (k_i, s_i) in enumerate(series_list):
-        for j, (k_j, s_j) in enumerate(series_list):
-            if j <= i:
-                continue
+        for k_j, s_j in series_list[i + 1:]:
             if k_i == k_j:
-                # Same normalised key: require similar price (E4 ✓, E3 ✗)
-                ratio = abs(s_i.current_amount - s_j.current_amount) / max(s_i.current_amount, s_j.current_amount)
+                ratio = abs(s_i.current_amount - s_j.current_amount) / max(
+                    s_i.current_amount, s_j.current_amount)
                 if ratio > AMOUNT_MATCH_RATIO:
                     continue
-            # Both series qualify — add each if not already in the list
-            if (k_i, s_i) not in qualifying:
-                qualifying.append((k_i, s_i))
-            if (k_j, s_j) not in qualifying:
-                qualifying.append((k_j, s_j))
+            for item in ((k_i, s_i), (k_j, s_j)):
+                if not any(item[1] is q[1] for q in qualifying):
+                    qualifying.append(item)
 
     if not qualifying:
         continue
 
-    # Use only the qualifying series for source_refs, series_count, and yearly_cost
-    all_rows_sorted = sorted(
-        [r for _, s in qualifying for r in s.rows],
-        key=lambda r: r["date"],
-    )
+    all_rows = [r for _, s in qualifying for r in s.rows]
     total_yearly = sum(
-        round_to_cents(s.current_amount * ppy_for(s.interval_type))
-        for _, s in qualifying
+        (round_to_cents(s.current_amount * ppy_for(s.interval_type)) for _, s in qualifying),
+        Decimal("0.00"),
     )
     alerts.append(Alert(
         detector="zs.duplicate_subscription",
         severity="warning",
         title=f"Duplicate subscription: {canonical}",
-        source_refs=sorted_source_refs(all_rows_sorted),
+        source_refs=sorted_source_refs(all_rows),
         data={
             "canonical_name": canonical,
             "series_count": len(qualifying),
@@ -791,33 +810,28 @@ for canonical, series_list in canonical_to_series.items():
 ### 5.4 `detect_free_trial_to_paid` (`free_trial_to_paid.py`)
 
 ```python
-# For each key, collect its series (if any) and look for a trial charge
-# in the 1..TRIAL_MAX_DAYS_BEFORE_FIRST_CHARGE window before the series start.
-
+# For each key, look for a trial charge 1..TRIAL_MAX_DAYS_BEFORE_FIRST_CHARGE days before a series start.
 for key, key_rows in group_by_normalised_key(ledger):
     for series in find_series(key_rows):
         series_start = series.rows[0]["date"]
         series_refs = {r["source_ref"] for r in series.rows}
-        # Find trial charges: same key, not in series, amount in (0.01, 1.00]
-        # dated 1..35 days before series_start
         trial_candidates = [
             r for r in key_rows
             if r["source_ref"] not in series_refs
-            and Decimal("0.01") <= Decimal(r["amount"]) <= FREE_TRIAL_MAX_TOKEN_AMOUNT
+            and FREE_TRIAL_MIN_TOKEN_AMOUNT <= Decimal(r["amount"]) <= FREE_TRIAL_MAX_TOKEN_AMOUNT
             and 1 <= (series_start - r["date"]).days <= TRIAL_MAX_DAYS_BEFORE_FIRST_CHARGE
         ]
         if not trial_candidates:
             continue
-        # Pick the closest trial charge to the series start
-        trial = min(trial_candidates, key=lambda r: (series_start - r["date"]).days)
+        trial = min(trial_candidates, key=lambda r: ((series_start - r["date"]).days, date_key(r)))
         canonical = resolve_alias(key, aliases)
-        ppy = intervals[series.interval_type]["ppy"]
-        yearly = round_to_cents(series.current_amount * ppy)
+        yearly = round_to_cents(series.current_amount * ppy_for(series.interval_type))
         alerts.append(Alert(
             detector="zs.free_trial_to_paid",
             severity="info",
             title=f"Free trial converted to paid: {canonical}",
-            source_refs=sorted([trial["source_ref"]] + sorted_source_refs(series.rows)),
+            # sorted by (date, source_row) — NOT as text: 'f.csv:10' sorts before 'f.csv:9'
+            source_refs=sorted_source_refs(series.rows + [trial]),
             data={
                 "counterparty": canonical,
                 "trial_amount": str(round_to_cents(Decimal(trial["amount"]))),
@@ -830,34 +844,29 @@ for key, key_rows in group_by_normalised_key(ledger):
         ))
 ```
 
+The trial charge is never absorbed by backward extension: a `0.49` row 28–33 days before a
+`14.99` series would be a +2961% "step", far beyond `MAX_EDGE_STEP_RATIO`.
+
 ### 5.5 `detect_charges_after_cancellation` (`charges_after_cancellation.py`)
+
+One tombstone and one alert **per canonical service**, however many normalised keys it has. Series
+are still found **per key** (REQ-ZS-07); only rows and yearly costs are aggregated per service.
 
 ```python
 cancellation_dates: dict[str, date] | None = context.get("cancellation_dates")
-if not cancellation_dates:
+if not cancellation_dates or ledger.empty:
     return []
+max_date = ledger_max_date(ledger)
 
-# Group ALL debit rows by canonical name across all keys that resolve to the same service.
-# A service with two aliased keys (E5) must produce one alert, not two.
-canonical_to_rows: dict[str, list[dict]] = defaultdict(list)
-canonical_to_key_rows: dict[str, list[dict]] = defaultdict(list)  # all rows for yearly_cost
-
-for key, key_rows in group_by_normalised_key(ledger):
-    canonical = resolve_alias(key, aliases)
+for canonical, key_groups in group_by_canonical(ledger, aliases).items():
     if canonical not in cancellation_dates:
         continue
-    canonical_to_rows[canonical].extend(key_rows)
-    canonical_to_key_rows[canonical].extend(key_rows)
-
-for canonical, all_rows in canonical_to_rows.items():
     cancel_date = cancellation_dates[canonical]
-    post = [r for r in all_rows if r["date"] > cancel_date]
+    all_rows = [r for _key, rows in key_groups for r in rows]
+    post = [r for r in all_rows if r["date"] > cancel_date]       # strictly after
     if not post:
         continue
-    total = sum(Decimal(r["amount"]) for r in post)
-    series_list = find_series(sorted(canonical_to_key_rows[canonical], key=lambda r: r["date"]))
-    active = [s for s in series_list if is_active(s, ledger_max_date)]
-    yearly = str(round_to_cents(active[0].current_amount * ppy_for(active[0].interval_type))) if active else "0.00"
+    total = sum((Decimal(r["amount"]) for r in post), Decimal("0.00"))
     alerts.append(Alert(
         detector="zs.charges_after_cancellation",
         severity="critical",
@@ -865,10 +874,10 @@ for canonical, all_rows in canonical_to_rows.items():
         source_refs=sorted_source_refs(post),
         data={
             "counterparty": canonical,
-            "cancellation_date": str(cancel_date),
+            "cancellation_date": cancel_date.isoformat(),
             "post_cancellation_count": len(post),
             "total_charged_after": str(round_to_cents(total)),
-            "yearly_cost": yearly,
+            "yearly_cost": str(service_yearly_cost(key_groups, max_date)),   # "0.00" if no active series
         },
     ))
 ```
@@ -884,170 +893,151 @@ class ZombieCostResult:
     last_used_date: date
     cost_since_last_used: Decimal
     source_refs: list[str]
-    yearly_cost: Decimal       # current_amount × periods_per_year for the active series
+    yearly_cost: Decimal       # sum of yearly costs of the service's active series
 
 
 def compute_zombie_cost(
     ledger: pd.DataFrame,
-    last_used_dates: dict[str, date],
+    last_used_dates: dict[str, date] | None,
     *,
     aliases: dict[str, list[str]] | None = None,
 ) -> list[ZombieCostResult]:
-    """Return zombie cost data for every service that has a last-used date entry.
+    """Return one ZombieCostResult per service named in last_used_dates.
 
-    Groups by canonical name so a service with two aliased keys (E5) produces one
-    ZombieCostResult, not two.  Never reads the system clock.
+    Groups by canonical name, so a service with two aliased keys (E5) yields ONE result.
+    A service with no rows at all still yields an entry with cost 0.00 (REQ-ZS-30).
+    last_used_dates=None or {} → []. Never reads the system clock.
     """
+    if not last_used_dates:
+        return []
+    max_date = ledger_max_date(ledger)
+    by_canonical = group_by_canonical(ledger, aliases) if not ledger.empty else {}
     results: list[ZombieCostResult] = []
-    ledger_max_date = ledger["date"].max()
-
-    # Accumulate rows and series per canonical name across all normalised keys
-    canonical_rows: dict[str, list[dict]] = defaultdict(list)
-    for key, key_rows in group_by_normalised_key(ledger):
-        canonical = resolve_alias(key, aliases)
-        if canonical in last_used_dates:
-            canonical_rows[canonical].extend(key_rows)
-
-    for canonical, all_rows in canonical_rows.items():
-        last_used = last_used_dates[canonical]
-        post = [r for r in all_rows if r["date"] > last_used]
+    for canonical, last_used in last_used_dates.items():       # keys are already normalised
+        key_groups = by_canonical.get(canonical, [])
+        post = [r for _key, rows in key_groups for r in rows if r["date"] > last_used]
         cost = round_to_cents(sum((Decimal(r["amount"]) for r in post), Decimal("0.00")))
-        all_sorted = sorted(all_rows, key=lambda r: r["date"])
-        series_list = find_series(all_sorted)
-        active = [s for s in series_list if is_active(s, ledger_max_date)]
-        yearly = round_to_cents(
-            active[0].current_amount * ppy_for(active[0].interval_type)
-        ) if active else Decimal("0.00")
         results.append(ZombieCostResult(
             canonical_name=canonical,
             last_used_date=last_used,
             cost_since_last_used=cost,
-            source_refs=[r["source_ref"] for r in post],
-            yearly_cost=yearly,
+            source_refs=sorted_source_refs(post),
+            yearly_cost=service_yearly_cost(key_groups, max_date),
         ))
     return results
 ```
 
+Series are found per key inside `service_yearly_cost`; rows of two aliased keys are never mixed
+into one `find_series` call.
+
 ---
 
-## 7 — App data flow (`app.py`)
+## 7 — App data flow (`app.py`, `settings.py`)
+
+`settings.py` holds everything that can be tested without Streamlit:
+
+```python
+def load_config(path: Path) -> dict: ...                    # tomllib
+def demo_inputs(config: dict, root: Path) -> DemoInputs: ... # csv bytes + parsed inputs
+def to_date(value: str | date) -> date:                      # TOML strings or TOML dates
+    return value if isinstance(value, date) else date.fromisoformat(value)
+def parse_aliases_text(text: str) -> dict[str, list[str]]: ...   # "streaming = A, B" per line
+def parse_dates_text(text: str) -> dict[str, date]: ...          # "NAME = YYYY-MM-DD" per line
+def format_aliases_text(aliases) -> str: ...
+def format_dates_text(dates) -> str: ...
+```
+
+`[demo]` dates arrive from TOML as strings and are converted with `date.fromisoformat`.
 
 ```
 Path bootstrap (insert repo root into sys.path)
   │
   ▼
-Read config.toml → raw aliases, demo.last_used_dates, demo.cancellation_dates
+config = load_config(config.toml)
   │
   ▼
-Sidebar form → collect user inputs (pre-filled from [demo] when demo loaded):
-  • last_used_dates_raw:    dict[str, date]   (user types service names as-is)
-  • cancellation_dates_raw: dict[str, date]
-  • aliases_raw:            dict[str, list[str]]
-  • hallucinate_toggle:     bool
+Callback (defined BEFORE the widgets):
+    def load_demo():                       # runs before the next rerun builds any widget
+        demo = demo_inputs(config, ROOT)
+        st.session_state["source"] = ("demo", demo.csv_bytes, demo.csv_name)
+        st.session_state["aliases_text"]   = format_aliases_text(demo.aliases)
+        st.session_state["last_used_text"] = format_dates_text(demo.last_used_dates)
+        st.session_state["cancel_text"]    = format_dates_text(demo.cancellation_dates)
+        st.session_state["demo_loaded"]    = True
   │
+  ▼
+Sidebar:
+    st.sidebar.button("Load demo data", on_click=load_demo)
+    aliases_text   = st.sidebar.text_area("Aliases",            key="aliases_text")
+    last_used_text = st.sidebar.text_area("Last-used dates",    key="last_used_text")
+    cancel_text    = st.sidebar.text_area("Cancellation dates", key="cancel_text")
+    hallucinate    = st.sidebar.toggle("Simulate a hallucinating LLM", key="hallucinate")
+    uploaded       = st.sidebar.file_uploader("Bank statement CSV", type="csv")
+```
+
+**Why `on_click`**: the sidebar widgets are created earlier in the script run than an
+`if st.button(...)` body, so assigning `st.session_state["aliases_text"] = ...` there raises
+`StreamlitWidgetAlreadyInstantiatedError`. An `on_click` callback runs *before* the script reruns,
+so writing the widget keys is allowed. Default values are set once with
+`st.session_state.setdefault(key, "")` before the widgets are created; the text areas pass no
+`value=` argument.
+
+```
+  ▼ source = uploaded file if present, else st.session_state.get("source")
   ▼ normalise all user-entered keys once:
-  aliases         = normalise_alias_map(aliases_raw)
-  last_used_dates = normalise_date_map(last_used_dates_raw)
-  cancellation_dates = normalise_date_map(cancellation_dates_raw)
+  aliases            = normalise_alias_map(parse_aliases_text(aliases_text))
+  last_used_dates    = normalise_date_map(parse_dates_text(last_used_text))
+  cancellation_dates = normalise_date_map(parse_dates_text(cancel_text))
   │
   ▼
-File uploader OR "Load demo data" button
-  → parse_csv(source, source_file=...)  [ledger_kit.ingestion]
-  → normalise(transactions)
-  → debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
-  (cached in st.session_state["ingestion_cache"] by sha256 of file bytes)
+parse_csv(source, source_file=...) → normalise(transactions) → ledger
+debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
+(cached in st.session_state["ingestion_cache"] by sha256 of the file bytes)
   │
   ▼
-ctx = {
-    "aliases": aliases,
-    "cancellation_dates": cancellation_dates,
-}
+ctx = {"aliases": aliases, "cancellation_dates": cancellation_dates}
 results = run_all(debit_ledger, namespace="zs", context=ctx)
+zombie_results = compute_zombie_cost(debit_ledger, last_used_dates, aliases=aliases)
   │
   ▼
-zombie_results = compute_zombie_cost(
-    debit_ledger, last_used_dates, aliases=aliases
-)
-  │
-  ▼
-client_mode = "hallucinate" if hallucinate_toggle else "real"
+client_mode = "hallucinate" if hallucinate else "real"
 
 For each alert in [a for r in results for a in r.alerts]:
     cache_key = (alert.id, client_mode)   # alert.id is deterministic (CR-LC-1b)
     if cache_key not in st.session_state["explanations"]:
         rows = debit_ledger[debit_ledger["source_ref"].isin(alert.source_refs)]
-        client = HallucinatingStubClient() if hallucinate_toggle else None
-        meta = explain_with_meta(
-            alert, rows,
-            fallback_template=TEMPLATES[alert.detector],
-            client=client,
-        )
+        client = HallucinatingStubClient() if hallucinate else None
+        meta = explain_with_meta(alert, rows,
+                                 fallback_template=TEMPLATES[alert.detector], client=client)
         st.session_state["explanations"][cache_key] = meta
     meta = st.session_state["explanations"][cache_key]
   │
   ▼
 Render:
-  • Tombstone graveyard (zombie_results with last_used_date)
+  • Tombstone graveyard (zombie_results)
   • Alert list grouped by severity, each with guard badge
   • Quarantine section (if any)
 ```
 
 Key session-state keys:
+- widget keys: `"aliases_text"`, `"last_used_text"`, `"cancel_text"`, `"hallucinate"`
+- `"source"`: `("demo", bytes, filename)` set by `load_demo`
 - `"ingestion_cache"`: `dict[sha256_hex, (list[Transaction], list[dict])]`
-- `"explanations"`: `dict[tuple[str, str], Explanation]`  — key is `(alert.id, client_mode)`
+- `"explanations"`: `dict[tuple[str, str], Explanation]` — key is `(alert.id, client_mode)`
 - `"demo_loaded"`: `bool`
 
-**Why `(alert.id, client_mode)` as cache key**: `Alert.id` is now a deterministic sha256 (see
-§CR-LC-1b below), so the same alert data always produces the same id across Streamlit reruns.
-The `client_mode` dimension lets the user toggle the hallucination simulator without losing the
-cached real explanation.
+**Why `(alert.id, client_mode)` as cache key**: `Alert.id` is a deterministic sha256 (CR-LC-1b), so
+the same alert data always produces the same id across Streamlit reruns. The `client_mode`
+dimension lets the user toggle the hallucination simulator without losing the cached real
+explanation.
 
 ---
 
 ## 7a — CR-LC-1b: Deterministic `Alert.id` (ledger-core change)
 
-**Problem**: `Alert.id` is currently a random `uuid4()`, so every Streamlit rerun regenerates
-all alerts with new ids and the explanation cache is always cold.
-
-**Resolution**: When no `id` is supplied to `Alert.__init__`, compute a deterministic sha256 from
-the alert's immutable identity fields:
-
-```python
-import hashlib, json
-
-def _alert_id(detector: str, source_refs: list[str], data: dict) -> str:
-    """Deterministic id: sha256 of detector + sorted source_refs + canonical-JSON data."""
-    payload = json.dumps(
-        {"detector": detector, "source_refs": sorted(source_refs), "data": data},
-        sort_keys=True, separators=(",", ":"),
-    )
-    return hashlib.sha256(payload.encode()).hexdigest()
-```
-
-The `Alert` model uses this as its `id` default factory:
-
-```python
-class Alert(BaseModel):
-    id: str = Field(default_factory=lambda: "")  # overridden by validator
-    ...
-    @model_validator(mode="before")
-    @classmethod
-    def _set_deterministic_id(cls, values):
-        if not values.get("id"):
-            values["id"] = _alert_id(
-                values["detector"],
-                values["source_refs"],
-                values["data"],
-            )
-        return values
-```
-
-**Scope**: this change is in `ledger_kit/models.py` only. It is backward-compatible: callers
-that pass an explicit `id` keep it. Tests that construct `Alert` directly without an `id` will
-now receive a deterministic value instead of a random uuid.
-
-**Ledger-core files to update**: `requirements.md` (new REQ-MOD-xx), `design.md` §2.2,
-`tasks.md` Task 2 (add test for deterministic id).
+Implemented in ledger-core (`ledger_kit/models.py`, ledger-core design §2.2, task 2). When no `id`
+is supplied, `Alert.id` is the sha256 of canonical JSON of `detector`, sorted `source_refs`, and
+`data`; an explicit `id` is preserved. The app relies on this for its explanation cache.
 
 ---
 
@@ -1062,12 +1052,15 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 ```
 
-Root-level `requirements.txt` lists all runtime dependencies for Streamlit Community Cloud.
-No `-e .` entry. No `setup.py`. The path bootstrap makes `import ledger_kit` work at runtime.
+The **root-level** `requirements.txt` lists all runtime dependencies for Streamlit Community Cloud.
+No `-e .` entry, no `setup.py`. There is **no** requirements file in `apps/zombie_subscriptions/`:
+Community Cloud reads the file next to the entry point first and would ignore the root one.
 
 ---
 
-## 9 — Hallucinating stub client
+## 9 — Hallucinating stub client and fallback templates (`explain_support.py`)
+
+`TEMPLATES: dict[str, str]` maps each detector name to its REQ-ZS-34 fallback template.
 
 ```python
 class HallucinatingStubClient:
@@ -1085,7 +1078,6 @@ class HallucinatingStubClient:
         return self
 
     def create(self, *, messages, **_kwargs):
-        user_msg = messages[-1]["content"] if messages else ""
         fake_text = f"This subscription costs you {self.INJECTED_NUMBER} EUR per year."
         from types import SimpleNamespace
         return SimpleNamespace(
@@ -1098,28 +1090,56 @@ The number guard always rejects the injected value; the badge shows ⚠️ with 
 
 ---
 
-## 10 — Demo generator (`scripts/generate_samples.py --mode zombie-demo --seed 42`)
+## 10 — Demo generator and demo configuration
 
-The generator produces `data/samples/zombie_demo_statement.csv`. All counterparty names are
-**fictional** — they must not imply the prices or existence of real companies. Finance Rule 5
-PII-safe person names apply to salary/transfer counterparties only.
+`scripts/generate_samples.py --mode zombie-demo --seed 42` produces
+`data/samples/zombie_demo_statement.csv`. **All counterparty names are fictional brands**; none
+may be, or imply, a real company (no Spotify, Adobe, Dropbox, Netflix, …). Finance Rule 5 person
+names apply to salary/transfer counterparties only.
 
-| Pattern | Fictional counterparty | Description |
-|---|---|---|
-| E1 (step change) | `STREAMFLEX INTL` | 5 × 12.99 + 1 × 15.99 monthly |
-| E2 (step change) | `CLOUDVAULT` | 3 × 9.99 + 3 × 12.99 monthly |
-| E3 (parallel, different amounts) | `APPLEBILL` | Interleaved 2.99 + 0.99 monthly |
-| E4 (parallel, same amount) | `MUSICBOX` | Two interleaved 10.99 monthly |
-| E5 (alias duplicate) | `STREAMFLIX INTL` + `STREAMFLIXCOM` | Monthly, aliased to `streaming` |
-| Free trial | `SECUREPASS` | 0.49 debit 14 days before first monthly 14.99 |
-| Post-cancellation | `GYMPLUS` | 3 monthly 8.99 charges after cancellation date |
-| Zombie candidates | `BEATSTREAM`, `PHOTOBOX`, `STASHBOX` | Have `last_used_date` entries in `[demo]` |
-| Noise | Various fictional merchants | Salary credit, groceries (4×/month varying), transfers, one-off shops |
+| Pattern | Fictional counterparty (raw CSV text) | Normalised key | Description |
+|---|---|---|---|
+| E1 (step change) | `STREAMFLEX INTL 4412` | `STREAMFLEX INTL` | 5 × 12.99 + 1 × 15.99 monthly |
+| E2 (step change) | `CLOUDVAULT` | `CLOUDVAULT` | 3 × 9.99 + 3 × 12.99 monthly |
+| E3 (parallel, different amounts) | `APPLEBILL` | `APPLEBILL` | Interleaved 2.99 + 0.99 monthly |
+| E4 (parallel, same amount) | `MUSICBOX` | `MUSICBOX` | Two interleaved 10.99 monthly |
+| E5 (alias duplicate) | `STREAMFLIX INTL 7731` + `STREAMFLIXCOM` | `STREAMFLIX INTL`, `STREAMFLIXCOM` | Monthly, aliased to `streaming` |
+| Free trial | `SECUREPASS` | `SECUREPASS` | 0.49 debit 14 days before first monthly 14.99 |
+| Post-cancellation | `GYMPLUS` | `GYMPLUS` | monthly 8.99; 3 charges after the cancellation date |
+| Zombie candidates | `BEATSTREAM`, `PHOTOBOX`, `STASHBOX` | same | Monthly; have `last_used_date` entries |
+| Noise | `FRESHCO` and other fictional merchants | — | Salary credit, weekly groceries built like E7b (no series can form), transfers, one-off shops |
 
-Total: ~320 rows over 6 months (2026-05-01 to 2026-10-31), plain dialect.
+Total: ~320 rows over 6 months (2026-05-01 to 2026-10-31), plain dialect. The generator uses
+`random.seed(42)`; output is fully deterministic.
 
-Generator uses `random.seed(42)`; output is fully deterministic. The `[demo]` section of
-`config.toml` references these fictional names in `last_used_dates` and `cancellation_dates`.
+### 10.1 `[demo]` section of `config.toml`
+
+Every alias member and every key of `last_used_dates` / `cancellation_dates` must equal a
+**normalised key present in the demo CSV** (the alias *name* `streaming` is a canonical name, not a
+CSV key). Dates are TOML strings and are converted with `date.fromisoformat`.
+
+```toml
+[demo]
+csv_path = "data/samples/zombie_demo_statement.csv"
+
+[demo.aliases]
+streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]
+
+[demo.last_used_dates]
+"BEATSTREAM" = "2026-07-15"
+"PHOTOBOX"   = "2026-06-20"
+"STASHBOX"   = "2026-08-10"
+
+[demo.cancellation_dates]
+"GYMPLUS" = "2026-07-31"
+```
+
+`test_zs_demo_e2e.py` asserts (a) every alias member and every date-map key of the `[demo]` section
+is in `{normalise_counterparty(c) for c in demo_csv["counterparty"]}` (after
+`normalise_counterparty` is applied to the config value), (b) every date parses with
+`date.fromisoformat`, (c) at least one alert of each of the five detector types, (d) at least 3
+`ZombieCostResult` entries with non-zero `cost_since_last_used`, and (e) no alert cites a row of
+the grocery/noise merchants.
 
 ---
 
@@ -1127,7 +1147,8 @@ Generator uses `random.seed(42)`; output is fully deterministic. The `[demo]` se
 
 ### 11.1 Conftest fixtures (`apps/zombie_subscriptions/tests/conftest.py`)
 
-All fixtures use synthetic PII-safe data. Dates are passed explicitly; no `date.today()`.
+All fixtures use synthetic data. Dates are passed explicitly; no `date.today()`. **Fixture
+counterparties are fictional merchants — never person names.**
 
 ```python
 # Helper: build a debit ledger row
@@ -1148,8 +1169,6 @@ def _debit_row(source_ref, date_val, amount, counterparty, currency="EUR"):
     }
 ```
 
-Standard fixtures (counterparties are fictional merchants, not person names; person names only for salary rows):
-
 | Fixture | Content |
 |---|---|
 | `empty_ledger` | `pd.DataFrame` with canonical columns, 0 rows |
@@ -1160,45 +1179,50 @@ Standard fixtures (counterparties are fictional merchants, not person names; per
 | `ledger_with_duplicate_sub` | E4 fixture: 6 rows, two interleaved 10.99 monthly `"MUSICBOX"` |
 | `ledger_with_aliased_duplicate` | E5 fixture: 3 × `"STREAMFLIX INTL"` + 3 × `"STREAMFLIXCOM"` monthly |
 | `ledger_with_free_trial` | 1 × 0.49 + 3 × 14.99 monthly for `"SECUREPASS"` |
-| `ledger_with_post_cancellation` | 3 × 8.99 monthly + 1 × 8.99 after cancellation date for `"GYMPLUS"` |
-| `ledger_with_zombie` | `ledger_with_recurring` with `last_used_date` before last 2 charges |
+| `ledger_with_post_cancellation` | 3 × 8.99 monthly + 1 × 8.99 after the cancellation date for `"GYMPLUS"` |
+| `ledger_with_zombie` | `ledger_with_recurring` with `last_used_date` before the last 2 charges |
+| `ledger_with_weekly_shopping` | E7b fixture: 26 weekly `"FRESHCO"` charges (generator in §4.8) |
 
 ### 11.2 Hypothesis strategies
 
 ```python
-from hypothesis import given, settings
-from hypothesis import strategies as st
-from decimal import Decimal
-from datetime import date
-
 def monthly_series_strategy(n_charges: int, base_amount: Decimal):
-    """Generate a monthly series with date jitter ≤ 3 days and amounts within ±4% of base.
+    """Monthly series: each gap is 30 + jitter days with jitter in [-3, 3] (so every gap stays
+    inside the cadence tolerance); amounts within ±4% of base_amount.
 
-    ±4% is tighter than the ±10% AMOUNT_MATCH_RATIO used by _segment_by_price. This avoids
-    flakiness: two amounts each at ±10% of the base can differ by up to 20% from each other,
-    which would fail the stable check and may spuriously trigger price-increase detection.
-    ±4% keeps every pair within 8% of each other — well inside the 10% cluster tolerance.
+    ±4% is outside a 2% price level, so such a series is accepted through Branch 3 (variable bill)
+    or as a step; either way it is ONE series, which is what the detection properties assert.
     """
-    start = st.dates(min_value=date(2025, 1, 1), max_value=date(2026, 1, 1))
-    jitters = st.lists(st.integers(-3, 3), min_size=n_charges-1, max_size=n_charges-1)
-    amount_ratios = st.lists(
-        st.decimals(min_value=Decimal("0.96"), max_value=Decimal("1.04"),
-                    places=2, allow_nan=False, allow_infinity=False),
-        min_size=n_charges, max_size=n_charges,
-    )
-    return st.builds(lambda s, j, r: _build_rows(s, j, r, base_amount), start, jitters, amount_ratios)
+
+def noisy_step_series_strategy():
+    """6 monthly charges (gaps exactly 30 days). base: whole euros in [50, 500]. The first k
+    charges (k in 1..5) are at `base`, the rest at the new level; every amount is multiplied by a
+    noise factor in [0.995, 1.005] and rounded to cents."""
+
+def exact_step_series_strategy():
+    """Same, but noise-free; base whole euros in [20, 500] and the step an integer percent in
+    [5, 50], so the new level is exact to the cent."""
 ```
+
+Why the step bounds in the table below are not 4% / 6%: with noise `ε = 0.5%` the ratio of the two
+medians can be as low as `(1+s)(1−ε)/(1+ε)` and as high as `(1+s)(1+ε)/(1−ε)`. For a step to
+fire in the worst case `s ≥ 1.05·1.005/0.995 − 1 ≈ 6.06%`; to never fire in the worst case
+`s ≤ 1.05·0.995/1.005 − 1 ≈ 3.95%`. The tests therefore use `s ≥ 7%` and `s ≤ 3.9%`. Between them
+the outcome depends on the noise and is not asserted.
 
 Key properties (all `@settings(max_examples=200)`):
 
 | Test | Property |
 |---|---|
-| `test_monthly_series_always_detected` | Generated monthly series → exactly 1 recurring-charge alert. |
+| `test_monthly_series_always_detected` | Generated monthly series (jitter and ±4% amounts) → exactly 1 recurring-charge alert. |
 | `test_insufficient_occurrences_never_detected` | n < MIN_OCCURRENCES_MONTHLY → no alert. |
 | `test_row_order_invariant` | Shuffled rows → same alerts (order-agnostic comparison). |
 | `test_yearly_cost_equals_current_price_times_12` | `Alert.data["yearly_cost"] == str(round_to_cents(current_amount × 12))`. |
-| `test_price_step_above_5pct_always_fires` | Series with one upward step ≥ 5% at any position → price-increase alert. |
-| `test_price_step_below_5pct_never_fires` | Step < 5% → no price-increase alert. |
+| `test_price_step_above_5pct_always_fires` | Noise within ±0.5% of each level; an upward step of 7–50% after k = 1..5 of 6 charges → exactly one price-increase alert. |
+| `test_price_step_exactly_5pct_fires` | Noise-free step of exactly 5% at any k = 1..5 → one price-increase alert. |
+| `test_price_step_below_5pct_never_fires` | Noise within ±0.5%; step 0–3.9% (up or down) → no price-increase alert. |
+| `test_stable_series_never_fires_price_increase` | Noise within ±0.5% around one level → no price-increase alert. |
+| `test_early_step_fires_exactly_once` | Noise-free step of 5–50% at any position k = 1..5 of 6 monthly charges → exactly one price-increase alert and one recurring series. |
 | `test_source_refs_subset_of_input` (all detectors) | `Alert.source_refs ⊆ ledger["source_ref"]`. |
 
 ---
@@ -1207,10 +1231,10 @@ Key properties (all `@settings(max_examples=200)`):
 
 ### OD-ZS-03 (resolved)
 
-Resolved in §4: three-phase algorithm (price-bucketed pre-pass, extend-and-merge, leftover cadence
-runs). Phase 1 uses stride-2 sub-runs within a bucket to detect same-price parallel series (E4),
-eliminating the need for any separate deinterleaving step. The `_segment_by_price` function handles
-stable, step-change (up or down), and noisy series.
+Resolved in §4: price-level segmentation (`STABLE_AMOUNT_RATIO` 2% levels; stable, single step,
+variable-bill branches), three phases (price-bucketed runs; forward/backward extension and merge;
+leftover cadence runs), and the shopping guards (side-size rule for steps, quarterly/yearly span
+guard).
 
 ### OD-ZS-05 — Hypothesis strategy for E3/E4 parallel series
 
@@ -1221,8 +1245,8 @@ generating valid interleaved series in Hypothesis. Fixtures `ledger_with_duplica
 
 ### OD-ZS-06 — `find_series` call cost across detectors
 
-`find_series` is called independently by each of the 5 detectors. For a 300-row ledger with
-~15 unique keys, this is ~5 × 15 = 75 calls. Each call is O(n²) per key where n ≤ ~30, so the
-total is negligible (< 1 ms). No caching for v1. If the ledger grows beyond ~10 000 rows,
-memoize `find_series` per `(key, ledger_content_hash)` or extract it to a shared pre-computation
-step passed via `context`.
+`find_series` is called independently by each of the 5 detectors (and by `service_yearly_cost`).
+For a 300-row ledger with ~15 unique keys, this is ~6 × 15 = 90 calls. Each call is O(n²) per key
+where n ≤ ~30, so the total is negligible (< 1 ms). No caching for v1. If the ledger grows beyond
+~10 000 rows, memoize `find_series` per `(key, ledger_content_hash)` or extract it to a shared
+pre-computation step passed via `context`.

@@ -199,7 +199,7 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   8. If any token's `Decimal` is not in the allowed set, discard the LLM text and return the fallback with `source="fallback"` and `rejected_numbers=(…token…)`.
   9. A European-formatted `12,99` passes against `Decimal("12.99")` in the allowed set. A made-up `3 EUR` is **rejected** even when row 3 is cited (`bank.csv:3`), unless `3` is also a value in `Alert.data` or a cited cell.
 - **REQ-EXP-09** On any API error or timeout, `explain_with_meta` returns the fallback, logs the reason, and never propagates the exception.
-- **REQ-EXP-10** The source rows are sent to the LLM as `rows.to_json(orient="records", date_format="iso", default_handler=str)`, so dates arrive as readable ISO strings, not epoch milliseconds.
+- **REQ-EXP-10** The source rows are sent to the LLM as `to_json(orient="records", default_handler=str)` after the `date` column has been converted to ISO strings with `date.isoformat` (missing values stay `None`). Dates therefore arrive as `2026-01-15` — not as epoch milliseconds and not as `2026-01-15T00:00:00.000`, which is what pandas `date_format="iso"` produces for `datetime.date` cells. `Decimal` cells are covered by `default_handler=str`.
 
 ---
 
@@ -278,7 +278,7 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   - `test_explain_fallback_on_api_error` — mock raises `RuntimeError` → `source="fallback"`, no exception propagated.
   - `test_explain_openai_import_error_falls_back` — `OPENAI_API_KEY` set, no client injected, `openai` made unimportable (`monkeypatch.setitem(sys.modules, "openai", None)`) → fallback, no exception.
   - `test_explain_openai_client_built_with_no_sdk_retries` — with a fake `openai` module in `sys.modules` whose `OpenAI` records its kwargs: `timeout == LLM_TIMEOUT_SECONDS` and `max_retries == 0`.
-  - `test_explain_rows_json_has_iso_dates` — the user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and no epoch-millisecond number for the row's date.
+  - `test_explain_rows_json_has_iso_dates` — the user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and does not contain `"T00:00"`.
   - `test_explain_only_safe_columns_sent` — the user message in `client.calls[0]["messages"]` contains neither an `id` nor a `description` key for the rows.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: inject a random Decimal (not in allowed set) into a valid answer → guard always rejects. Use a fixed `alert` and rows; generate foreign values via `st.decimals(min_value=Decimal("10000"), max_value=Decimal("99999"), places=2)`.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: an LLM answer that only uses Decimal strings from `alert.data` always passes the guard.

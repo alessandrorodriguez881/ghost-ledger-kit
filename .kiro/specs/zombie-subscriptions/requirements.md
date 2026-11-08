@@ -58,9 +58,9 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
      the original tokens (before step 4) to avoid discarding the entire key.
 
   Examples:
-  - `"Netflix Intl."` → `"NETFLIX INTL"`
-  - `"NETFLIX.COM"` → `"NETFLIXCOM"`
-  - `"SPOTIFY P2A3B4C5"` → `"SPOTIFY"` (token `P2A3B4C5` contains digits, dropped)
+  - `"Streamflix Intl."` → `"STREAMFLIX INTL"`
+  - `"STREAMFLIX.COM"` → `"STREAMFLIXCOM"`
+  - `"BEATSTREAM P2A3B4C5"` → `"BEATSTREAM"` (token `P2A3B4C5` contains digits, dropped)
 - **REQ-ZS-06** Normalisation is a pure helper function
   (`apps.zombie_subscriptions.detectors.normalise_counterparty`) with no side-effects.
 - **REQ-ZS-07** An **alias list** maps one or more normalised counterparty keys to a single
@@ -69,9 +69,9 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   - **Series grouping uses the normalised key only.** Alias resolution is applied *after* series
     are identified — it is used exclusively for display names, duplicate-subscription detection,
     cancellation-date lookups, and last-used-date lookups. Grouping by alias before series
-    identification would merge two separately billed accounts (e.g. two Netflix logins) into one
+    identification would merge two separately billed accounts (e.g. two streaming logins) into one
     irregular group, making duplicate detection impossible.
-  - Example alias definition: `netflix = ["NETFLIX INTL", "NETFLIXCOM", "NETFLIX"]`
+  - Example alias definition: `streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM", "STREAMFLIX"]`
 
 ---
 
@@ -102,11 +102,12 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   |---|---|---|
   | E1 | 5 monthly charges of 12.99, then 1 charge of 15.99 for the same counterparty | One recurring series (all 6 rows). `yearly_cost` = 191,88 EUR (15.99 × 12). One price-increase alert: old 12.99, new 15.99, extra 36.00 per year. |
   | E2 | 3 monthly charges of 9.99, then 3 charges of 12.99 for the same counterparty | One series (all 6 rows). One price-increase alert: old 9.99, new 12.99. |
-  | E3 | Same normalised key, two interleaved monthly series at 2.99 and 0.99 (like APPLE.COM BILL with two family members billed separately) | Two separate recurring series; no duplicate-subscription alert. |
+  | E3 | Same normalised key, two interleaved monthly series at 2.99 and 0.99 (like a billing platform charging two family members separately) | Two separate recurring series; no duplicate-subscription alert. |
   | E4 | Same normalised key, two interleaved monthly series each at 10.99 | Two separate recurring series; one duplicate-subscription alert (no aliases needed). |
-  | E5 | NETFLIX INTL monthly + NETFLIXCOM monthly, alias `netflix = ["NETFLIX INTL","NETFLIXCOM"]` | Two separate series (one per key); one duplicate-subscription alert resolved via alias. |
+  | E5 | STREAMFLIX INTL monthly + STREAMFLIXCOM monthly, alias `streaming = ["STREAMFLIX INTL","STREAMFLIXCOM"]` | Two separate series (one per key); one duplicate-subscription alert resolved via alias. |
   | E6 | Two charges 30 days apart from a supermarket, mixed varying amounts | No recurring-charge alert. |
   | E7 | Weekly charges from the same shop with varying amounts (e.g. grocery shopping) | No recurring-charge alert. |
+  | E7b | 26 weekly supermarket charges between 40.00 and 150.00 over 6 months (deterministic fixture in design §4.8, including pairs of equal amounts 91 days apart) | No alerts of any kind. |
 
 - **REQ-ZS-10** A group qualifies as a recurring series only if it meets the **minimum occurrence
   count** for its interval type:
@@ -120,6 +121,20 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
 
   `MIN_OCCURRENCES_MONTHLY = 3` (not 2): with only 2 occurrences, any two similar card payments
   a month apart would qualify as a subscription.
+
+- **REQ-ZS-10a** *(price levels and steps)* A **price level** is a set of amounts that all lie within
+  `STABLE_AMOUNT_RATIO: Decimal = Decimal("0.02")` (2%) of their median. A cadence run is accepted as
+  (1) a stable series (the whole run is one level), (2) a step-change series (exactly one split into
+  two levels with different rounded medians; the step is recorded in either direction and its ratio
+  is computed from the rounded medians), or (3) a variable bill (no step, every amount within
+  `AMOUNT_MATCH_RATIO` of the median; `current_amount` is the median). Otherwise it is not a
+  subscription. A 2-row run must be a single stable level. A step needs at least 2 rows on each
+  side, except one single-row side at either end of the run when the other side has at least the
+  interval minimum and the step lies within ±50% (`MAX_EDGE_STEP_RATIO`).
+- **REQ-ZS-10b** *(no subscriptions from ordinary shopping)* A quarterly or yearly series is accepted
+  only if its normalised key has no other debit rows between the series' first and last charge.
+- **REQ-ZS-10c** An early or late step must be found wherever it falls: a step of 5–50% after any of
+  the first 1–5 of 6 monthly charges yields exactly one series with one recorded step.
 
 - **REQ-ZS-11** Multiple distinct series may exist under the same normalised key (see acceptance
   examples E3 and E4). For each identified series, the detector independently selects the interval
@@ -190,7 +205,9 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   examples E1 and E2 from REQ-ZS-09.
   - A step below 5% must never fire this detector (required Hypothesis property).
   - A single upward step of ≥ 5% at any position in the series must always fire it (required
-    Hypothesis property).
+    Hypothesis property; position includes the 1st and 2nd charge, see REQ-ZS-10c). With amount
+    noise of ±0.5% the guaranteed bounds are ≥ 7% fires and ≤ 3.9% never fires; a noise-free
+    step of exactly 5% fires.
 - **REQ-ZS-15** The detector function signature:
   ```python
   def detect_price_increases(
@@ -352,7 +369,7 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   ```python
   def compute_zombie_cost(
       ledger: pd.DataFrame,
-      last_used_dates: dict[str, date],
+      last_used_dates: dict[str, date] | None,
       *,
       aliases: dict[str, list[str]] | None = None,
   ) -> list[ZombieCostResult]:
@@ -371,9 +388,12 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
 - **REQ-ZS-29** `cost_since_last_used` must be the **sum of the `amount` fields of the actual
   rows** identified in `source_refs`. It must never be estimated, projected, or derived from a rate.
   All arithmetic uses `ledger_kit.utils.money` helpers.
-- **REQ-ZS-30** If no charges exist after the last-used date, `cost_since_last_used` is
-  `Decimal("0.00")` and `source_refs` is an empty list. This result is still returned (not omitted)
-  so the UI can display the tombstone with a zero cost.
+- **REQ-ZS-30** If no charges exist after the last-used date — or the service has no rows in the
+  ledger at all — `cost_since_last_used` is `Decimal("0.00")` and `source_refs` is an empty list.
+  This result is still returned (not omitted) so the UI can display the tombstone with a zero cost.
+  `last_used_dates=None` or empty returns `[]`. Results are grouped by canonical name: a service with
+  two aliased keys yields one result (and `detect_charges_after_cancellation` one alert), while
+  series are still found per normalised key.
 
 ---
 
@@ -490,9 +510,11 @@ acceptance example.
   - Last-used dates per subscription (for zombie status).
   - Cancellation dates per subscription (for the charges-after-cancellation detector).
   - Alias mappings (to detect duplicate subscriptions).
-  These inputs are stored in `st.session_state` and passed as the `context` dict to
+  These inputs are stored in `st.session_state` (widget keys) and passed as the `context` dict to
   `run_all(debit_ledger, namespace="zs", context=ctx)` on each run. The fields are
-  pre-populated from the `[demo]` section of `config.toml` when demo data is loaded.
+  pre-populated from the `[demo]` section of `config.toml` by an `on_click` callback of the
+  **Load demo data** button (design §7); assigning widget keys after the widgets exist would raise
+  `StreamlitWidgetAlreadyInstantiatedError`.
 - **REQ-ZS-41** The app must be launchable with:
   ```
   streamlit run apps/zombie_subscriptions/app.py
@@ -512,7 +534,9 @@ acceptance example.
   ```
 
   A root-level `requirements.txt` lists all runtime dependencies (no `-e .` entry) for
-  Streamlit Community Cloud, which installs from it at deploy time.
+  Streamlit Community Cloud, which installs from it at deploy time. The app folder must **not**
+  contain its own `requirements.txt`: Community Cloud reads the file next to the entry point first
+  and it would hide the root one.
 
 ---
 
@@ -527,8 +551,8 @@ acceptance example.
   of normalised counterparty keys (see REQ-ZS-07). Example:
   ```toml
   [aliases]
-  netflix = ["NETFLIX INTL", "NETFLIXCOM", "NETFLIX"]
-  spotify = ["SPOTIFY AB", "SPOTIFY"]
+  streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM", "STREAMFLIX"]
+  music = ["BEATSTREAM", "BEATSTREAM PREMIUM"]
   ```
 - **REQ-ZS-44** The `[demo]` section of `config.toml` holds:
   - `csv_path`: path to the zombie demo CSV (default `"data/samples/zombie_demo_statement.csv"`).
@@ -536,21 +560,26 @@ acceptance example.
   - `last_used_dates`: a table of `canonical_name = "YYYY-MM-DD"` entries (at least 3).
   - `cancellation_dates`: a table of `canonical_name = "YYYY-MM-DD"` entries (at least 1).
 
+  All names are fictional brands. **Every alias member and every key of `last_used_dates` and
+  `cancellation_dates` must equal a normalised counterparty key that occurs in the demo CSV** (a
+  mismatch such as `GYM PLUS` vs `GYMPLUS`, or a typo like `NETLIXINTL`, silently disables the
+  cancellation and duplicate cases). Date strings are converted with `date.fromisoformat`.
+
   Example:
   ```toml
   [demo]
   csv_path = "data/samples/zombie_demo_statement.csv"
 
   [demo.aliases]
-  streaming = ["NETLIXINTL", "NETFLIXCOM"]
+  streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]
 
   [demo.last_used_dates]
-  "SPOTIFY" = "2026-03-01"
-  "ADOBE" = "2025-11-15"
-  "DROPBOX" = "2026-01-10"
+  "BEATSTREAM" = "2026-07-15"
+  "PHOTOBOX" = "2026-06-20"
+  "STASHBOX" = "2026-08-10"
 
   [demo.cancellation_dates]
-  "GYM PLUS" = "2026-02-28"
+  "GYMPLUS" = "2026-07-31"
   ```
 
 ---
@@ -565,7 +594,8 @@ apps/zombie_subscriptions/
 ├── __init__.py
 ├── app.py                          # Streamlit entry point (path bootstrap at top)
 ├── config.toml                     # aliases, demo inputs (no thresholds)
-├── requirements.txt                # pinned versions (app-level)
+├── settings.py                     # load config.toml, demo inputs, sidebar text parse/format
+├── explain_support.py              # TEMPLATES (REQ-ZS-34), HallucinatingStubClient (REQ-ZS-37a)
 ├── detectors/
 │   ├── __init__.py                 # auto_discover; exposes run_zs_detectors convenience wrapper
 │   ├── utils.py                    # normalise_counterparty, resolve_alias, series helpers,
@@ -582,6 +612,7 @@ apps/zombie_subscriptions/
     ├── test_zs_duplicate_subscription.py
     ├── test_zs_free_trial_to_paid.py
     ├── test_zs_charges_after_cancellation.py
+    ├── test_zs_settings.py
     └── test_zs_demo_e2e.py         # end-to-end: demo data triggers all detectors + ≥3 tombstones
 ```
 
@@ -613,12 +644,15 @@ requirements.txt   # pins all deps needed for apps/zombie_subscriptions; no -e .
   | `ledger_with_recurring` | Minimal fixture (≥ `MIN_OCCURRENCES_MONTHLY` rows) triggering `zs.recurring_charge` for a single counterparty |
   | `ledger_with_price_increase` | A series satisfying acceptance example E1 (5 × 12.99 then 1 × 15.99) |
   | `ledger_with_duplicate_sub` | Satisfies acceptance example E4 (same key, two parallel monthly series at 10.99) |
-  | `ledger_with_aliased_duplicate` | Satisfies acceptance example E5 (NETFLIX INTL + NETFLIXCOM with alias) |
+  | `ledger_with_aliased_duplicate` | Satisfies acceptance example E5 (STREAMFLIX INTL + STREAMFLIXCOM with alias) |
   | `ledger_with_free_trial` | A debit of 0.99 followed within 35 days by a monthly recurring series from the same key |
   | `ledger_with_post_cancellation` | A recurring series plus one charge strictly after a supplied cancellation date |
   | `ledger_with_zombie` | A recurring series with a `last_used_date` in the middle of the series |
+  | `ledger_with_weekly_shopping` | Acceptance example E7b (26 weekly charges, design §4.8) |
 
-- **REQ-ZS-47** The acceptance examples E1–E7 from REQ-ZS-09 are each required as an explicit
+  Fixture counterparties are fictional merchants, never person names.
+
+- **REQ-ZS-47** The acceptance examples E1–E7b from REQ-ZS-09 are each required as an explicit
   named test (Tier 1 or Tier 2), e.g. `test_zs_acceptance_e1_step_change_detected`.
 
 - **REQ-ZS-48** Mandatory Hypothesis properties (all with `@settings(max_examples=200)`):
@@ -629,8 +663,11 @@ requirements.txt   # pins all deps needed for apps/zombie_subscriptions; no -e .
   | `test_insufficient_occurrences_never_detected` | `test_zs_recurring_charge.py` | A series with fewer than `MIN_OCCURRENCES_MONTHLY` charges never produces a recurring-charge alert. |
   | `test_row_order_invariant` | `test_zs_recurring_charge.py` | Shuffling the ledger row order never changes the set of alerts returned. |
   | `test_yearly_cost_equals_current_price_times_12` | `test_zs_recurring_charge.py` | For any detected monthly series, `Alert.data["yearly_cost"]` equals `round_to_cents(current_amount × 12)`. |
-  | `test_price_step_above_5pct_always_fires` | `test_zs_price_increase.py` | A series with a single upward step of ≥ 5% at any position always fires the price-increase detector. |
-  | `test_price_step_below_5pct_never_fires` | `test_zs_price_increase.py` | A series with a step strictly below 5% never fires the price-increase detector. |
+  | `test_price_step_above_5pct_always_fires` | `test_zs_price_increase.py` | With amount noise within ±0.5% of each level, an upward step of 7–50% after any of the first 1–5 of 6 charges fires exactly one price-increase alert. |
+  | `test_price_step_exactly_5pct_fires` | `test_zs_price_increase.py` | A noise-free step of exactly 5% at any position fires. |
+  | `test_price_step_below_5pct_never_fires` | `test_zs_price_increase.py` | With noise within ±0.5%, a step of at most 3.9% never fires. |
+  | `test_stable_series_never_fires_price_increase` | `test_zs_price_increase.py` | A series at one level (noise within ±0.5%) never fires. |
+  | `test_early_step_fires_exactly_once` | `test_zs_price_increase.py` | A noise-free step of 5–50% at any position k = 1..5 of 6 monthly charges gives exactly one series and one price-increase alert. |
   | `test_source_refs_subset_of_input` | each detector test file | `Alert.source_refs` is always a subset of the input ledger's `source_ref` values. |
 
 - **REQ-ZS-49** Tests must pass dates explicitly (fixed literal dates). The system clock must
@@ -646,7 +683,10 @@ requirements.txt   # pins all deps needed for apps/zombie_subscriptions; no -e .
 - **REQ-ZS-52** An end-to-end test in `test_zs_demo_e2e.py` must assert that loading
   `data/samples/zombie_demo_statement.csv` with the `[demo]` context from `config.toml`
   produces at least one alert of each of the five detector types **and** at least 3
-  `ZombieCostResult` entries with non-zero `cost_since_last_used`.
+  `ZombieCostResult` entries with non-zero `cost_since_last_used`. It must also assert that every
+  alias member and every date-map key of the `[demo]` section equals a normalised counterparty key
+  of the demo CSV, that every demo date parses with `date.fromisoformat`, and that no alert cites
+  a row of the grocery/noise merchants.
 
 ---
 
