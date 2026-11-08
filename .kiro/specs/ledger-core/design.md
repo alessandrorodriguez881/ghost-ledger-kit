@@ -11,24 +11,26 @@ This document describes the internal design of the `ledger_kit` shared template 
 ```
 ledger_kit/
 ├── __init__.py                  # re-exports Transaction, Alert
-├── models.py                    # Pydantic models: Transaction, Alert
+├── models.py                    # Pydantic models: Transaction, Invoice, Supplier, Alert
 ├── ingestion/
 │   ├── __init__.py
 │   ├── csv_reader.py            # parse_csv() — bank-statement CSVs
 │   ├── dialect.py               # CsvDialect enum, detect_dialect, parse_amount, parse_date
-│   ├── invoice_reader.py        # parse_invoice() — CSV + JSON invoices
-│   └── normaliser.py            # normalise() — merge sources → DataFrame
+│   ├── invoice_reader.py        # parse_invoice() — CSV + JSON invoices → list[Invoice]
+│   ├── supplier_reader.py       # parse_suppliers() — supplier master CSV → list[Supplier]
+│   └── normaliser.py            # normalise() — merge sources of one kind → DataFrame
 ├── detectors/
 │   ├── __init__.py              # re-exports register, auto_discover, run_all
-│   ├── base.py                  # DetectorResult, DetectorError
+│   ├── base.py                  # DetectorResult, DetectorError, loaded_source_refs
 │   └── registry.py              # _REGISTRY dict, decorator + runner
 ├── ui/
 │   ├── __init__.py
 │   └── reference_app.py         # Streamlit reference page
 ├── utils/
 │   ├── __init__.py
-│   ├── money.py                 # round_to_cents, format_amount, format_as_european
-│   └── anonymise.py             # scrub()
+│   ├── money.py                 # round_to_cents, format_amount, format_as_european,
+│   │                            # percent_of, within_tolerance, net_total
+│   └── anonymise.py             # scrub(), mask_iban()
 └── defaults.toml                # shared threshold + format defaults
 ```
 
@@ -66,6 +68,52 @@ class Transaction(BaseModel):
 ```
 
 `amount` is always positive. Sign is encoded in `flow`. This is enforced by the CSV reader (§3.2) not by the model itself, so the model can also be constructed directly in tests with any positive `Decimal`.
+
+### 2.1a `Invoice` (CR-LC-3a)
+
+```python
+class Invoice(BaseModel):
+    invoice_number: str
+    supplier_name: str
+    supplier_tax_id: str            # stored as read; never normalised by the model
+    issue_date: date
+    due_date: date                  # always populated (reader applies issue_date + 30 days)
+    due_date_is_default: bool = False   # True when due_date was derived, not read
+    base_amount: Decimal            # >= 0
+    vat_rate: Decimal               # percentage: Decimal("21") means 21 %
+    vat_amount: Decimal             # >= 0
+    surcharge_amount: Decimal = Decimal("0")    # recargo de equivalencia
+    withholding_amount: Decimal = Decimal("0")  # IRPF, subtracted from the total
+    total: Decimal                  # the amount payable
+    iban: str | None = None         # verbatim
+    currency: str
+    source_file: str
+    source_row: int                 # 0-based
+    source_ref: str                 # f"{source_file}:{source_row}"
+
+    model_config = {"frozen": True}
+```
+
+A `field_validator` on the six amount fields rejects negative values (`ValidationError`);
+the readers quarantine negative cells before the model is built (`reason="negative_amount"`),
+so the validator is a belt-and-braces check. There is no `id` field: an invoice is addressed by
+`source_ref`.
+
+### 2.1b `Supplier` (CR-LC-3b)
+
+```python
+class Supplier(BaseModel):
+    supplier_name: str
+    tax_id: str
+    iban: str | None = None         # verbatim
+    source_file: str
+    source_row: int
+    source_ref: str
+
+    model_config = {"frozen": True}
+```
+
+`ledger_kit/__init__.py` re-exports `Transaction`, `Invoice`, `Supplier`, `Alert`.
 
 ### 2.2 `Alert`
 
@@ -108,7 +156,7 @@ class Alert(BaseModel):
     detector: str
     severity: Literal["info", "warning", "critical"]
     title: str
-    source_refs: list[str]   # non-empty; each must exist in the ledger
+    source_refs: list[str]   # non-empty; each must exist in a loaded input (REQ-DET-04)
     data: dict               # detector-specific payload
     explanation: str = ""    # populated only by the explanation layer
 
@@ -228,16 +276,17 @@ The resolved encoding is stored in the ingestion result metadata so the Streamli
 
 ```python
 from pathlib import Path
-from typing import IO, Literal
+from typing import IO, Literal, TypeVar
 
-IngestionResult = tuple[list[Transaction], list[dict]]
+T = TypeVar("T")
+IngestionResult = tuple[list[T], list[dict]]   # generic over the parsed model (CR-LC-3a)
 
 def parse_csv(
     source: Path | str | IO[str] | IO[bytes],
     *,
     dialect: Literal["plain", "european"] | None = None,
     source_file: str | None = None,
-) -> IngestionResult:
+) -> IngestionResult[Transaction]:
     """Parse a bank-statement CSV. Returns (transactions, quarantined)."""
 ```
 
@@ -261,13 +310,16 @@ receive source (path, text stream, or bytes stream)
   │
   └─ for each row (0-based index):
         ├─ extract mandatory fields (date, amount, currency, counterparty, description)
+        ├─ read the optional `iban` cell verbatim (CR-LC-3c, REQ-ING-29):
+        │     column absent / empty / whitespace-only → iban=None, otherwise the raw string
+        │     (no strip, no case change); never a quarantine reason
         ├─ any missing/blank field → quarantine row (reason="missing_field:<name>")
         ├─ parse_date() raises ValueError → quarantine row (reason="unparseable_date")
         ├─ parse_amount() raises InvalidOperation → quarantine row (reason="unparseable_amount")
         ├─ apply sign:
         │     amount < 0 → flow="debit",  Transaction.amount = abs(amount)
         │     amount >= 0 → flow="credit", Transaction.amount = amount
-        └─ build Transaction(source_ref=f"{source_file}:{row_index}"), append to valid list
+        └─ build Transaction(source_ref=f"{source_file}:{row_index}", iban=iban), append to valid list
 ```
 
 Key implementation notes:
@@ -276,50 +328,80 @@ Key implementation notes:
 - `source_file` defaults to `Path(source).name` when `source` is a path; callers may override.
 - When given a text stream, the function reads it fully, splits on newlines, and processes from the start; no seek is required.
 
-### 3.3 Invoice reader (`ledger_kit/ingestion/invoice_reader.py`)
+### 3.3 Invoice reader (`ledger_kit/ingestion/invoice_reader.py`) — revised by CR-LC-3a
 
 #### Public API
 
 ```python
+DEFAULT_PAYMENT_TERM_DAYS: int = 30   # Spanish default payment term; due_date fallback
+
 def parse_invoice(
     source: Path | str | IO,
     *,
     fmt: Literal["csv", "json"] | None = None,
     source_file: str | None = None,
-) -> IngestionResult:
-    """Parse a CSV or JSON (FATURA-style) invoice file."""
+) -> IngestionResult[Invoice]:
+    """Parse a CSV or JSON invoice file into Invoice objects."""
 ```
 
 - Format is auto-detected from the file extension when `fmt` is `None`; `.json` → JSON path, otherwise CSV path.
-- JSON path: load with `json.load`, iterate array, convert all amount fields to `Decimal` regardless of whether they arrive as `str` or `int/float`.
-- CSV path: uses `csv.DictReader` with comma separator (invoices are assumed plain format).
-- Same quarantine semantics as the bank-CSV reader.
-- Encoding strategy: same two-step `utf-8-sig` → `cp1252` fallback as `parse_csv`.
+- JSON path: load with `json.load`, iterate array, convert every amount field and `vat_rate` to `Decimal` through `Decimal(str(value))` regardless of whether it arrives as `str` or `int/float` (never `Decimal(float)`).
+- CSV path: uses `csv.DictReader` with comma separator (invoices are plain dialect: dot decimal, ISO dates) and `parse_amount` / `parse_date` from `dialect.py` with `CsvDialect.PLAIN`.
+- Mandatory: `invoice_number, supplier_name, supplier_tax_id, issue_date, base_amount, vat_rate, vat_amount, total, currency`. Optional: `due_date, surcharge_amount, withholding_amount, iban`.
+- Optional-value rules (REQ-ING-31): empty `surcharge_amount` / `withholding_amount` → `Decimal("0")`; empty `iban` → `None` (verbatim otherwise); empty `due_date` → `issue_date + timedelta(days=DEFAULT_PAYMENT_TERM_DAYS)` with `due_date_is_default=True`.
+- `vat_rate` is parsed with the plain amount parser (`"21"`, `"10"`, `"21.00"`); `"21%"` is quarantined as `unparseable_amount`.
+- A negative amount or `vat_rate` → quarantine `reason="negative_amount"` (credit notes out of scope).
+- `source_ref = f"{source_file}:{source_row}"` with a 0-based data-row index.
+- Same quarantine semantics as the bank-CSV reader. Encoding strategy: same two-step `utf-8-sig` → `cp1252` fallback as `parse_csv`.
 
-### 3.4 Normaliser (`ledger_kit/ingestion/normaliser.py`)
+### 3.3a Supplier-master reader (`ledger_kit/ingestion/supplier_reader.py`) — CR-LC-3b
+
+```python
+def parse_suppliers(
+    source: Path | str | IO,
+    *,
+    source_file: str | None = None,
+) -> IngestionResult[Supplier]:
+    """Parse a supplier-master CSV (supplier_name, tax_id, optional iban)."""
+```
+
+Plain dialect, same encoding fallback, same quarantine record shape. `supplier_name` and
+`tax_id` are mandatory (`missing_field:<name>`); an empty `iban` cell is `None`, otherwise the
+raw string. `source_ref` is `f"{source_file}:{source_row}"` (0-based). Nothing is normalised
+here: tax ids and IBANs are stored as read (REQ-MOD-10).
+
+### 3.4 Normaliser (`ledger_kit/ingestion/normaliser.py`) — revised by CR-LC-3a/3b
 
 #### Public API
 
 ```python
 NormaliseResult = tuple[pd.DataFrame, list[dict]]
+Kind = Literal["transaction", "invoice", "supplier"]
 
 def normalise(
-    *sources: list[Transaction],
+    *sources: list[Transaction] | list[Invoice] | list[Supplier],
+    kind: Kind | None = None,
 ) -> NormaliseResult:
-    """Merge transaction lists into a canonical DataFrame. Returns (ledger, quarantined)."""
+    """Merge model lists of ONE kind into a canonical DataFrame. Returns (frame, quarantined)."""
 ```
 
 #### Processing flow
 
-1. Concatenate all source lists into a single flat list.
-2. For each `Transaction`, verify required fields are non-null (belt-and-suspenders after Pydantic).
-3. Build the DataFrame with `pd.DataFrame([t.model_dump() for t in transactions], columns=CANONICAL_COLUMNS)`.
-   `CANONICAL_COLUMNS` is the ordered tuple of the REQ-ING-13 column names, defined once in
-   `normaliser.py`. Passing `columns=` means a run where every row was quarantined (or no
-   source had rows) yields an **empty ledger with the right columns**, not a column-less
-   frame that makes `ledger["source_ref"]` raise `KeyError` in detectors and the UI.
-4. Ensure column dtypes match the canonical schema (REQ-ING-13): `amount` and `date` remain `object` dtype (Python `Decimal` and `datetime.date`); `source_row` is `int64`.
-5. Return `(df, quarantine_list)`.
+1. Infer the kind from the first non-empty list (`Transaction` → `"transaction"`, `Invoice` →
+   `"invoice"`, `Supplier` → `"supplier"`). If `kind` is given it must agree with the inferred
+   kind. If every list is empty (or no list is given) use `kind`, defaulting to `"transaction"`.
+   A call that mixes element types raises `ValueError` (programming error, not data error).
+2. Concatenate all source lists into a single flat list.
+3. For each model instance, verify required fields are non-null (belt-and-suspenders after Pydantic).
+4. Build the DataFrame with `pd.DataFrame([m.model_dump() for m in models], columns=COLUMNS[kind])`.
+   `COLUMNS` maps each kind to its ordered canonical column tuple: `CANONICAL_COLUMNS`
+   (transactions, REQ-ING-13), `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS` (REQ-ING-34), all
+   defined once in `normaliser.py`. Passing `columns=` means a run where every row was
+   quarantined (or no source had rows) yields an **empty frame with the right columns**, not a
+   column-less frame that makes `ledger["source_ref"]` raise `KeyError` in detectors and the UI.
+5. Ensure column dtypes match the canonical schema: Decimal columns and `datetime.date` columns
+   stay `object` dtype (Python `Decimal` / `datetime.date`); `source_row` is `int64`.
+6. Return `(df, quarantine_list)`.
 
 The normaliser does **not** re-parse anything. Type safety is guaranteed by the Pydantic instances passed in.
 
@@ -331,6 +413,11 @@ The normaliser does **not** re-parse anything. Type safety is guaranteed by the 
 
 ```python
 from dataclasses import dataclass
+from collections.abc import Mapping
+from typing import Any
+
+import pandas as pd
+
 from ledger_kit.models import Alert
 
 @dataclass(frozen=True)
@@ -344,7 +431,26 @@ class DetectorError(Exception):
         self.name = name
         self.cause = cause
         super().__init__(f"Detector '{name}' failed: {cause}")
+
+
+def loaded_source_refs(ledger: pd.DataFrame, context: Mapping[str, Any]) -> frozenset[str]:
+    """Union of source_ref values of the ledger and of every DataFrame in context (CR-LC-3d).
+
+    A frame without a `source_ref` column contributes nothing; non-DataFrame context
+    values are ignored. Alert.source_refs must always be a subset of this set (REQ-DET-04).
+    """
+    refs: set[str] = set()
+    for frame in (ledger, *context.values()):
+        if isinstance(frame, pd.DataFrame) and "source_ref" in frame.columns:
+            refs.update(str(r) for r in frame["source_ref"].dropna())
+    return frozenset(refs)
 ```
+
+**CR-LC-3d/3f**: a detector may cite rows of any loaded input (invoices, supplier-master rows,
+bank payments) and the "no invention" tests compare against `loaded_source_refs`. A detector
+documented as reading `context` may return alerts for an empty ledger when the facts come
+from the context inputs (REQ-DET-05); `run_all` itself is unchanged and does not validate
+`source_refs`.
 
 ### 4.2 Registry (`ledger_kit/detectors/registry.py`)
 
@@ -472,12 +578,12 @@ from ledger_kit.detectors.registry import (
     register, auto_discover, run_all, registered_names,
     _clear_registry, _snapshot_registry, _restore_registry,
 )
-from ledger_kit.detectors.base import DetectorResult, DetectorError
+from ledger_kit.detectors.base import DetectorResult, DetectorError, loaded_source_refs
 
 __all__ = [
     "register", "auto_discover", "run_all", "registered_names",
     "_clear_registry", "_snapshot_registry", "_restore_registry",
-    "DetectorResult", "DetectorError",
+    "DetectorResult", "DetectorError", "loaded_source_refs",
 ]
 ```
 
@@ -495,7 +601,7 @@ import os
 import re
 import string
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from datetime import date
@@ -508,9 +614,11 @@ from ledger_kit.utils.money import format_amount
 LLM_TIMEOUT_SECONDS: int = 10   # seconds before giving up
 LLM_MAX_RETRIES: int = 1        # one attempt; callers cache per alert.id
 
-# Columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-xx).
+# Default columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-xx).
 # Never id (UUID adds random digits), never description, never full iban.
+# Callers may override the whitelist per call with `row_columns` (CR-LC-3g, REQ-EXP-11).
 _LLM_ROW_COLUMNS = ("date", "amount", "flow", "currency", "counterparty", "source_ref")
+_NEVER_SENT_COLUMNS = frozenset({"id", "description", "iban"})   # dropped even if listed
 
 
 @dataclass(frozen=True)
@@ -527,13 +635,15 @@ def explain(
     *,
     fallback_template: str,
     client=None,            # injectable: openai.OpenAI-compatible instance or None
+    row_columns: Sequence[str] | None = None,   # None = _LLM_ROW_COLUMNS (CR-LC-3g)
 ) -> str:
     """Return a plain-English explanation for `alert` (guarded text only).
 
     Delegates entirely to explain_with_meta; returns only the text field.
     """
     return explain_with_meta(
-        alert, rows, fallback_template=fallback_template, client=client
+        alert, rows, fallback_template=fallback_template, client=client,
+        row_columns=row_columns,
     ).text
 
 
@@ -543,6 +653,7 @@ def explain_with_meta(
     *,
     fallback_template: str,
     client=None,
+    row_columns: Sequence[str] | None = None,
 ) -> Explanation:
     """Return an Explanation with text, source, and any rejected numbers.
 
@@ -552,7 +663,7 @@ def explain_with_meta(
     When a client is available: calls the LLM, runs the number guard, returns
     source='llm' on success, source='fallback' if the guard fires or on any error.
     """
-    _narrow_rows = _select_llm_columns(rows)
+    _narrow_rows = _select_llm_columns(rows, row_columns)
     fallback = _fill_fallback(fallback_template, alert)
 
     api_key = os.environ.get("OPENAI_API_KEY", "")
@@ -573,14 +684,24 @@ def explain_with_meta(
     return Explanation(text=raw, source="llm", rejected_numbers=())
 ```
 
-### 4a.2 Column narrowing (Finance Rule 5 / minimum data)
+### 4a.2 Column narrowing (Finance Rule 5 / minimum data; whitelist is a parameter, CR-LC-3g)
 
 ```python
-def _select_llm_columns(rows: pd.DataFrame) -> pd.DataFrame:
-    """Return only the columns safe to send to the LLM."""
-    present = [c for c in _LLM_ROW_COLUMNS if c in rows.columns]
+def _select_llm_columns(
+    rows: pd.DataFrame, row_columns: Sequence[str] | None = None
+) -> pd.DataFrame:
+    """Return only the whitelisted columns that are present, in whitelist order.
+
+    `row_columns=None` uses the default whitelist (App 1 is unchanged). Columns in
+    _NEVER_SENT_COLUMNS (id, description, iban) are dropped even if the caller lists them.
+    """
+    wanted = _LLM_ROW_COLUMNS if row_columns is None else tuple(row_columns)
+    present = [c for c in wanted if c in rows.columns and c not in _NEVER_SENT_COLUMNS]
     return rows[present]
 ```
+
+Because the narrowed frame is what the guard sees, `_allowed_decimals` and `_allowed_dates`
+automatically work from the same whitelist as the model.
 
 ### 4a.3 Fallback formatter
 
@@ -735,6 +856,11 @@ def _parse_decimal(token: str) -> Decimal | None:
         return None
 
 
+def _is_date_column(series: pd.Series) -> bool:
+    """True when the column holds datetime.date cells (any column name; CR-LC-3g)."""
+    return any(isinstance(v, date) for v in series)
+
+
 def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
     """Build the set of Decimal values the LLM is permitted to use.
 
@@ -757,7 +883,7 @@ def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
         _add(str(v))
 
     for col in rows.columns:
-        if col == "date":      # date parts are handled by _allowed_dates, never as numbers
+        if _is_date_column(rows[col]):   # date parts are handled by _allowed_dates, never as numbers
             continue
         for cell in rows[col]:
             _add(str(cell))
@@ -766,11 +892,16 @@ def _allowed_decimals(alert: Alert, rows: pd.DataFrame) -> set[Decimal]:
 
 
 def _allowed_dates(alert: Alert, rows: pd.DataFrame) -> set[date]:
-    """Build the set of date values the LLM is permitted to mention."""
+    """Build the set of date values the LLM is permitted to mention.
+
+    Every date cell of every (whitelisted) column counts: `date` for bank rows,
+    `issue_date` / `due_date` for invoice rows.
+    """
     dates: set[date] = set()
-    for cell in rows["date"] if "date" in rows.columns else []:
-        if isinstance(cell, date):
-            dates.add(cell)
+    for col in rows.columns:
+        for cell in rows[col]:
+            if isinstance(cell, date):
+                dates.add(cell)
     for v in alert.data.values():
         if isinstance(v, date):
             dates.add(v)
@@ -827,11 +958,13 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
     )
     # pandas to_json(date_format="iso") renders datetime.date cells as
     # "2026-01-15T00:00:00.000" (verified with pandas 3.1), which would show the model a time
-    # part. Convert the date column to plain ISO strings first (missing values stay None);
+    # part. Convert every date-holding column of the (already narrowed) rows to plain ISO
+    # strings first (missing values stay None); CR-LC-3g: issue_date/due_date as well as date.
     # default_handler=str still covers Decimal.
     rows = rows.copy()
-    if "date" in rows.columns:
-        rows["date"] = rows["date"].map(lambda d: d.isoformat() if pd.notna(d) else None)
+    for col in rows.columns:
+        if _is_date_column(rows[col]):
+            rows[col] = rows[col].map(lambda d: d.isoformat() if isinstance(d, date) else None)
     rows_json = rows.to_json(orient="records", default_handler=str)
     user_content = f"Alert: {alert.model_dump_json()}\n\nSource rows:\n{rows_json}"
 
@@ -934,6 +1067,7 @@ This is the **single point of truth** for all monetary arithmetic and formatting
 
 ```python
 from decimal import Decimal, ROUND_HALF_UP
+from collections.abc import Iterable
 
 def round_to_cents(amount: Decimal) -> Decimal:
     """Round to two decimal places using ROUND_HALF_UP (Finance Rule 3)."""
@@ -966,6 +1100,23 @@ def _group_thousands(integer_str: str) -> str:
     s = integer_str[::-1]
     chunks = [s[i:i + 3] for i in range(0, len(s), 3)]
     return ".".join(chunks)[::-1]
+
+
+# --- CR-LC-3e: helpers so that no other module performs monetary arithmetic -----------------
+
+def percent_of(base: Decimal, rate: Decimal) -> Decimal:
+    """base x rate / 100 rounded half-up to cents; `rate` is a percentage (21 means 21 %)."""
+    return round_to_cents(base * rate / Decimal(100))
+
+def within_tolerance(a: Decimal, b: Decimal, tol: Decimal) -> bool:
+    """True when abs(a - b) <= tol (inclusive). Raises ValueError for a negative tol."""
+    if tol < 0:
+        raise ValueError("tol must be >= 0")
+    return abs(a - b) <= tol
+
+def net_total(additions: Iterable[Decimal], subtractions: Iterable[Decimal] = ()) -> Decimal:
+    """sum(additions) - sum(subtractions), unrounded (inputs are already in cents)."""
+    return sum(additions, Decimal(0)) - sum(subtractions, Decimal(0))
 ```
 
 ---
@@ -984,6 +1135,17 @@ def scrub(transaction: Transaction) -> Transaction:
         "counterparty": _COUNTERPARTY_PLACEHOLDER,
         "iban": _IBAN_PLACEHOLDER if transaction.iban is not None else None,
     })
+
+
+def mask_iban(iban: str) -> str:
+    """'****' + last 4 characters of the cleaned IBAN (CR-LC-3g, REQ-PII-03).
+
+    Cleaning = remove all whitespace (incl. non-breaking spaces) and uppercase. A cleaned
+    value of 4 or fewer characters returns '****' so the full value is never revealed.
+    Used by detectors before an IBAN is stored in Alert.data.
+    """
+    cleaned = "".join(iban.split()).upper()
+    return "****" + cleaned[-4:] if len(cleaned) > 4 else "****"
 ```
 
 ---
@@ -1074,11 +1236,12 @@ tests/
 ├── ingestion/
 │   ├── test_csv_reader.py             # Tier 1+2 for parse_csv
 │   ├── test_dialect.py                # Tier 1+2 for detect_dialect, parse_amount, parse_date
-│   ├── test_invoice_reader.py         # Tier 1+2 for parse_invoice
-│   └── test_normaliser.py             # Tier 1+2+3 (round-trip properties)
+│   ├── test_invoice_reader.py         # Tier 1+2 for parse_invoice (Invoice objects)
+│   ├── test_supplier_reader.py        # Tier 1+2 for parse_suppliers (CR-LC-3b)
+│   └── test_normaliser.py             # Tier 1+2+3 (round-trip properties; three kinds)
 ├── test_models.py                     # Pydantic model validation
-├── test_money.py                      # round_to_cents, format_amount, format_as_european
-├── test_anonymise.py                  # scrub()
+├── test_money.py                      # round_to_cents, format_amount, format_as_european, percent_of, within_tolerance, net_total
+├── test_anonymise.py                  # scrub(), mask_iban()
 └── detectors/
     ├── test_registry.py               # register, auto_discover, run_all, snapshot/restore
     └── test_registry_properties.py    # Hypothesis tests; detectors registered at module scope
@@ -1270,3 +1433,6 @@ Dev/test dependencies:
 | OD-4 | Resettable registry for tests? | `_clear_registry()` private function exposed from `registry.py` and re-exported from `detectors/__init__.py`. Test fixtures call it in teardown. |
 | OD-5 (CR-LC-1) | How do context-aware detectors receive user input without changing the registry signature? | Every detector signature is `(ledger, context)`. The registry wraps `context` in `types.MappingProxyType` before dispatch. Context-free detectors ignore the second argument. App code passes `run_all(ledger, namespace="zs", context={"aliases": …, "cancellation_dates": …})`. No `ledger_kit` file needs to know about app-specific context keys. |
 | OD-6 (CR-LC-1) | How does an app run only its own detectors in a shared process? | `run_all(ledger, namespace="zs")` filters the registry to names starting with `"zs."`. Each app calls `auto_discover("apps.<app>.detectors")` at startup, populating only its own namespace. No structural change to the registry is needed beyond the `namespace` parameter. |
+| OD-7 (CR-LC-3) | How does `normalise()` accept invoices and suppliers without a second function? | It takes lists of one model kind per call; the kind is inferred from the first non-empty list or given by `kind=`; mixing raises `ValueError`; the empty-frame guarantee (REQ-ING-28) holds per kind. |
+| OD-8 (CR-LC-3) | Where is a defaulted `due_date` flagged? | `Invoice.due_date_is_default` (set by the reader). Finance Rule 1 forbids silently filling missing data; the default payment term is a documented deterministic rule and the flag keeps it visible downstream. |
+| OD-9 (CR-LC-3) | Who enforces "source_refs ⊆ loaded inputs"? | Tests, through `loaded_source_refs(ledger, context)`. `run_all` stays unchanged (no runtime validation) to keep detector failure isolation (REQ-REG-04) as the only runtime guard. |

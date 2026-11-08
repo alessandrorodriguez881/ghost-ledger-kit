@@ -70,9 +70,9 @@ def format_amount(amount: Decimal, currency: str = "EUR") -> str:
 No real personal data may appear in committed code, tests, fixtures, or sample data files.
 
 - **Names**: use `Ana García`, `Luigi Rossi`, `Sophie Dupont`, or similar clearly fictional, culturally diverse names.
-- **IBANs**: use the reserved test IBAN range (e.g. `DE00 0000 0000 0000 0000 00`) or algorithmically invalid IBANs that cannot belong to a real account.
+- **IBANs**: IBANs that must pass a checksum check (every app that validates IBANs, e.g. phantom-invoices) use a **valid ISO 13616 mod-97 checksum but deliberately wrong Spanish national check digits**, so they cannot be real accounts. Example: `ES88 2100 0418 5602 0005 1332` — mod-97 valid, national check digits `56` instead of the correct `45`. An IBAN with an **invalid** checksum is allowed only in a test that deliberately plants the checksum warning. The placeholder `DE00 0000 0000 0000 0000 00` remains valid for `scrub()` and for fixtures that never reach an IBAN validator.
 - **Email addresses**: use `@example.com` or `@test.invalid` domains only.
-- **Tax/VAT numbers**: use structurally valid but numerically invalid values (e.g. Spanish NIF `00000000T`).
+- **Tax/VAT numbers**: Spanish tax ids (NIF/NIE/CIF) use a **wrong control character**, a different one per fictional supplier, so they cannot belong to a real person or company. Examples: CIF `B00000001`, `B00000002` (the correct control digit for `B0000000` is `0`); NIF `00000001T`, `00000002T` (the correct letter for 1 is `R`). Note that `00000000T` is **not** invalid — its letter is correct (0 mod 23 → `T`) — so it must not be used for this purpose. Avoid numbers that are multiples of 23 for NIFs (their correct letter is `T`).
 - **Phone numbers**: use `+34 000 000 000` or equivalent country-specific placeholder ranges.
 
 The `ledger_kit/utils/anonymise.py` module provides helpers to strip or pseudonymise PII fields before any data leaves the ingestion layer for display or LLM calls.

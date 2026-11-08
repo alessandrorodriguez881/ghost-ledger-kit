@@ -36,7 +36,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 ## Task 2 — Canonical data models
 
-**Covers**: REQ-ING-13 (Transaction schema), REQ-DET-03 (Alert schema), REQ-MOD-01 to REQ-MOD-07, design §2
+**Covers**: REQ-ING-13 (Transaction schema), REQ-DET-03 (Alert schema), REQ-MOD-01 to REQ-MOD-10, design §2
 
 - [ ] Write `tests/test_models.py` with:
   - `test_transaction_source_ref_computed` — building a `Transaction` produces correct `source_ref`.
@@ -50,6 +50,13 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_alert_id_numpy_scalar_matches_python_value` — `data={"n": numpy.int64(3)}` and `data={"n": 3}` give the same `id` (REQ-MOD-05).
   - `test_alert_missing_source_refs_raises_validation_error` — `Alert(detector="x.y", severity="info", title="t", data={})` raises `pydantic.ValidationError`, not `KeyError` (REQ-MOD-06).
   - `test_quarantine_dict_shape` — document expected quarantine record keys via a helper.
+  - *(CR-LC-3a)* `test_invoice_defaults` — an `Invoice` built without `surcharge_amount`, `withholding_amount`, `iban`, `due_date_is_default` has `Decimal("0")`, `Decimal("0")`, `None`, `False`.
+  - *(CR-LC-3a)* `test_invoice_vat_rate_is_a_percentage` — `vat_rate=Decimal("21")` is stored as 21 (not 0.21).
+  - *(CR-LC-3a)* `test_invoice_negative_amount_raises_validation_error` — each of the six amount fields rejects a negative value.
+  - *(CR-LC-3a)* `test_invoice_is_frozen_and_has_no_id_field`.
+  - *(CR-LC-3b)* `test_supplier_iban_optional_and_verbatim` — `iban=None` allowed; `" es88 2100 "` stored unchanged (REQ-MOD-10).
+  - *(CR-LC-3b)* `test_supplier_is_frozen`.
+  - *(CR-LC-3a)* `test_package_reexports_models` — `from ledger_kit import Transaction, Invoice, Supplier, Alert` works.
 - [ ] Implement `ledger_kit/models.py`:
   - `Transaction` Pydantic v2 model exactly as in design §2.1.
   - `Alert` Pydantic v2 model with deterministic `id` validator as in design §2.2 (CR-LC-1b).
@@ -58,14 +65,15 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - Add a Pydantic validator that enforces `len(source_refs) >= 1` on `Alert`.
   - `_deterministic_alert_id` helper using sha256 of canonical JSON, serialised with `json.dumps(..., default=_json_default)` (numpy scalars → Python types via `.item()`, everything else → `str`; design §2.2).
   - `Alert._set_deterministic_id` imports `model_validator` from `pydantic`, copies the input dict instead of mutating it, and computes the id only when `detector`, `source_refs` and `data` are all present, so a missing field surfaces as `ValidationError`.
-- [ ] Update `ledger_kit/__init__.py` to re-export `Transaction` and `Alert`.
+  - *(CR-LC-3a/3b)* `Invoice` and `Supplier` Pydantic v2 models exactly as in design §2.1a/§2.1b (frozen; non-negative validator on the six `Invoice` amount fields; no normalisation of identifiers).
+- [ ] Update `ledger_kit/__init__.py` to re-export `Transaction`, `Invoice`, `Supplier` and `Alert`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
 
 ## Task 3 — Money utilities
 
-**Covers**: REQ-MON-01, REQ-MON-02, REQ-MON-03, REQ-ING-27 (format_as_european), design §5
+**Covers**: REQ-MON-01, REQ-MON-02, REQ-MON-03, REQ-MON-04, REQ-MON-05, REQ-MON-06, REQ-ING-27 (format_as_european), design §5
 
 - [ ] Write `tests/test_money.py` with:
   - `test_round_to_cents_half_up` — `Decimal("2.345")` → `Decimal("2.35")`.
@@ -79,7 +87,14 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_format_as_european_no_currency_code` — result contains no space or currency suffix.
   - `test_format_as_european_thousands` — `Decimal("1234.56")` → `"1.234,56"`.
   - `test_format_as_european_negative` — `Decimal("-12.50")` → `"-12,50"`.
-- [ ] Implement `ledger_kit/utils/money.py` with `round_to_cents`, `format_amount`, `format_as_european`, and `_group_thousands` as in design §5.
+  - *(CR-LC-3e)* `test_percent_of_basic` — `percent_of(Decimal("100.00"), Decimal("21"))` → `Decimal("21.00")`; rates 10, 4, 0 → `10.00`, `4.00`, `0.00`.
+  - *(CR-LC-3e)* `test_percent_of_rounds_half_up` — `percent_of(Decimal("0.50"), Decimal("21"))` → `Decimal("0.11")` (0.105); `percent_of(Decimal("1000.00"), Decimal("21"))` → `Decimal("210.00")`.
+  - *(CR-LC-3e)* `test_percent_of_is_never_float` — result type is `Decimal` with exponent `-2`.
+  - *(CR-LC-3e)* `test_within_tolerance_boundaries` — difference `0.01` with `tol=0.01` → `True` (inclusive); `0.02` → `False`; order of `a`, `b` irrelevant.
+  - *(CR-LC-3e)* `test_within_tolerance_negative_tol_raises` — `ValueError`.
+  - *(CR-LC-3e)* `test_net_total` — `net_total([1000.00, 210.00], [150.00])` → `Decimal("1060.00")`; `net_total([100.00, 21.00, 5.20])` → `Decimal("126.20")`; empty inputs → `Decimal("0")`.
+  - *(CR-LC-3e)* Property (`max_examples=200`): `test_percent_of_matches_quantize` — for any base in `[0, 1 000 000]` (2 places) and rate in `{21, 10, 4, 0}`, `percent_of` equals `(base * rate / 100).quantize(Decimal("0.01"), ROUND_HALF_UP)`.
+- [ ] Implement `ledger_kit/utils/money.py` with `round_to_cents`, `format_amount`, `format_as_european`, `_group_thousands`, and (CR-LC-3e) `percent_of`, `within_tolerance`, `net_total` as in design §5.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
@@ -118,7 +133,7 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
 
 ## Task 5 — PII utilities
 
-**Covers**: REQ-PII-01, REQ-PII-02, design §6
+**Covers**: REQ-PII-01, REQ-PII-02, REQ-PII-03, REQ-PII-04, design §6
 
 - [ ] Write `tests/test_anonymise.py` with:
   - `test_scrub_replaces_counterparty` — counterparty field becomes placeholder.
@@ -126,14 +141,18 @@ Within each task the sub-items are ordered: scaffold → tests → implementatio
   - `test_scrub_iban_none_stays_none` — when `iban=None`, result `iban` is still `None`.
   - `test_scrub_returns_new_instance` — result is not the same object as input.
   - `test_scrub_other_fields_unchanged` — all fields except `counterparty` and `iban` are identical.
-- [ ] Implement `ledger_kit/utils/anonymise.py` with `scrub(transaction: Transaction) -> Transaction` as in design §6.
+  - *(CR-LC-3g)* `test_mask_iban_last_four` — `"ES88 2100 0418 5602 0005 1332"` → `"****1332"`.
+  - *(CR-LC-3g)* `test_mask_iban_cleans_spaces_case_and_nbsp` — `"es88\u00a02100 0418 5602 0005 1332"` → `"****1332"`.
+  - *(CR-LC-3g)* `test_mask_iban_short_value_reveals_nothing` — `""`, `"AB"`, `"1234"` → `"****"`.
+  - *(CR-LC-3g)* `test_mask_iban_never_contains_full_value_and_is_not_iban_shaped` — property (`max_examples=200`) over random strings of length 5–34: result has length 8 and does not match the explainer `_IBAN_RE`.
+- [ ] Implement `ledger_kit/utils/anonymise.py` with `scrub(transaction: Transaction) -> Transaction` and `mask_iban(iban: str) -> str` as in design §6.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
 
 ## Task 6 — Bank-statement CSV reader (plain dialect + encoding)
 
-**Covers**: REQ-ING-01, REQ-ING-02, REQ-ING-03, REQ-ING-04, REQ-ING-05, REQ-ING-06, REQ-ING-11, REQ-ING-23, REQ-ING-24, REQ-ING-25, REQ-ING-26, design §3.2
+**Covers**: REQ-ING-01, REQ-ING-02, REQ-ING-03, REQ-ING-04, REQ-ING-05, REQ-ING-06, REQ-ING-11, REQ-ING-14, REQ-ING-23, REQ-ING-24, REQ-ING-25, REQ-ING-26, REQ-ING-29, design §3.2
 
 This task covers plain-dialect parsing and the encoding detection strategy. European dialect is added in Task 7.
 
@@ -158,6 +177,10 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_parse_csv_utf8_bom_decoded` — file bytes with UTF-8 BOM (`b"\xef\xbb\xbf"` prefix) → decoded correctly, transactions returned.
   - `test_parse_csv_cp1252_decoded` — file bytes containing `0x80` (€ in cp1252) → decoded as cp1252 without error.
   - `test_parse_csv_undecodable_file_quarantined` — bytes that are neither utf-8-sig nor cp1252 → `([], [quarantine])` with `reason="undecodable_file"` and `encoding_tried` key.
+  - *(CR-LC-3c)* `test_parse_csv_iban_column_read_verbatim` — header with an `iban` column and the cell `" es88 2100 0418 5602 0005 1332"` (leading space, lowercase, spaces) → `Transaction.iban` equals that exact string.
+  - *(CR-LC-3c)* `test_parse_csv_iban_column_absent_is_none` — no `iban` column → `iban is None`, no quarantine.
+  - *(CR-LC-3c)* `test_parse_csv_iban_empty_or_blank_cell_is_none` — empty cell and whitespace-only cell → `iban is None`, row not quarantined.
+  - *(CR-LC-3c)* `test_parse_csv_iban_column_european_dialect` — the same verbatim behaviour in a semicolon file.
 - [ ] Implement `ledger_kit/ingestion/csv_reader.py`:
   - `IngestionResult` type alias.
   - `parse_csv(source, *, dialect=None, source_file=None) -> IngestionResult`.
@@ -166,6 +189,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - Uses `csv.DictReader` with appropriate separator.
   - Calls `dialect.parse_amount` and `dialect.parse_date`; quarantines on parse errors.
   - Applies sign-to-flow mapping (REQ-ING-24/25/26).
+  - *(CR-LC-3c)* Reads the optional `iban` cell verbatim into `Transaction.iban` (`None` when the column is absent or the cell is empty/whitespace-only).
   - For this task: only plain dialect. Dialect detection and European parsing are wired up fully in Task 7.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -193,46 +217,58 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 8 — Shared test fixtures and property-based tests for the normaliser
 
-**Covers**: REQ-TST-01, REQ-TST-02, REQ-TST-03, REQ-TST-04, REQ-ING-15, REQ-ING-16, REQ-ING-27, REQ-ING-28, design §8.2 + §8.3
+**Covers**: REQ-TST-01, REQ-TST-02, REQ-TST-03, REQ-TST-04, REQ-ING-10, REQ-ING-15, REQ-ING-16, REQ-ING-27, REQ-ING-28, REQ-ING-33, REQ-ING-34, design §8.2 + §8.3
 
 - [ ] Implement `tests/conftest.py` with `empty_ledger`, `single_row_ledger`, and `clean_ledger_10` fixtures using synthetic PII-safe data (Finance Rule 5 names and IBANs).
 - [ ] Write `tests/ingestion/test_normaliser.py` with:
   - **Tier 1**: `test_normalise_returns_dataframe`, `test_normalise_schema_columns_present`, `test_normalise_empty_source_returns_empty_df`.
   - **Tier 2**: `test_normalise_all_quarantined_returns_empty_df_with_columns` — every input transaction fails validation → empty DataFrame whose columns equal `CANONICAL_COLUMNS`, and `ledger["source_ref"]` does not raise `KeyError` (REQ-ING-28). `test_normalise_no_sources_returns_empty_df_with_columns` — `normalise()` with no arguments, same assertions.
   - **Tier 2**: `test_normalise_single_transaction`, `test_normalise_multiple_sources_merged`, `test_normalise_quarantines_null_required_field`, `test_normalise_amount_dtype_is_object_decimal`, `test_normalise_date_dtype_is_object_date`, `test_normalise_source_row_dtype_is_int`.
+  - *(CR-LC-3a/3b)* **Tier 1**: `test_normalise_invoices_returns_invoice_columns` (columns equal `INVOICE_COLUMNS`, REQ-ING-34); `test_normalise_suppliers_returns_supplier_columns`.
+  - *(CR-LC-3a/3b)* **Tier 2**: `test_normalise_empty_invoice_kind_returns_empty_df_with_invoice_columns` (`normalise(kind="invoice")` and `normalise([], kind="supplier")`); `test_normalise_all_invoices_quarantined_keeps_columns`; `test_normalise_mixed_kinds_raises_value_error`; `test_normalise_kind_disagreeing_with_inferred_kind_raises_value_error`; `test_normalise_invoice_decimal_and_date_dtypes` (`base_amount`, `vat_rate`, `total` hold `Decimal`; `issue_date`, `due_date` hold `datetime.date`; `source_row` is `int64`); `test_normalise_no_sources_defaults_to_transaction_columns`.
   - **Tier 3 — Property 1** (REQ-ING-15): `test_signed_amount_round_trip` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 2** (REQ-ING-16): `test_date_round_trip_plain` — `@settings(max_examples=200)`.
   - **Tier 3 — Property 3** (REQ-ING-27): `test_european_amount_round_trip` — `@settings(max_examples=200)`, uses `format_as_european` from `money.py` as inverse.
-- [ ] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS` tuple and `pd.DataFrame(rows, columns=CANONICAL_COLUMNS)`.
+- [ ] Implement `ledger_kit/ingestion/normaliser.py` with `normalise(*sources, kind=None) -> NormaliseResult` as in design §3.4, including the module-level `CANONICAL_COLUMNS`, `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS` tuples and `pd.DataFrame(rows, columns=COLUMNS[kind])`.
 - [ ] Verify: all three property tests pass with 200 examples each, `ruff check` clean.
 
 ---
 
-## Task 9 — Invoice reader
+## Task 9 — Invoice reader and supplier-master reader
 
-**Covers**: REQ-ING-07, REQ-ING-08, REQ-ING-09, design §3.3
+**Covers**: REQ-ING-07, REQ-ING-08, REQ-ING-09, REQ-ING-30, REQ-ING-31, REQ-ING-32, design §3.3 + §3.3a (revised by CR-LC-3a/3b)
 
 - [ ] Write `tests/ingestion/test_invoice_reader.py` with:
-  - **Tier 1**: `test_parse_invoice_csv_valid` — well-formed plain CSV → transactions, zero quarantine.
-  - **Tier 1**: `test_parse_invoice_json_valid` — well-formed FATURA JSON array → transactions.
+  - **Tier 1**: `test_parse_invoice_csv_valid` — well-formed plain CSV with all columns → `Invoice` objects (not `Transaction`), zero quarantine; every field of the first invoice asserted, including `vat_rate == Decimal("21")` and `source_ref == "inv.csv:0"`.
+  - **Tier 1**: `test_parse_invoice_json_valid` — well-formed JSON array → `Invoice` objects.
+  - **Tier 1**: `test_parse_invoice_optional_columns_default` — CSV without `due_date`, `surcharge_amount`, `withholding_amount`, `iban` → `surcharge_amount == Decimal("0")`, `withholding_amount == Decimal("0")`, `iban is None`, `due_date == issue_date + 30 days`, `due_date_is_default is True`.
+  - **Tier 1**: `test_parse_invoice_explicit_due_date_not_defaulted` — a given `due_date` is kept and `due_date_is_default is False`.
   - **Tier 2**: `test_parse_invoice_csv_empty` — empty CSV → `([], [])`.
   - **Tier 2**: `test_parse_invoice_csv_whitespace_only` — whitespace-only CSV → `([], [])`.
   - **Tier 2**: `test_parse_invoice_json_empty_array` — `[]` JSON → `([], [])`.
-  - **Tier 2**: `test_parse_invoice_json_amount_as_string` — `"amount": "123.45"` → `Decimal("123.45")`.
-  - **Tier 2**: `test_parse_invoice_json_amount_as_float` — `"amount": 123.45` → `Decimal` (exact, not float).
-  - **Tier 2**: `test_parse_invoice_csv_missing_field_quarantined` — quarantine record has expected keys.
+  - **Tier 2**: `test_parse_invoice_json_amount_as_string` — `"base_amount": "123.45"` → `Decimal("123.45")`.
+  - **Tier 2**: `test_parse_invoice_json_amount_as_float` — `"base_amount": 123.45` → `Decimal("123.45")` (exact, not float noise).
+  - **Tier 2**: `test_parse_invoice_csv_missing_field_quarantined` — each of the nine mandatory columns blank in turn → quarantined with `reason == "missing_field:<name>"`; record has `source_file`, `source_row`, `reason`, `raw`.
+  - **Tier 2**: `test_parse_invoice_negative_amount_quarantined` — a negative `total` (and negative `base_amount`, `vat_rate`) → `reason="negative_amount"`.
+  - **Tier 2**: `test_parse_invoice_percent_sign_vat_rate_quarantined` — `"21%"` → `reason="unparseable_amount"`.
+  - **Tier 2**: `test_parse_invoice_unparseable_issue_date_quarantined`.
+  - **Tier 2**: `test_parse_invoice_iban_kept_verbatim` — `"es88 2100 0418 5602 0005 1332"` and a hyphenated IBAN are stored unchanged.
   - **Tier 2**: `test_parse_invoice_format_auto_detect_json` — `.json` extension → JSON path.
   - **Tier 2**: `test_parse_invoice_format_auto_detect_csv` — `.csv` extension → CSV path.
   - **Tier 2**: `test_parse_invoice_utf8_bom_decoded` — same encoding strategy as csv_reader.
   - **Tier 2**: `test_parse_invoice_cp1252_decoded`.
-- [ ] Implement `ledger_kit/ingestion/invoice_reader.py` with `parse_invoice(source, *, fmt=None, source_file=None) -> IngestionResult` as in design §3.3.
+- [ ] Write `tests/ingestion/test_supplier_reader.py` (CR-LC-3b) with:
+  - **Tier 1**: `test_parse_suppliers_valid` — 3 rows → 3 `Supplier` objects, `source_ref == "sup.csv:0"` for the first.
+  - **Tier 2**: `test_parse_suppliers_empty_and_whitespace_only` → `([], [])`; `test_parse_suppliers_missing_name_or_tax_id_quarantined` (`missing_field:supplier_name`, `missing_field:tax_id`); `test_parse_suppliers_iban_optional_and_verbatim`; `test_parse_suppliers_undecodable_file_quarantined`; `test_parse_suppliers_tax_id_and_iban_not_normalised` (REQ-MOD-10).
+- [ ] Implement `ledger_kit/ingestion/invoice_reader.py` with `DEFAULT_PAYMENT_TERM_DAYS = 30` and `parse_invoice(source, *, fmt=None, source_file=None) -> IngestionResult[Invoice]` as in design §3.3.
+- [ ] Implement `ledger_kit/ingestion/supplier_reader.py` with `parse_suppliers` as in design §3.3a.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
 
 ## Task 10 — Detector base types and registry
 
-**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-05, REQ-DET-07, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, REQ-TST-09, REQ-MOD-05, design §4
+**Covers**: REQ-DET-01, REQ-DET-02, REQ-DET-04, REQ-DET-05, REQ-DET-07, REQ-DET-08, REQ-REG-01, REQ-REG-02, REQ-REG-03, REQ-REG-04, REQ-REG-05, REQ-REG-06, REQ-REG-07, REQ-TST-09, REQ-TST-10, REQ-MOD-05, design §4
 
 - [ ] Write `tests/detectors/test_registry.py` with:
   - `test_register_adds_detector` — `@register("ns.foo")` → `"ns.foo"` in `registered_names()`.
@@ -255,15 +291,18 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_clear_registry_removes_all` — after `_clear_registry()`, `registered_names()` is empty (the test itself restores the registry via the snapshot fixture).
   - `test_snapshot_restore_roundtrip` — register `"ns.tmp"`, take a snapshot, register `"ns.other"`, restore; `registered_names()` equals the snapshot's names and the original function objects are intact.
   - `test_clear_then_restore_keeps_preexisting_detectors` — a detector `"tfix.keep"` is registered at module scope of the test file; snapshot, `_clear_registry()`, restore; `"tfix.keep"` is registered again (this is why fixtures restore instead of clearing; REQ-TST-09).
-  - `test_run_all_empty_ledger` — all registered detectors return `[]` for an empty DataFrame (detector contract enforcement).
+  - `test_run_all_empty_ledger` — all registered detectors return `[]` for an empty DataFrame **with an empty context** (detector contract enforcement; REQ-DET-05 — a detector documented to read `context` may return alerts for an empty ledger only when its context inputs are non-empty).
+  - *(CR-LC-3d)* `test_loaded_source_refs_is_union_of_ledger_and_context_frames` — ledger refs `{"a:0"}`, context `{"payments": df(["p:0"]), "suppliers": df(["s:0"]), "as_of": date}` → `{"a:0", "p:0", "s:0"}`.
+  - *(CR-LC-3d)* `test_loaded_source_refs_tolerates_missing_column_and_non_frames` — a frame without `source_ref`, a `None` value and an empty `pd.DataFrame()` ledger contribute nothing and do not raise.
+  - *(CR-LC-3f)* `test_context_reading_detector_may_alert_on_empty_ledger` — a detector registered in the test that reads `context["payments"]` returns one alert for `pd.DataFrame()` + non-empty payments, and `[]` when both are empty; `run_all` keeps the alert.
   - `test_run_all_keeps_alerts_with_decimal_and_date_data` — a detector returning an `Alert` whose `data` holds `Decimal` and `date` values is **not** dropped by `run_all` (regression for the id `TypeError`; REQ-MOD-05).
   - A `conftest.py` in `tests/detectors/` providing two function-scoped fixtures:
     - `isolated_registry` (autouse for `test_registry.py`): `snap = _snapshot_registry()`; yield; `_restore_registry(snap)`.
     - `empty_registry`: snapshot, `_clear_registry()`, yield, restore. Used only by tests that need an empty registry (e.g. `test_run_all_empty_registry_returns_empty`).
     Neither fixture is used by the Hypothesis tests (REQ-TST-09).
-- [ ] Implement `ledger_kit/detectors/base.py` with `DetectorResult` and `DetectorError` as in design §4.1.
+- [ ] Implement `ledger_kit/detectors/base.py` with `DetectorResult`, `DetectorError` and `loaded_source_refs` (CR-LC-3d) as in design §4.1.
 - [ ] Implement `ledger_kit/detectors/registry.py` with `register` (name validation), `auto_discover` (sorted), `run_all` (namespace filter + MappingProxyType context), `registered_names` (namespace filter), `_clear_registry`, `_snapshot_registry`, `_restore_registry` as in design §4.2.
-- [ ] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols.
+- [ ] Implement `ledger_kit/detectors/__init__.py` re-exporting all public symbols (including `loaded_source_refs`).
 - [ ] Verify: all tests pass, `ruff check` clean.
 
 ---
@@ -274,7 +313,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 - [ ] Create `tests/detectors/test_registry_properties.py`. At **module scope** (executed once at import, never inside a test or `@given` body) register the test detectors with distinct names: `"tprop.trivial"` (one alert citing a real `source_ref` from the input, for any non-empty ledger), `"tprop_zs.a"` and `"tprop_pi.b"` (each appends its name to a module-level `CALLS` list). No function-scoped fixture is used in this file; no `_clear_registry`.
 - [ ] Add property-based tests using Hypothesis `data_frames` strategy. Each calls `run_all(ledger, namespace=...)` with a `tprop`-prefixed namespace so unrelated registered detectors cannot interfere:
-  - `test_source_refs_are_subset_of_input` — for any generated ledger, every `source_ref` in every alert exists in the ledger's `source_ref` column (`@settings(max_examples=200)`).
+  - `test_source_refs_are_subset_of_input` — for any generated ledger **and any generated context frames** (e.g. a `payments` frame with its own `source_ref` column), every `source_ref` in every alert is in `loaded_source_refs(ledger, context)`, the union of all loaded inputs (CR-LC-3d, REQ-TST-10). `tprop.trivial` is extended to also cite the first `source_ref` of a context frame when one is present (`@settings(max_examples=200)`).
   - `test_run_all_idempotent` — running `run_all` twice on the same ledger returns structurally identical results (`@settings(max_examples=200)`).
   - `test_run_all_empty_input_always_empty` — for all randomly generated DataFrames with zero rows, all detectors return `[]` (`@settings(max_examples=200)`).
   - `test_namespace_filter_never_calls_other_ns` — `CALLS.clear()` then `run_all(ledger, namespace="tprop_zs")`; `CALLS` never contains `"tprop_pi.b"` for any generated ledger (`@settings(max_examples=200)`).
@@ -286,7 +325,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 11a — Explainer layer (test-first)
 
-**Covers**: REQ-EXP-01 through REQ-EXP-10, REQ-TST-08, REQ-PKG-07, design §4a
+**Covers**: REQ-EXP-01 through REQ-EXP-11, REQ-TST-08, REQ-PKG-07, design §4a
 
 - [ ] Write `tests/test_explainer.py` — all tests inject `MockLLMClient` via `client=` parameter; no network calls, no patching of `openai.OpenAI`:
   - `test_explain_fallback_when_no_api_key` — `OPENAI_API_KEY` unset, no client → filled fallback, `source="fallback"`.
@@ -318,9 +357,11 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
   - `test_explain_openai_client_built_with_no_sdk_retries` — fake `openai` module in `sys.modules` whose `OpenAI` records kwargs: `timeout == LLM_TIMEOUT_SECONDS` and `max_retries == 0`.
   - `test_explain_rows_json_has_iso_dates` — user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and does not contain `"T00:00"` (plain assertion; the implementation maps the `date` column through `date.isoformat` before `to_json`, design §4a.5).
   - `test_explain_only_safe_columns_sent` — user message in `client.calls[0]["messages"]` has no `id` or `description` key for the rows.
+  - *(CR-LC-3g)* `test_explain_row_columns_parameter_selects_columns`, `test_explain_default_row_columns_unchanged`, `test_explain_invoice_date_columns_sent_as_iso_and_guarded`, `test_explain_iban_column_never_sent_even_if_listed`, `test_explain_masked_iban_in_alert_data_passes_guard` — exactly as specified in REQ-TST-08 (CR-LC-3g bullets).
+  - *(CR-LC-3g)* `test_allowed_dates_collects_every_date_column` — rows with `issue_date` and `due_date` cells give both dates in `_allowed_dates`; `_allowed_decimals` adds none of their parts.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: generate foreign Decimal values in `[10000, 99999]` range (well outside alert data); always rejected.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: LLM answer repeating only `alert.data` Decimal strings always passes.
-- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta`, `_AlertFormatter`, `_fill_fallback`, `_select_llm_columns`, `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_allowed_decimals`, `_allowed_dates`, `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", default_handler=str)` after mapping the `date` column through `date.isoformat` (missing values stay `None`; design §4a.5).
+- [ ] Implement `ledger_kit/explainer.py` with `Explanation`, `explain`, `explain_with_meta` (both with the keyword-only `row_columns` parameter, CR-LC-3g), `_AlertFormatter`, `_fill_fallback`, `_select_llm_columns(rows, row_columns=None)` (drops `id`/`description`/`iban` even when listed), `_parse_decimal`, `_Tokens`, `_tokenise` (IBAN → dates → source_refs → European numbers → plain numbers, digit lookarounds, each match replaced by a space), `_is_date_column`, `_allowed_decimals`, `_allowed_dates` (every date cell of every whitelisted column), `_passes_number_guard`, `_call_llm` as in design §4a. `_call_llm` imports `openai` inside the `try`, builds `OpenAI(timeout=LLM_TIMEOUT_SECONDS, max_retries=0)`, and sends rows via `to_json(orient="records", default_handler=str)` after mapping every date-holding column through `date.isoformat` (missing values stay `None`; design §4a.5).
 - [ ] `MockLLMClient` (in `tests/test_explainer.py` or `tests/conftest.py`): `chat` and `completions` are properties, `create` appends its kwargs to `self.calls`.
 - [ ] Verify: all tests pass, `ruff check` clean.
 
@@ -349,17 +390,19 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 
 ## Task 13 — Sample data files and generator script
 
-**Covers**: REQ-PKG-04 (data directory), structure rule (data/samples only synthetic or public-domain), Finance Rules 5 + 6
+**Covers**: REQ-PKG-04 (data directory), structure rule (data/samples only synthetic or public-domain), Finance Rules 5 + 6, REQ-ING-30 to REQ-ING-32 (invoice and supplier samples; CR-LC-3a/3b)
 
-- [ ] Create `scripts/generate_samples.py` — a seeded random generator that produces synthetic bank-statement CSVs and invoice files with PII-safe data (Finance Rule 5 names, test IBANs). Accepts CLI args for dialect, row count, and seed. Used by ledger-core and zombie-subscriptions demo fixtures.
+- [ ] Create `scripts/generate_samples.py` — a seeded random generator that produces synthetic bank-statement CSVs, invoice files and supplier-master files with PII-safe data (Finance Rule 5 names, test IBANs, tax ids with a wrong control character). Accepts CLI args for dialect, row count, and seed. Used by ledger-core and the zombie-subscriptions / phantom-invoices demo fixtures (`--mode zombie-demo`, `--mode phantom-demo`; the phantom mode is specified in that spec).
 - [ ] Create `data/samples/README.md` documenting that all files are synthetically generated and listing the generation script.
 - [ ] Use `scripts/generate_samples.py` to create:
-  - `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, mix of debits and credits.
+  - `data/samples/bank_statement_sample.csv` — 10 rows, plain dialect, mix of debits and credits; includes an `iban` column on at least 3 rows (CR-LC-3c).
   - `data/samples/bank_statement_sample_es.csv` — 10 rows, European dialect (semicolon, comma-decimal, DD/MM/YYYY).
-  - `data/samples/invoice_sample.csv` — 5 rows, plain format.
-  - `data/samples/invoice_sample.json` — 5 rows FATURA-style JSON array.
+  - `data/samples/invoice_sample.csv` — 5 rows, plain format, **the Invoice schema of REQ-ING-30** (including one row without `due_date` and one with `surcharge_amount` and `withholding_amount`; CR-LC-3a).
+  - `data/samples/invoice_sample.json` — the same 5 invoices as a JSON array (amounts as strings and as numbers).
+  - `data/samples/suppliers_sample.csv` — 3 rows (`supplier_name,tax_id,iban`), one with an empty `iban` (CR-LC-3b).
 - [ ] Update `.gitignore` to exclude `data/real/` and loose `*.csv` / `*.json` / `*.pdf` outside `data/samples/`.
-- [ ] Verify: `parse_csv` and `parse_invoice` successfully ingest all four sample files with zero quarantine.
+- [ ] Identifier rules (Finance Rule 5, CR-LC-3h): every IBAN in the samples is mod-97 valid with deliberately wrong Spanish national check digits (e.g. `ES88 2100 0418 5602 0005 1332`); every tax id has a wrong control character, one different per supplier (e.g. `B00000001`, `00000001T`).
+- [ ] Verify: `parse_csv`, `parse_invoice` and `parse_suppliers` successfully ingest all five sample files with zero quarantine, `normalise` accepts each result, and the `iban` values read from the bank sample equal the file text.
 
 ---
 
@@ -371,6 +414,7 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 - [ ] Confirm all three test tiers are present for each module (ingestion, detectors, explainer, money, anonymise).
 - [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
 - [ ] Confirm all Hypothesis property tests are decorated with `@settings(max_examples=200)`.
+- [ ] Confirm every "no invention" property test compares `Alert.source_refs` with `loaded_source_refs(ledger, context)` (the union of all loaded inputs), not with the ledger alone (CR-LC-3d, REQ-TST-10).
 - [ ] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
 - [ ] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
 - [ ] Fix any coverage gaps or lint issues found.

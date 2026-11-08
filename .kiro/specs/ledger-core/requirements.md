@@ -4,7 +4,7 @@
 
 `ledger-core` is the shared template layer of Ghost Ledger Kit. It provides three things:
 
-1. **An ingestion layer** that parses bank-statement CSVs and invoice files (CSV/JSON) into a canonical, normalised ledger.
+1. **An ingestion layer** that parses bank-statement CSVs, invoice files (CSV/JSON) and supplier-master files into canonical, normalised ledgers (transactions, invoices, suppliers; CR-LC-3).
 2. **A detector interface and registry** that allows pure-function detectors to be discovered automatically and run against the ledger.
 3. **A minimal Streamlit reference page** that runs all registered detectors and displays resulting alerts with their cited source rows highlighted.
 
@@ -19,11 +19,15 @@ Any app built on the template (e.g. `zombie_subscriptions`, `phantom_invoices`) 
 #### 1.1 Bank-statement CSV parsing
 
 - **REQ-ING-01** The CSV reader (`ledger_kit/ingestion/csv_reader.py`) must accept a file path or file-like object and return `list[Transaction]`.
-- **REQ-ING-02** The reader must parse the following mandatory columns: `date`, `amount`, `currency`, `counterparty`, `description`. Additional columns are silently ignored.
+- **REQ-ING-02** The reader must parse the following mandatory columns: `date`, `amount`, `currency`, `counterparty`, `description`. Additional columns are silently ignored, with one exception: the optional `iban` column is read (REQ-ING-29, CR-LC-3c).
 - **REQ-ING-03** `amount` must be stored as `decimal.Decimal`, never `float`. Columns read via pandas must be converted to `Decimal` immediately after reading.
 - **REQ-ING-04** `date` must be parsed to `datetime.date`, not a string or `datetime.datetime`.
 - **REQ-ING-05** Rows with a missing or unparseable value in any mandatory column must be **quarantined** (collected into a separate `list[dict]` returned alongside the valid rows) and never silently coerced.
 - **REQ-ING-06** An empty file, or a file containing only whitespace, must return an empty valid list and an empty quarantine list (`([], [])`) without raising. This check happens **before** dialect detection, so an empty file is never quarantined as `"ambiguous_dialect"`.
+
+#### 1.1b Bank-statement IBAN column (CR-LC-3c)
+
+- **REQ-ING-29** The CSV reader must read an optional `iban` column into `Transaction.iban` **verbatim**: no trimming, no case change, no removal of spaces or hyphens. A missing `iban` column, an empty cell, or a whitespace-only cell yields `Transaction.iban = None`; none of them quarantines the row (REQ-ING-14). Before this requirement the column was ignored, so the payment IBAN of a bank transfer could never be checked by a detector.
 
 #### 1.1a CSV dialect and format detection
 
@@ -40,18 +44,26 @@ Spanish bank exports and similar European sources use a distinct CSV dialect tha
 - **REQ-ING-22** European-format amount strings must first be validated against the European pattern (optional leading `-`, digits optionally grouped with `.` in threes, a `,` decimal separator, then digits). Only a string that matches is converted: strip the thousands separator (`.`), replace `,` with `.`, convert to `Decimal`. A string that does not match (e.g. `12.50`, `-12.5`, `1,234.56`, `1,2,3`) must be quarantined at row level with reason `"unparseable_amount"`; it must never be converted by blind character replacement (which would turn `12.50` into `1250`).
 - **REQ-ING-23** Signed amounts (negative values indicating debits) must be accepted in both dialects. A leading minus sign is valid for both `"-12,50"` (European) and `"-12.50"` (plain).
 
-#### 1.2 Invoice parsing
+#### 1.2 Invoice and supplier-master parsing (revised by CR-LC-3a/3b)
 
-- **REQ-ING-07** The invoice reader (`ledger_kit/ingestion/invoice_reader.py`) must support two formats: delimited CSV and JSON (FATURA-style flat arrays).
-- **REQ-ING-08** For JSON invoices, amounts stored as strings (e.g. `"1234.56"`) must be converted to `Decimal`; amounts already numeric must also be converted to `Decimal`.
+- **REQ-ING-07** *(revised)* The invoice reader (`ledger_kit/ingestion/invoice_reader.py`) must support two formats: delimited CSV and JSON (flat arrays). `parse_invoice` returns `IngestionResult[Invoice]`, i.e. `(list[Invoice], list[dict])`, never `Transaction` objects. `IngestionResult` is generic over the parsed model.
+- **REQ-ING-08** *(revised)* For JSON invoices, every amount field (`base_amount`, `vat_rate`, `vat_amount`, `surcharge_amount`, `withholding_amount`, `total`) stored as a string (e.g. `"1234.56"`) must be converted to `Decimal`; values already numeric must also be converted to `Decimal` through their shortest `str` form, never through `float` arithmetic.
 - **REQ-ING-09** The same quarantine semantics as REQ-ING-05 apply to invoice parsing.
+- **REQ-ING-30** *(CR-LC-3a)* Mandatory invoice columns: `invoice_number`, `supplier_name`, `supplier_tax_id`, `issue_date`, `base_amount`, `vat_rate`, `vat_amount`, `total`, `currency`. Optional columns: `due_date`, `surcharge_amount`, `withholding_amount`, `iban`. A missing or unparseable mandatory value quarantines the row (`missing_field:<name>`, `unparseable_date`, `unparseable_amount`). Invoices use the plain dialect (comma separator, dot decimal, ISO dates); `vat_rate` is a percentage written without a percent sign (`21`, `10`, `4`, `0`); `21%` is quarantined as `unparseable_amount`. A negative value in any amount field is quarantined with `reason="negative_amount"` (rectifying invoices / credit notes are out of scope for the template).
+- **REQ-ING-31** *(CR-LC-3a)* Optional-value rules: an empty or missing `surcharge_amount` or `withholding_amount` becomes `Decimal("0")`; an empty or missing `iban` becomes `None`, stored verbatim otherwise (as in REQ-ING-29). An empty or missing `due_date` becomes `issue_date + DEFAULT_PAYMENT_TERM_DAYS` with `DEFAULT_PAYMENT_TERM_DAYS = 30` (the Spanish default payment term), and the reader sets `Invoice.due_date_is_default = True` so the derived date is never mistaken for a source datum (Finance Rule 1). `source_ref` is `"{source_file}:{source_row}"` with a 0-based data-row index, exactly as for transactions (REQ-ING-11).
+- **REQ-ING-32** *(CR-LC-3b)* A supplier-master reader (`ledger_kit/ingestion/supplier_reader.py`, `parse_suppliers`) returns `IngestionResult[Supplier]` from a plain-dialect CSV with mandatory columns `supplier_name`, `tax_id` and an optional `iban` column (empty → `None`, otherwise verbatim). Each `Supplier` carries a `source_ref` (`"{source_file}:{source_row}"`, 0-based) like any other input, so alerts can cite master rows. Encoding strategy and quarantine semantics are those of REQ-ING-05/06 and OD-3.
+
+#### 1.2a Mixed-kind normalisation (CR-LC-3a)
+
+- **REQ-ING-33** `normalise()` accepts lists of `Transaction`, lists of `Invoice`, or lists of `Supplier`. One call handles exactly one kind: mixing kinds in a single call raises `ValueError`. The kind is inferred from the first non-empty list; the keyword-only argument `kind: Literal["transaction", "invoice", "supplier"] | None = None` selects the schema when every list is empty (default `"transaction"`). The return type is unchanged: `(DataFrame, list[dict])`.
+- **REQ-ING-34** The canonical invoice DataFrame has the columns `invoice_number`, `supplier_name`, `supplier_tax_id`, `issue_date`, `due_date`, `due_date_is_default`, `base_amount`, `vat_rate`, `vat_amount`, `surcharge_amount`, `withholding_amount`, `total`, `iban`, `currency`, `source_file`, `source_row`, `source_ref` (dates as `datetime.date` objects, amounts and `vat_rate` as `Decimal`, `source_row` as `int64`). The canonical supplier DataFrame has `supplier_name`, `tax_id`, `iban`, `source_file`, `source_row`, `source_ref`. Both always carry all their columns, even when empty (extends REQ-ING-28).
 
 #### 1.3 Normalisation
 
-- **REQ-ING-10** The normaliser (`ledger_kit/ingestion/normaliser.py`) must accept multiple source lists of `Transaction` objects (from different files) and merge them into a single `pd.DataFrame` with the canonical schema.
+- **REQ-ING-10** *(revised)* The normaliser (`ledger_kit/ingestion/normaliser.py`) must accept multiple source lists of `Transaction`, `Invoice` or `Supplier` objects (from different files, one kind per call, REQ-ING-33) and merge them into a single `pd.DataFrame` with the canonical schema of that kind.
 - **REQ-ING-11** Each `Transaction` must carry a `source_ref` assigned as `"{source_file}:{source_row}"` where `source_row` is the 0-based row index within the originating file.
 - **REQ-ING-12** The normaliser must validate that every required field is present and non-null after merging; rows failing validation are quarantined and excluded from the returned DataFrame.
-- **REQ-ING-13** The canonical DataFrame schema is:
+- **REQ-ING-13** The canonical **transaction** DataFrame schema is (the invoice and supplier schemas are in REQ-ING-34):
 
   | Column | dtype |
   |---|---|
@@ -68,8 +80,8 @@ Spanish bank exports and similar European sources use a distinct CSV dialect tha
   | `source_ref` | `str` |
   | `tags` | `object` (`list[str]`) |
 
-- **REQ-ING-14** `iban` is an optional field; its absence must not trigger quarantine. When present it must be stored verbatim (no reformatting).
-- **REQ-ING-28** `normalise` must always build its DataFrame with the canonical column list (REQ-ING-13), so that zero input transactions, or a run where every row was quarantined, returns an **empty DataFrame that still has all canonical columns** (never a column-less frame that raises `KeyError` on `ledger["source_ref"]`).
+- **REQ-ING-14** `iban` is an optional field; its absence must not trigger quarantine. When present it must be stored verbatim (no reformatting). For bank statements it is populated from the optional `iban` column (REQ-ING-29).
+- **REQ-ING-28** `normalise` must always build its DataFrame with the canonical column list of its kind (REQ-ING-13 for transactions, REQ-ING-34 for invoices and suppliers), so that zero input rows, or a run where every row was quarantined, returns an **empty DataFrame that still has all canonical columns** (never a column-less frame that raises `KeyError` on `ledger["source_ref"]`).
 
 #### 1.4 Signed-amount normalisation
 
@@ -107,15 +119,17 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   - `detector`: the detector's registered name (string).
   - `severity`: one of `"info"`, `"warning"`, `"critical"`.
   - `title`: a short human-readable summary.
-  - `source_refs`: a non-empty list of `source_ref` strings, each matching a row in the input ledger.
+  - `source_refs`: a non-empty list of `source_ref` strings, each matching a row of a **loaded input** (REQ-DET-04).
   - `data`: a dict with at least one key carrying detector-specific structured payload.
-- **REQ-DET-04** `Alert.source_refs` must only contain values that exist in the input ledger's `source_ref` column. A detector must never invent a `source_ref`.
-- **REQ-DET-05** When the input ledger is an empty DataFrame, every detector must return `[]` without raising.
+- **REQ-DET-04** *(revised, CR-LC-3d)* `Alert.source_refs` may point to **any loaded input**: a row of the ledger, or a row of any other input handed to the detector through `context` (invoices, supplier-master rows, bank payments, …). The set of **loaded inputs** is the union of the `source_ref` values of the ledger and of every DataFrame in `context` that has a `source_ref` column. A detector must never invent a `source_ref`: every cited value must be in that union.
+- **REQ-DET-05** *(revised, CR-LC-3f)* When the input ledger is an empty DataFrame (including `pd.DataFrame()` with no columns), every detector must return `[]` without raising. **Exception:** a detector that is documented to read `context` may return alerts when the ledger is empty, if the facts come from the context inputs (example: bank payments with no invoice at all). Such a detector must still return `[]` when the ledger **and** every context input it reads are empty, and must never raise.
 - **REQ-DET-06** All numeric thresholds used by a detector must be module-level named constants (`UPPER_SNAKE_CASE`) with a docstring comment explaining their business meaning.
 
 #### 2.2 `DetectorResult` helper type
 
 - **REQ-DET-07** `ledger_kit/detectors/base.py` must export a `DetectorResult` named tuple or dataclass suitable for wrapping the `(detector_name, alerts)` pair returned by the registry runner.
+- **REQ-DET-08** *(CR-LC-3d)* `ledger_kit/detectors/base.py` must export `loaded_source_refs(ledger: pd.DataFrame, context: Mapping[str, Any]) -> frozenset[str]` returning the union defined in REQ-DET-04. It tolerates a ledger or context DataFrame without a `source_ref` column (contributes nothing) and non-DataFrame context values (ignored). Tests and apps use it instead of re-implementing the union.
+- **REQ-DET-09** *(CR-LC-3g)* Every number, date or amount that an explanation or a fallback template may mention must be stored as a named field of `Alert.data` (days apart, rates, counts, expected and stated amounts included), so the number guard can allow it (Finance Rule 1). An IBAN is stored in `Alert.data` only in masked form (REQ-PII-03), never in full.
 
 ---
 
@@ -128,6 +142,9 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-MOD-05** Computing the deterministic id must never raise on non-JSON-native values in `Alert.data`. `Decimal` and `date` values are serialised with `json.dumps(..., default=str)`; numpy scalars are first converted to the equivalent Python type. (Otherwise a `TypeError` while building the id makes `run_all` drop every alert of that detector.)
 - **REQ-MOD-06** Constructing an `Alert` without `source_refs` (or `detector`/`data`) must raise pydantic `ValidationError`, never `KeyError`.
 - **REQ-MOD-07** Tests: `test_alert_id_with_decimal_and_date_data` (Decimal and date values in `data` give a 64-char hex id and the same id on a second construction), `test_alert_id_numpy_scalar_matches_python_value` (`numpy.int64(3)` and `3` in `data` give the same id), `test_alert_missing_source_refs_raises_validation_error`.
+- **REQ-MOD-08** *(CR-LC-3a)* `ledger_kit/models.py` defines a frozen Pydantic model `Invoice` with the fields: `invoice_number: str`, `supplier_name: str`, `supplier_tax_id: str`, `issue_date: date`, `due_date: date` (always populated, REQ-ING-31), `due_date_is_default: bool = False`, `base_amount: Decimal`, `vat_rate: Decimal` (a percentage: `Decimal("21")` means 21 %), `vat_amount: Decimal`, `surcharge_amount: Decimal = Decimal("0")` (Spanish *recargo de equivalencia*), `withholding_amount: Decimal = Decimal("0")` (Spanish *IRPF*), `total: Decimal` (the amount payable), `iban: str | None = None` (verbatim), `currency: str`, `source_file: str`, `source_row: int`, `source_ref: str`. Amount fields and `vat_rate` are non-negative (`ValidationError` otherwise). `Invoice` has no `id` field. `Transaction`, `Invoice`, `Supplier` and `Alert` are re-exported from `ledger_kit/__init__.py`.
+- **REQ-MOD-09** *(CR-LC-3b)* `ledger_kit/models.py` defines a frozen Pydantic model `Supplier` with `supplier_name: str`, `tax_id: str`, `iban: str | None = None` (verbatim), `source_file: str`, `source_row: int`, `source_ref: str`.
+- **REQ-MOD-10** *(CR-LC-3a)* `Invoice` and `Supplier` models never normalise or validate identifiers: tax ids and IBANs are stored exactly as read. Validation of IBAN checksums and tax ids belongs to detectors and tests, not to the models.
 
 ### 3 — Detector registry
 
@@ -152,6 +169,7 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
       *,
       fallback_template: str,
       client=None,          # injectable OpenAI-compatible client; None = auto-create
+      row_columns: Sequence[str] | None = None,   # CR-LC-3g; None = default whitelist
   ) -> str:
       """Return the guarded explanation text (delegates to explain_with_meta)."""
 
@@ -161,6 +179,7 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
       *,
       fallback_template: str,
       client=None,
+      row_columns: Sequence[str] | None = None,
   ) -> Explanation:
       """Return an Explanation(text, source, rejected_numbers)."""
   ```
@@ -187,7 +206,7 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-EXP-07** The system prompt must instruct the model to cite at least one `source_ref` from `alert.source_refs`.
 - **REQ-EXP-08** **Number guard** — Decimal-value comparison, not string comparison, using **one tokeniser** (`_tokenise`) for both the LLM text and the allowed set (`_allowed_decimals`). The tokeniser applies its patterns in this order and removes each match from the text before the next pattern runs:
   1. IBAN-shaped tokens. Any IBAN-shaped token in the LLM text rejects the answer.
-  2. Dates (ISO `YYYY-MM-DD`, then `DD/MM/YYYY`). Each is parsed to `datetime.date` and checked against the `date` cells of the cited rows and the date values (objects or ISO strings) in `Alert.data`. An unrecognised date, or a date-shaped string that is not a real date, triggers the fallback.
+  2. Dates (ISO `YYYY-MM-DD`, then `DD/MM/YYYY`). Each is parsed to `datetime.date` and checked against the `datetime.date` cells of **every whitelisted column** of the cited rows (REQ-EXP-11; for the default whitelist that is the `date` column) and the date values (objects or ISO strings) in `Alert.data`. An unrecognised date, or a date-shaped string that is not a real date, triggers the fallback.
   3. `source_ref` strings (`file:row`) of the alert and the cited rows, matched literally.
   4. European numbers (`1.234,56`, `12,99`).
   5. Plain numbers (`1234.56`, `1234`).
@@ -195,11 +214,12 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   Number patterns use digit lookarounds, not word boundaries, so numbers glued to letters (`15.99EUR`, `F2026099`) are still extracted. Removing European matches before the plain pass guarantees `12,99` is read as one number, never as `12` and `99`.
   Then:
   6. Parse each token to `Decimal` (European: strip `.`, replace `,` with `.`; plain: direct).
-  7. The allowed `Decimal` set is built by running the same tokeniser over `str(value)` for every `Alert.data` value and over every cell of the cited `rows` (columns `amount`, `flow`, `currency`, `counterparty`, `source_ref`; the `date` column is checked as dates only). **Never** `id`, `description`, or full IBAN. Because dates and cited `source_ref` strings are removed first, **row numbers, file-name digits and date parts are never added to the allowed set.**
+  7. The allowed `Decimal` set is built by running the same tokeniser over `str(value)` for every `Alert.data` value and over every cell of the cited `rows` that is in the whitelist (REQ-EXP-11; default: `amount`, `flow`, `currency`, `counterparty`, `source_ref`; cells holding a `datetime.date` are checked as dates only). **Never** `id`, `description`, or full IBAN. Because dates and cited `source_ref` strings are removed first, **row numbers, file-name digits and date parts are never added to the allowed set.**
   8. If any token's `Decimal` is not in the allowed set, discard the LLM text and return the fallback with `source="fallback"` and `rejected_numbers=(…token…)`.
   9. A European-formatted `12,99` passes against `Decimal("12.99")` in the allowed set. A made-up `3 EUR` is **rejected** even when row 3 is cited (`bank.csv:3`), unless `3` is also a value in `Alert.data` or a cited cell.
 - **REQ-EXP-09** On any API error or timeout, `explain_with_meta` returns the fallback, logs the reason, and never propagates the exception.
-- **REQ-EXP-10** The source rows are sent to the LLM as `to_json(orient="records", default_handler=str)` after the `date` column has been converted to ISO strings with `date.isoformat` (missing values stay `None`). Dates therefore arrive as `2026-01-15` — not as epoch milliseconds and not as `2026-01-15T00:00:00.000`, which is what pandas `date_format="iso"` produces for `datetime.date` cells. `Decimal` cells are covered by `default_handler=str`.
+- **REQ-EXP-10** *(revised)* The source rows are sent to the LLM as `to_json(orient="records", default_handler=str)` after **every whitelisted column that holds `datetime.date` cells** (for the default whitelist: `date`; for App 2: `issue_date`, `due_date`) has been converted to ISO strings with `date.isoformat` (missing values stay `None`). Dates therefore arrive as `2026-01-15` — not as epoch milliseconds and not as `2026-01-15T00:00:00.000`, which is what pandas `date_format="iso"` produces for `datetime.date` cells. `Decimal` cells are covered by `default_handler=str`.
+- **REQ-EXP-11** *(CR-LC-3g)* The row-column whitelist is a parameter. `row_columns=None` (the default) uses the original whitelist `("date", "amount", "flow", "currency", "counterparty", "source_ref")`, so existing callers (App 1) are unchanged. When `row_columns` is given, **only** those columns (those present in `rows`, in the given order) are sent to the LLM and used to build the allowed sets. A caller must never include `id`, `description`, `iban` or a tax-id column in `row_columns`; the explainer does not enforce this, but `explain_with_meta` always drops any column named `id`, `description` or `iban` even when listed (defence in depth). App 2 passes `invoice_number, supplier_name, issue_date, due_date, base_amount, vat_rate, vat_amount, surcharge_amount, withholding_amount, total, currency, source_ref`.
 
 ---
 
@@ -221,13 +241,18 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
 - **REQ-MON-01** `ledger_kit/utils/money.py` must export `round_to_cents(amount: Decimal) -> Decimal` implementing `ROUND_HALF_UP` to two decimal places, as specified in Finance Rule 3.
 - **REQ-MON-02** `ledger_kit/utils/money.py` must export `format_amount(amount: Decimal, currency: str = "EUR") -> str` producing European locale output (e.g. `"1.234,56 EUR"`), as specified in Finance Rule 4.
 - **REQ-MON-03** `money.py` is the **only** module permitted to perform monetary arithmetic or formatting. All other modules must call its helpers.
+- **REQ-MON-04** *(CR-LC-3e)* `money.py` exports `percent_of(base: Decimal, rate: Decimal) -> Decimal` = `round_to_cents(base × rate / 100)` (`ROUND_HALF_UP`), where `rate` is a percentage (`Decimal("21")` means 21 %). Example: `percent_of(Decimal("100.00"), Decimal("21"))` is `Decimal("21.00")`; `percent_of(Decimal("0.50"), Decimal("21"))` is `Decimal("0.11")` (0.105 rounds half-up).
+- **REQ-MON-05** *(CR-LC-3e)* `money.py` exports `within_tolerance(a: Decimal, b: Decimal, tol: Decimal) -> bool` = `abs(a - b) <= tol` (inclusive: a difference of exactly `tol` is within tolerance). A negative `tol` raises `ValueError`.
+- **REQ-MON-06** *(CR-LC-3e)* `money.py` exports `net_total(additions: Iterable[Decimal], subtractions: Iterable[Decimal] = ()) -> Decimal` = `sum(additions) - sum(subtractions)` without rounding (inputs are already in cents). It exists so that a detector checking `total = base + VAT + surcharge − withholding` performs no arithmetic itself. *(Helper added beyond the two named in CR-LC-3e; see phantom-invoices OD-PI-01.)*
 
 ---
 
 ### 6 — PII and data safety
 
 - **REQ-PII-01** `ledger_kit/utils/anonymise.py` must export a `scrub(transaction: Transaction) -> Transaction` function that replaces known PII fields (counterparty name, IBAN) with placeholder values before any data is passed to the LLM explanation layer.
-- **REQ-PII-02** No real personal data may appear in test fixtures, sample files, or committed source. Fixtures must use names and IBANs conforming to Finance Rule 5.
+- **REQ-PII-02** No real personal data may appear in test fixtures, sample files, or committed source. Fixtures must use names, IBANs and tax ids conforming to Finance Rule 5 (revised by CR-LC-3h).
+- **REQ-PII-03** *(CR-LC-3g)* `ledger_kit/utils/anonymise.py` must export `mask_iban(iban: str) -> str`: it removes all whitespace (including non-breaking spaces), uppercases, and returns `"****"` followed by the last 4 characters (`"ES88 2100 0418 5602 0005 1332"` → `"****1332"`). A value with 4 or fewer characters after cleaning returns `"****"` only, so the full value is never revealed. The result is never IBAN-shaped, so the number guard does not treat it as an IBAN.
+- **REQ-PII-04** *(CR-LC-3g)* An `Alert.data` payload must never contain a full IBAN. Detectors store `mask_iban(...)` output only; the explainer's row whitelist never includes an `iban` column (REQ-EXP-11).
 
 ---
 
@@ -280,6 +305,29 @@ Bank-statement CSV files represent transaction direction via sign: negative amou
   - `test_explain_openai_client_built_with_no_sdk_retries` — with a fake `openai` module in `sys.modules` whose `OpenAI` records its kwargs: `timeout == LLM_TIMEOUT_SECONDS` and `max_retries == 0`.
   - `test_explain_rows_json_has_iso_dates` — the user message in `client.calls[0]["messages"]` contains `"2026-01-15"` and does not contain `"T00:00"`.
   - `test_explain_only_safe_columns_sent` — the user message in `client.calls[0]["messages"]` contains neither an `id` nor a `description` key for the rows.
+  - *(CR-LC-3g)* `test_explain_row_columns_parameter_selects_columns` — with `row_columns=("invoice_number", "total", "source_ref")` the user message contains exactly those keys for the rows and none of the default-whitelist columns that are not listed.
+  - *(CR-LC-3g)* `test_explain_default_row_columns_unchanged` — with `row_columns=None` the keys sent are exactly the original whitelist (regression guard for App 1).
+  - *(CR-LC-3g)* `test_explain_invoice_date_columns_sent_as_iso_and_guarded` — `issue_date` and `due_date` cells arrive as `2026-01-15` (no `T00:00`); an answer mentioning the cited `due_date` passes, one mentioning an uncited date falls back, and neither date's parts are added to the allowed numbers.
+  - *(CR-LC-3g)* `test_explain_iban_column_never_sent_even_if_listed` — `row_columns` containing `iban`, `id` or `description` still sends none of them.
+  - *(CR-LC-3g)* `test_explain_masked_iban_in_alert_data_passes_guard` — an answer quoting `****1332` passes when `Alert.data` holds `"****1332"`, and an answer quoting a full IBAN-shaped token is rejected.
   - **Property** `test_number_guard_any_foreign_decimal_triggers_fallback` — `@settings(max_examples=200)`: inject a random Decimal (not in allowed set) into a valid answer → guard always rejects. Use a fixed `alert` and rows; generate foreign values via `st.decimals(min_value=Decimal("10000"), max_value=Decimal("99999"), places=2)`.
   - **Property** `test_number_guard_all_data_values_pass` — `@settings(max_examples=200)`: an LLM answer that only uses Decimal strings from `alert.data` always passes the guard.
 - **REQ-TST-09** Registry test isolation. Tests must not call `_clear_registry()` for isolation (it also drops already-imported app detectors, which `auto_discover` cannot re-register). A function-scoped fixture snapshots the registry with `_snapshot_registry()` and restores it with `_restore_registry()`. Hypothesis tests must not use function-scoped fixtures and must not call `@register` inside the `@given` body; their detectors are registered once at module scope in `tests/detectors/test_registry_properties.py`.
+- **REQ-TST-10** *(CR-LC-3d)* Detector tests that check "no invention" (Tier 3, `testing.md`) compare `Alert.source_refs` with `loaded_source_refs(ledger, context)` (REQ-DET-08), the union of all loaded inputs, not with the ledger alone. Detectors that read `context` (REQ-DET-05 exception) are additionally tested with an empty ledger and non-empty context inputs.
+
+---
+
+### 9 — Change record: CR-LC-3 (phantom-invoices prerequisites)
+
+CR-LC-3 was raised by the `phantom-invoices` spec (App 2). It changes ledger-core as listed below; nothing else in this spec changed. The matching edits are in `design.md` and `tasks.md`, and in the steering files `finance-rules.md` (Rule 5) and `testing.md` (Tier 3 property and its template, empty-ledger edge case).
+
+| CR-LC-3 item | Requirements touched or added | Design sections | Tasks |
+|---|---|---|---|
+| a. Invoice model, `parse_invoice` returns invoices, `normalise()` accepts invoices | Overview; REQ-ING-07, 08, 10, 13, 28 revised; REQ-ING-30, 31, 33, 34, REQ-MOD-08, 10 added | §1, §2.1a, §3.3, §3.4, §8.1, §11 | Task 2, 8, 9, 13 |
+| b. Supplier master reader | REQ-ING-32, 34; REQ-MOD-09 | §1, §2.1b, §3.3a, §3.4 | Task 2, 8, 9 (supplier sub-items), 13 |
+| c. `parse_csv` reads optional `iban` | REQ-ING-02, 14 revised; REQ-ING-29 added | §3.2 | Task 6, 13 |
+| d. `source_refs` may point to any loaded input | REQ-DET-03, 04 revised; REQ-DET-08, REQ-TST-10 added | §4.1 | Task 10, 11, 14 |
+| e. `percent_of`, `within_tolerance` (+ `net_total`) | REQ-MON-04, 05, 06 added (REQ-MON-03 text unchanged) | §5 | Task 3 |
+| f. Empty-ledger exception for context-reading detectors | REQ-DET-05 revised | §4.1 | Task 10 |
+| g. Explainer `row_columns`, numbers in `Alert.data`, masked IBANs | REQ-EXP-01, 08, 10 revised; REQ-EXP-11, REQ-DET-09, REQ-PII-03, 04 added; REQ-TST-08 extended | §4a.1, §4a.2, §4a.4, §4a.5, §6 | Task 5, 11a |
+| h. Finance Rule 5 (steering) | REQ-PII-02 reworded | — | — |

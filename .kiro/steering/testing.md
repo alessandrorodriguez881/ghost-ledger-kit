@@ -33,7 +33,7 @@ Rules:
 Cover boundary conditions and malformed inputs.
 
 Mandatory edge cases for every detector:
-- **Empty ledger**: `detect_*(pd.DataFrame(), MappingProxyType({}))` must return an empty list, never raise.
+- **Empty ledger**: `detect_*(pd.DataFrame(), MappingProxyType({}))` must return an empty list, never raise. A detector that is documented to read `context` (e.g. payments with no invoice) may return alerts for an empty ledger when its context inputs are non-empty; it must still return `[]` when everything is empty and must never raise.
 - **Single-row ledger**: must not crash; return value must be a list.
 - **Amount boundary**: test both sides of every numeric threshold constant (e.g. `DUPLICATE_AMOUNT_TOLERANCE`).
 - **Date boundary**: first and last day of a lookback window.
@@ -47,11 +47,11 @@ At minimum one property-based test per detector. Properties to test include:
 
 | Property | Description |
 |---|---|
-| No invention | `Alert.source_refs` is always a subset of the input ledger's `source_ref` values. |
+| No invention | `Alert.source_refs` is always a subset of the **union of all loaded inputs** (the ledger plus every DataFrame handed over in `context`, e.g. suppliers and payments), computed with `loaded_source_refs(ledger, context)`. |
 | Idempotency | Running the detector twice on the same ledger returns the same alerts. |
 | Empty input | For all randomly generated empty DataFrames, output is `[]`. |
 | Amount non-negativity | No alert carries a data payload with a negative amount when all inputs are positive. |
-| Source ref coverage | Every `source_ref` in `Alert.source_refs` resolves to a row in the input ledger. |
+| Source ref coverage | Every `source_ref` in `Alert.source_refs` resolves to a row of a loaded input (ledger or context frame). |
 
 ```python
 from types import MappingProxyType
@@ -60,17 +60,20 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
+from ledger_kit.detectors import loaded_source_refs
+
 @given(ledger=data_frames([
     column("source_ref", elements=st.text(min_size=1)),
     column("amount", elements=st.decimals(min_value=0, max_value=1_000_000, places=2)),
     ...
 ]))
 def test_source_refs_are_subset_of_input(ledger):
-    alerts = detect_*(ledger, MappingProxyType({}))
-    all_refs = set(ledger["source_ref"])
+    context = MappingProxyType({})   # or {"suppliers": ..., "payments": ..., "as_of": ...}
+    alerts = detect_*(ledger, context)
+    all_refs = loaded_source_refs(ledger, context)   # union of ledger + context frames
     for alert in alerts:
         for ref in alert.source_refs:
-            assert ref in all_refs, f"Alert cited {ref!r} which is not in the input ledger"
+            assert ref in all_refs, f"Alert cited {ref!r} which is not in any loaded input"
 ```
 
 ---
