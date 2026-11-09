@@ -26,6 +26,8 @@ _ALNUM = _UPPER + "0123456789"
 _SEPARATORS = ["", "", "", " ", "\u00a0", "\t"]
 # Separators between the parts of an invoice number such as F-2026-0042.
 _NUMBER_SEPARATORS = ["-", "", "/", " "]
+# Largest amount a tamed dirty cell may carry (see tame_dirty_cell).
+TAME_LIMIT = Decimal(10) ** 9
 # Counters that start just below a power of ten, so a rollover such as 0099 -> 0100 is common.
 _ROLLOVER_STARTS = [8, 98, 998, 9998]
 
@@ -60,6 +62,35 @@ def dirty_cell() -> st.SearchStrategy[Any]:
         st.just(np.False_),
         st.just(pd.Timestamp("2026-03-01 10:30:00")),
     )
+
+
+def _tame(cell: Any) -> Any:
+    """Replace a finite Decimal beyond TAME_LIMIT by Decimal(1); every other cell is unchanged."""
+    if isinstance(cell, Decimal) and cell.is_finite() and abs(cell) > TAME_LIMIT:
+        return Decimal(1)
+    return cell
+
+
+def tame_dirty_cell() -> st.SearchStrategy[Any]:
+    """Return dirty_cell() without amounts beyond Decimal precision.
+
+    An amount of 10**30 cannot be rounded to cents in the default Decimal context, which is a
+    property of Decimal and not a defect of a detector; ingestion never lets such an amount in.
+    """
+    return dirty_cell().map(_tame)
+
+
+@st.composite
+def with_dirty_cells(draw: st.DrawFn, frame: pd.DataFrame) -> pd.DataFrame:
+    """Draw `frame` with at most one tamed dirty cell planted in each row, in a random column."""
+    columns = list(frame.columns)
+    records = frame.to_dict("records")
+    if not columns:
+        return frame
+    for record in records:
+        if draw(st.booleans()):
+            record[draw(st.sampled_from(columns))] = draw(tame_dirty_cell())
+    return pd.DataFrame(records, columns=columns, dtype=object)
 
 
 @st.composite

@@ -9,6 +9,7 @@ Scenario fixtures (``ledger_with_*``) return a ``Scenario`` (invoices, suppliers
 because several detectors need the supplier master or the payments next to the invoices.
 """
 
+from collections.abc import Iterator
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
@@ -35,6 +36,7 @@ from apps.phantom_invoices.tests.pi_strategies import (
     spaced_cased,
     valid_iban,
 )
+from ledger_kit.detectors import _restore_registry, _snapshot_registry
 
 __all__ = [
     "Scenario",
@@ -102,6 +104,16 @@ def _clean_payment_specs() -> list[dict[str, Any]]:
         }
         specs.append(spec)
     return specs
+
+
+@pytest.fixture
+def isolated_registry() -> Iterator[None]:
+    """Snapshot the global detector registry before a test and restore it afterwards."""
+    snapshot = _snapshot_registry()
+    try:
+        yield
+    finally:
+        _restore_registry(snapshot)
 
 
 @pytest.fixture

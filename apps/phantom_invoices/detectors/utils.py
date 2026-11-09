@@ -10,7 +10,7 @@ import re
 import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from ledger_kit.models import Alert
+from ledger_kit.utils.money import within_tolerance
 
 ZERO: Decimal = Decimal("0")
 # Hyphen, en dash, em dash: a text cell made only of these characters counts as missing.
@@ -294,3 +295,143 @@ def attribute_payment(payment: Mapping[str, Any], master: Master) -> dict | None
         if len(hits) == 1:
             return hits[0]
     return None
+
+
+# --- Reconciliation of invoices and payments (REQ-PI-34 to REQ-PI-40) ---
+
+# A payment may be dated up to this many days after the due date and still match the invoice.
+PAYMENT_MATCH_WINDOW_DAYS: int = 60
+# Days after the due date before an unmatched invoice counts as overdue.
+UNPAID_GRACE_DAYS: int = 15
+# Largest accepted difference between a payment amount and an invoice total.
+MATCH_AMOUNT_TOLERANCE: Decimal = Decimal("0.01")
+
+
+@dataclass(frozen=True)
+class InvoiceView:
+    """The fields of one usable invoice that the reconciliation reads."""
+
+    ref: str
+    tax: str
+    issue: date
+    due: date
+    total: Decimal
+    currency: str
+
+
+@dataclass(frozen=True)
+class PaymentView:
+    """The fields of one usable bank debit that the reconciliation reads."""
+
+    ref: str
+    day: date
+    amount: Decimal
+    currency: str
+
+
+def invoice_view(row: Mapping[str, Any]) -> InvoiceView | None:
+    """Return the usable invoice (issue, due, total, currency, supplier tax_key), else None."""
+    ref = as_text(row.get("source_ref"))
+    tax = tax_key(as_text(row.get("supplier_tax_id")) or "")
+    issue, due = as_date(row.get("issue_date")), as_date(row.get("due_date"))
+    total, currency = as_decimal(row.get("total")), as_text(row.get("currency"))
+    if ref is None or not tax or issue is None or due is None or total is None or currency is None:
+        return None
+    return InvoiceView(ref, tax, issue, due, total, currency)
+
+
+def payment_view(row: Mapping[str, Any]) -> PaymentView | None:
+    """Return the usable payment (a debit with date, amount and currency present), else None."""
+    ref = as_text(row.get("source_ref"))
+    day, amount = as_date(row.get("date")), as_decimal(row.get("amount"))
+    currency = as_text(row.get("currency"))
+    if (
+        ref is None
+        or as_text(row.get("flow")) != "debit"
+        or day is None
+        or amount is None
+        or currency is None
+    ):
+        return None
+    return PaymentView(ref, day, amount, currency)
+
+
+@dataclass(frozen=True)
+class Reconciliation:
+    """Result of matching invoices to supplier payments."""
+
+    invoice_buckets: dict[str, str]  # source_ref -> "matched" | "open_not_due" | "overdue"
+    payment_buckets: dict[str, str]  # source_ref -> "matched" | "unmatched"
+    matches: list[tuple[str, str]]  # (invoice ref, payment ref), in matching order
+    payment_supplier: dict[str, str]  # payment ref -> tax_key of the attributed supplier
+
+
+def _plus_days(day: date, days: int) -> date:
+    """Return `day` plus `days`, saturating at date.max instead of overflowing."""
+    try:
+        return day + timedelta(days=days)
+    except OverflowError:
+        return date.max
+
+
+def reconcile(invoices: Any, suppliers: Any, payments: Any, as_of: date | None) -> Reconciliation:
+    """Match invoices to supplier payments one-to-one and bucket everything. Pure; never raises.
+
+    Invoices are visited in (issue_date, source_ref) order and each takes the earliest free
+    payment, by (date, source_ref), of the same supplier and currency whose amount is within
+    MATCH_AMOUNT_TOLERANCE of the total and whose date lies between the issue date and the due
+    date plus PAYMENT_MATCH_WINDOW_DAYS, both ends inclusive. An invoice of a supplier that is
+    not in the master is never matched (OD-PI-11).
+    """
+    master = build_master(suppliers)
+
+    # already in (issue_date, source_ref) order
+    invoice_views = [
+        v for v in (invoice_view(r) for r in load_rows(invoices, "issue_date")) if v is not None
+    ]
+
+    supplier_payments: list[PaymentView] = []
+    payment_supplier: dict[str, str] = {}
+    for row in load_rows(payments, "date"):
+        view = payment_view(row)
+        if view is None:
+            continue
+        sup = attribute_payment(row, master)
+        if sup is None:
+            continue  # not a supplier payment
+        supplier_payments.append(view)
+        payment_supplier[view.ref] = tax_key(as_text(sup.get("tax_id")) or "")
+    free = sorted(supplier_payments, key=lambda p: (p.day, source_ref_key(p.ref)))
+
+    matched_payments: set[str] = set()
+    matches: list[tuple[str, str]] = []
+    for inv in invoice_views:
+        if inv.tax not in master.by_tax:
+            continue  # unknown supplier: never matched (OD-PI-11)
+        last_day = _plus_days(inv.due, PAYMENT_MATCH_WINDOW_DAYS)
+        for pay in free:  # (date, ref) order: the first fit is the smallest
+            if (
+                pay.ref in matched_payments
+                or payment_supplier[pay.ref] != inv.tax
+                or pay.currency != inv.currency
+                or not within_tolerance(pay.amount, inv.total, MATCH_AMOUNT_TOLERANCE)
+                or not (inv.issue <= pay.day <= last_day)
+            ):
+                continue
+            matched_payments.add(pay.ref)
+            matches.append((inv.ref, pay.ref))
+            break
+
+    paid_invoices = {inv_ref for inv_ref, _ in matches}
+    invoice_buckets: dict[str, str] = {}
+    for inv in invoice_views:
+        if inv.ref in paid_invoices:
+            invoice_buckets[inv.ref] = "matched"
+        elif as_of is not None and as_of > _plus_days(inv.due, UNPAID_GRACE_DAYS):
+            invoice_buckets[inv.ref] = "overdue"  # strictly later: due + 15 is still open
+        else:
+            invoice_buckets[inv.ref] = "open_not_due"
+    payment_buckets = {
+        p.ref: ("matched" if p.ref in matched_payments else "unmatched") for p in supplier_payments
+    }
+    return Reconciliation(invoice_buckets, payment_buckets, matches, payment_supplier)

@@ -142,7 +142,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_every_generated_iban_is_mod97_valid_with_wrong_national_digits` for `k = 1…25` and `k = 101…110`; `test_tax_ids_distinct_for_k_1_to_25`; `test_make_nif_skips_multiples_of_23` (`k = 12` → number 1013) and never yields `00000000T`; `test_wrong_dc_never_equals_correct_dc` for 200 random bank/branch/account triples.
   - **Tier 3** (`max_examples=200`): `test_make_iban_valid_checksum_for_any_digits`; `test_make_iban_national_digits_never_correct`.
 - [x] Implement in `scripts/generate_samples.py` (extend the ledger-core Task 13 file; keep its existing modes untouched): `SPANISH_DC_WEIGHTS`, `_dc_digit`, `correct_national_dc`, `wrong_national_dc`, `iban_check_digits`, `make_iban`, `format_iban`, `NIF_LETTERS`, `cif_control_digit`, `make_cif`, `make_nif`, exactly as §15.3. Money is not computed here.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_identifiers.py -q` passes; existing ledger-core sample tests still pass (`pytest tests -q`); `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_identifiers.py -q` passes; existing ledger-core sample tests still pass (`pytest tests -q`); `ruff check` clean.
 
 ---
 
@@ -165,11 +165,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-16 to REQ-PI-21a, REQ-PI-63 (P1, P2, P3, P10), REQ-PI-64, REQ-PI-66, DN-1, DN-3, §7
 
-- [ ] Write `tests/test_pi_duplicate_invoice.py`:
+- [x] Write `tests/test_pi_duplicate_invoice.py`:
   - **Tier 1**: `test_duplicate_invoice_fires_on_typical_input`; `test_duplicate_invoice_silent_on_clean_ledger`; `test_pi_acceptance_p01_same_invoice_twice` (one `critical` `same_number`, and the other three detectors silent once Task P14 exists — here only this detector is asserted); `test_pi_acceptance_p02_monthly_rent_no_alert`; `test_pi_acceptance_p03_near_identical_numbers` (`warning`, `near_identical_number`, `days_apart 3`); `test_pi_acceptance_p10_same_total_6_7_8_days` (parametrised); `test_pi_same_number_2_days_apart_is_critical`; `test_pi_same_number_200_days_apart_no_alert`; `test_alert_title_and_data_contract` (every key of REQ-PI-20, `Alert.data` holds only `str`, `int`, `list[str]`); `test_through_run_all_namespace_pi`.
   - **Tier 2** (every row of §7.6 as a named test): `test_empty_n1_row_skipped`; `test_missing_number_date_or_total_skipped`; `test_non_string_number_skipped`; `test_identical_source_ref_uses_one_row`; `test_multi_rate_group_no_alert_second_line_of_defence` (REQ-PI-16); `test_same_number_different_suppliers_no_alert`; `test_rule_c_6_days_alerts_7_does_not`; `test_rule_a_179_days_alerts_180_does_not`; `test_totals_differing_by_one_cent_not_equal`; `test_different_currency_never_paired` (DN-1); `test_group_of_three_with_mixed_rules_gives_one_alert_of_top_rule` (REQ-PI-19); `test_consecutive_numbers_with_equal_totals_fire_rule_c` (documents OD-PI-06); `test_window_constants_ordered` (`DUPLICATE_WINDOW_DAYS <= SAME_NUMBER_WINDOW_DAYS`); `test_constants_values`; `test_empty_ledger_and_empty_dataframe_return_empty_list`; `test_single_row_returns_list`; `test_empty_context_mapping_proxy_does_not_raise`.
   - **Tier 3** (`max_examples=200`): `test_consecutive_numbers_with_different_totals_never_duplicate`; `test_row_order_never_changes_any_detector` (this detector); `test_source_refs_subset_of_loaded_inputs` (via `loaded_source_refs`); `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
-- [ ] Implement `detectors/duplicate_invoice.py` (`@register("pi.duplicate_invoice")`, `_Inv`, `_usable`, `_drop_multi_rate`, `_pair_variant`, `_groups`, `_alert`, constants).
+- [x] Implement `detectors/duplicate_invoice.py` (`@register("pi.duplicate_invoice")`, `_Inv`, `_usable`, `_drop_multi_rate`, `_pair_variant`, `_groups`, `_alert`, constants).
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_duplicate_invoice.py -q` passes; `ruff check` clean.
 
 ---
@@ -178,11 +178,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-22 to REQ-PI-28, REQ-PI-63 (P4, P5, P12), REQ-PI-64, §8
 
-- [ ] Write `tests/test_pi_iban_change.py`:
+- [x] Write `tests/test_pi_iban_change.py`:
   - **Tier 1**: `test_iban_change_fires_on_typical_input` (P5 fixture); `test_iban_change_silent_on_clean_ledger`; `test_pi_acceptance_p04_spaces_and_lowercase_no_alert`; `test_pi_acceptance_p05_new_valid_iban_critical` (`source_refs [inv.csv:0, sup.csv:0]`, masks `****2345`/`****1332`, `verification_message == VERIFY_BY_PHONE_MESSAGE`); `test_pi_acceptance_p12a_hyphenated_iban_warning_format`; `test_pi_acceptance_p12b_nan_iban_skipped`; `test_payment_to_non_master_iban_critical`; `test_verify_by_phone_message_has_no_digit`; `test_alert_data_contracts` for the three variants; `test_through_run_all_namespace_pi`.
   - **Tier 2** (every row of §8.4): `test_ibans_differing_before_last_four_still_alert_with_last4_identical`; `test_nbsp_inside_iban_removed`; `test_hyphen_only_iban_is_missing`; `test_checksum_failure_reason_checksum` (planted by the test only); `test_lowercase_accepted`; `test_invoice_and_payment_same_supplier_two_independent_alerts`; `test_empty_ledger_with_non_master_payment_alerts` (REQ-PI-22); `test_everything_empty_returns_empty_list`; `test_unknown_supplier_skipped`; `test_nan_and_none_ibans_skipped`; `test_invalid_master_iban_flagged_once_and_never_compared`; `test_attribution_by_name_and_by_iban_for_payments`; `test_credit_payments_ignored`; `test_one_alert_per_row`; `test_missing_suppliers_and_payments_keys_in_context`.
   - **Tier 3** (`max_examples=200`): `test_iban_spacing_and_case_never_fire`; `test_alert_data_never_contains_full_iban` (REQ-PII-04); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs` (ledger **and** suppliers **and** payments); `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
-- [ ] Implement `detectors/iban_change.py` (`@register("pi.iban_change")`, `VERIFY_BY_PHONE_MESSAGE`, `_iban_state`, `_valid_master_key`, `_invalid`, `_invoice_differs`, `_payment_differs`; re-export of the IBAN constants from `utils`).
+- [x] Implement `detectors/iban_change.py` (`@register("pi.iban_change")`, `VERIFY_BY_PHONE_MESSAGE`, `_iban_state`, `_valid_master_key`, `_invalid`, `_invoice_differs`, `_payment_differs`; re-export of the IBAN constants from `utils`).
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_iban_change.py -q` passes; `ruff check` clean.
 
 ---
@@ -191,11 +191,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-29 to REQ-PI-33, REQ-PI-63 (P6, P7, P8, P11), REQ-PI-64, REQ-PI-66, OD-PI-16, §9
 
-- [ ] Write `tests/test_pi_vat_error.py`:
+- [x] Write `tests/test_pi_vat_error.py`:
   - **Tier 1**: `test_vat_error_fires_on_typical_input`; `test_vat_error_silent_on_clean_ledger`; `test_pi_acceptance_p06_correct_vat`; `test_pi_acceptance_p07_wrong_vat_consistent_total_one_alert` (`expected_vat_amount "21.00"`, `vat_amount "12.10"`); `test_pi_acceptance_p08_withholding`; `test_pi_acceptance_p11_surcharge`; `test_total_mismatch_alert_contract`; `test_vat_rate_not_allowed_contract` (`allowed_vat_rates == "21, 10, 4, 0"`); `test_through_run_all_namespace_pi`.
   - **Tier 2**: `test_vat_amount_boundary_0_01_clean_0_02_alerts`; `test_total_boundary_0_01_clean_0_02_alerts`; `test_rate_21_00_allowed_20_and_5_alert`; `test_rate_zero_with_zero_vat_clean`; `test_missing_base_rate_vat_or_total_skips_only_that_check`; `test_string_and_float_cells_treated_as_missing`; `test_half_up_case_0_50_at_21_percent` (stated `0.11` clean, `0.09` alerts); `test_withholding_larger_than_base_plus_vat_is_total_mismatch_not_error`; `test_missing_surcharge_and_withholding_default_to_zero`; `test_empty_ledger_and_empty_dataframe_return_empty_list`; `test_single_row_returns_list`; `test_constants_values`; `test_duplicate_source_ref_uses_first_row`.
   - **Tier 3** (`max_examples=200`): `test_correct_invoice_never_fires_vat_check`; `test_vat_off_by_two_cents_or_more_always_fires` (uses `assume` to keep the shifted VAT non-negative); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs`; `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
-- [ ] Implement `detectors/vat_error.py` (`@register("pi.vat_error")`, `VAT_TOLERANCE`, `TOTAL_TOLERANCE`, `ALLOWED_VAT_RATES`, `_m`, `_alert`). All money through `percent_of`, `net_total`, `within_tolerance`, `round_to_cents`; no arithmetic operator on a `Decimal` in this file (REQ-MON-03; the test scans the module with `ast` for `BinOp` on money names).
+- [x] Implement `detectors/vat_error.py` (`@register("pi.vat_error")`, `VAT_TOLERANCE`, `TOTAL_TOLERANCE`, `ALLOWED_VAT_RATES`, `_m`, `_alert`). All money through `percent_of`, `net_total`, `within_tolerance`, `round_to_cents`; no arithmetic operator on a `Decimal` in this file (REQ-MON-03; the test scans the module with `ast` for `BinOp` on money names).
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_vat_error.py -q` passes; `ruff check` clean.
 
 ---
@@ -204,11 +204,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-34 to REQ-PI-40, REQ-PI-63 (P9), REQ-PI-64, REQ-PI-66, OD-PI-11, OD-PI-17, DN-6, §10
 
-- [ ] Write `tests/test_pi_reconciliation.py`:
+- [x] Write `tests/test_pi_reconciliation.py`:
   - **Tier 1**: `test_reconciliation_fires_on_typical_input` (overdue invoice); `test_reconciliation_silent_on_clean_ledger` (`clean_ledger_10` + `payments_for_clean`); `test_pi_acceptance_p09_invoice_paid_twice` (invoice and `pay.csv:0` `matched`, `pay.csv:1` `unmatched`, one `payment_without_invoice` with `source_refs [pay.csv:1, sup.csv:0]`, no `invoice_overdue`); `test_overdue_alert_contract` (`days_past_due`, `due_date_is_default`); `test_open_not_due_is_silent`; `test_reconcile_returns_all_four_fields` (`invoice_buckets`, `payment_buckets`, `matches`, `payment_supplier`); `test_through_run_all_namespace_pi`.
   - **Tier 2** (every row of §10.6): `test_payment_on_issue_date_and_on_due_plus_60_matches_one_day_outside_does_not`; `test_due_plus_15_open_due_plus_16_overdue`; `test_amount_difference_0_01_matches_0_02_does_not`; `test_different_currency_does_not_match`; `test_two_equal_invoices_two_payments_pair_in_date_ref_order`; `test_credits_ignored`; `test_payment_attributed_by_name_and_by_iban`; `test_unknown_counterparty_and_iban_is_in_no_bucket`; `test_as_of_none_no_overdue_alert`; `test_invoice_of_supplier_not_in_master_never_matched` (OD-PI-11); `test_defaulted_due_date_flagged`; `test_duplicate_source_ref_uses_first_row`; `test_unusable_rows_in_no_bucket_and_never_raise`; `test_partial_payment_overpayment_and_payment_before_issue_not_matched` (OD-PI-17); `test_empty_ledger_with_unmatched_supplier_payment_alerts`; `test_everything_empty_returns_empty_list`; `test_constants_values`.
   - **Tier 3** (`max_examples=200`, strategy `reconciliation_inputs`): `test_every_invoice_and_supplier_payment_in_exactly_one_bucket` (keys equal the usable invoices and supplier payments; `matches` one-to-one); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs`; `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
-- [ ] Implement in `detectors/utils.py`: `PAYMENT_MATCH_WINDOW_DAYS`, `UNPAID_GRACE_DAYS`, `MATCH_AMOUNT_TOLERANCE`, `InvoiceView`, `PaymentView`, `invoice_view`, `payment_view`, `Reconciliation`, `reconcile`. Implement `detectors/reconciliation.py` (`@register("pi.reconciliation")`, constants re-exported).
+- [x] Implement in `detectors/utils.py`: `PAYMENT_MATCH_WINDOW_DAYS`, `UNPAID_GRACE_DAYS`, `MATCH_AMOUNT_TOLERANCE`, `InvoiceView`, `PaymentView`, `invoice_view`, `payment_view`, `Reconciliation`, `reconcile`. Implement `detectors/reconciliation.py` (`@register("pi.reconciliation")`, constants re-exported).
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_reconciliation.py -q` passes; `ruff check` clean.
 
 ---
