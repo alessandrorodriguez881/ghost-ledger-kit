@@ -15,7 +15,9 @@ Ids are `REQ-SC-nn`. EARS keywords: *shall*, *when*, *while*, *where*, *if ... t
 
 - **REQ-SC-01** The repository shall contain `streamlit_app.py` at its root, the default entry
   point of Streamlit Community Cloud. It shall build its menu with `st.navigation` and expose
-  exactly three pages, in this order: **Home**, **Zombie Subscriptions**, **Phantom Invoices**.
+  exactly four pages, in this order: **Home**, **Zombie Subscriptions**, **Phantom Invoices**,
+  **Benchmark**. *(Amended by REQ-BM-20: the Benchmark page was added after the first three; it
+  only shows the committed benchmark results.)*
 - **REQ-SC-02** When the user opens the Home page, the system shall explain in a few lines that
   (a) deterministic detectors find the figures, (b) every alert cites its source rows, (c) the LLM
   only words the explanation and the number guard rejects any invented number, showing the

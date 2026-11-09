@@ -20,8 +20,8 @@ tests/test_benchmark_runner.py      tests/test_benchmark_page.py
 build_scenario(seed, app, i) ──► files (CSV text) + labels + negatives + context
         │
         ▼  bytes
-zombie: read_bank_statement → normalise → debit rows → run_all(ns="zs", context)
-phantom: run_pipeline(invoices, suppliers, payments, as_of) → results
+zombie: zombie settings.run_pipeline(name, data, aliases, cancellation_dates, cpi) → results
+phantom: phantom settings.run_pipeline(invoices, suppliers, payments, as_of) → results
         │
         ▼  AlertRecord(scenario, type, refs, detector)
 match(alerts, labels) ──► tp / fp / fn ──► metrics ──► results.json ──► benchmark.md, page
@@ -80,6 +80,14 @@ replacement inside a scenario, so cases never touch each other's rows.
 - Zombie: `WINDOW_START = 2025-01-01`, 455 days (last day 2026-03-31). 455 days hold two yearly
   charges (365 days apart) with room to spare. A case picks its start with
   `rng.randrange(0, window - span)`.
+- Zombie, duplicate pairs (D-BM-20): REQ-ZS-13a and REQ-ZS-17 count only **active** series, and a
+  monthly series is active when its last charge is within 30 + 3 days of the latest date of the
+  ledger. Every row of a scenario lies in the window, so the pair cases (Z11, Z12, Z13) and the
+  hard negative NZ14 start with `Builder.late_start(span, slack=15)`: the earlier series ends
+  `ACTIVE_TAIL_DAYS` (30) to 15 days before the last day of the window (`ZOMBIE_END`), the later
+  one 15 days after it. Both are active whatever else the scenario holds. The 30 and 33 are
+  literals from the requirement, not read from a detector. A pair placed at a random date, as
+  the first version did, is only active by luck.
 - Phantom: `as_of = 2025-10-01 + rng.randrange(0, 30)` days. Clean invoices are issued in
   `[2025-01-01, as_of - 45 days]`, so a payment at issue + 10..40 days is never after `as_of`.
   Cases that need a late date (P13, P14, NP10) derive it backwards from `as_of`
@@ -152,7 +160,7 @@ carry an `R` label for their series and only occur in planted scenarios.
 | NZ11 | trial_too_early | token 1.00, 36 days before a 6-charge series | series-bearing (R) |
 | NZ12 | trial_amount_above | token 1.01, 14 days before a 6-charge series | series-bearing (R) |
 | NZ13 | cancel_same_day | cancellation date = date of the last charge | series-bearing (R) |
-| NZ14 | parallel_amounts_differ | one counterparty, two interleaved series 10.00 and 11.50 | series-bearing (2 R) |
+| NZ14 | parallel_amounts_differ | one counterparty, two interleaved series 10.00 and 11.50 (placed late like Z11–Z13, D-BM-20, so that "silent" means "judged and not a duplicate", not "inactive") | series-bearing (2 R) |
 
 | Id | Kind | Content |
 |---|---|---|
@@ -242,21 +250,22 @@ phantom `{"as_of": "2025-10-14"}`. The runner converts them with the apps' own h
 
 ```python
 def run_zombie(s: Scenario) -> list[AlertRecord]:
-    txs, _q = read_bank_statement(io.BytesIO(data), source_file="statement.csv")
-    ledger, _nq = normalise(txs)
-    debit = ledger[ledger["flow"] == "debit"].reset_index(drop=True)   # app.py: debit_ledger
-    ctx = {"aliases": normalise_alias_map(...), "cancellation_dates": normalise_date_map(...), "cpi": None}
-    results = run_all(debit, namespace="zs", context=ctx)
+    pipe = zombie_run_pipeline("statement.csv", data,
+                               aliases=normalise_alias_map(...),
+                               cancellation_dates=normalise_date_map(...), cpi=None)
+    results = pipe.results
 def run_phantom(s: Scenario) -> list[AlertRecord]:
     pipe = run_pipeline((Source("invoices.csv", ...),), Source("suppliers.csv", ...),
                         Source("payments.csv", ...), as_of)
     results = pipe.results
 ```
 
-The zombie app builds this inline in `app.py` (the debit filter is one line); there is no public
-function (D-BM-10). Fidelity is pinned by REQ-BM-11's demo check: the same code on the committed
-demo gives the app's 19 / 9 alerts. `cpi` is `None` because the CPI context only decorates an
-alert that already fired (Finance Rule 9).
+`zombie_run_pipeline` is `apps.zombie_subscriptions.settings.run_pipeline`, imported under that
+alias because the phantom function has the same name. It holds the read, normalise, debit-filter
+and `run_all` steps that `app.py` used to run inline, and `app.py` now calls it too (D-BM-10,
+amendment of the zombie spec, behaviour unchanged). The benchmark therefore measures exactly what
+the app runs; the demo check of REQ-BM-11 (19 / 9 alerts) pins the counts. `cpi` is `None`
+because the CPI context only decorates an alert that already fired (Finance Rule 9).
 
 `AlertRecord = (scenario, type, refs: tuple[str, ...], detector)`. `type` follows REQ-BM-05.
 
@@ -416,14 +425,20 @@ Hypothesis tests use `settings(max_examples=200)` (testing.md). Nothing reads th
 - **D-BM-07 Annual subscription.** The owner listed it as a hard negative. REQ-ZS-10 makes two
   yearly charges a series, so the pair (Z04) is planted as a recurring-charge positive, and the
   hard negative NZ03 is a single annual charge. Every other detector must stay silent for both.
-  *Open question 1.*
+  *Answered by the owner (session 10b): yes, exactly as written. Two yearly charges are a
+  recurring-charge positive; a single annual charge is the hard negative; every other detector
+  stays silent on both.*
 - **D-BM-08 String RNG seed per scenario.** `random.Random(str)` hashes with SHA-512, not with the
   per-process `hash()`; scenarios stay independent of each other and of the scenario count.
 - **D-BM-09 Plain CSV only.** Dialects and real formats are tested by their own suites; adding
   them multiplies run time without testing a detector.
-- **D-BM-10 The zombie pipeline is repeated in the runner.** `app.py` has no public function for
-  it; changing the app is out of scope. The demo fidelity test pins the equivalence. *Open
-  question 2.*
+- **D-BM-10 The zombie pipeline is one public function, called by the app and by the runner.**
+  *Answered by the owner (session 10b), replacing the first draft ("repeated in the runner").* The
+  read, normalise, debit-filter and detector steps move out of `app.py` into
+  `apps/zombie_subscriptions/settings.py::run_pipeline`, mirroring the phantom app; `app.py` and
+  the runner both call it, so the benchmark measures exactly what the app runs. A refactor with
+  no behaviour change: every existing test stays green, the demo still shows 3 tombstones and 19
+  alerts. Recorded as an amendment in the zombie spec (requirements §8, design §7, tasks ZSA1).
 - **D-BM-11 Errors via the registry log.** `run_all` hides exceptions by design; without the
   handler a crashing detector would show as "found nothing".
 - **D-BM-12 No caps in `results.json`.** Every false positive and miss is listed, so a judge or a
@@ -434,38 +449,94 @@ Hypothesis tests use `settings(max_examples=200)` (testing.md). Nothing reads th
   a case (dates, amounts, names).
 - **D-BM-15 Ratios as `Decimal` strings.** Byte-identical output on every platform; no `float`
   repr question.
-- **D-BM-16 Page runs as a function; tests call the function.** See §5.
+- **D-BM-16 Page runs as a function; tests call the function.** See §5. *Answered by the owner
+  (session 10b): navigation accepted as written.*
 - **D-BM-17 Scenario count is the run-time knob.** 200 is the owner's example, 60 s the hard
-  limit; the count in the files is whatever fits.
+  limit; the count in the files is whatever fits. *Answered by the owner (session 10b): accepted.*
 - **D-BM-18 Payments after the matching window are not benchmarked.** They are unmatched by
   rule (REQ-PI-37); labelling that pair would test the spec against itself.
 - **D-BM-19 Exactly +5.00 % is labelled positive.** REQ-ZS-14's first sentence says "more than
   5 %"; its last bullet says a noise-free step of exactly 5 % fires, and the code fires. The
-  benchmark follows the bullet. *Open question 3.*
+  benchmark follows the bullet. *Answered by the owner (session 10b): the code fires, so the
+  case is labelled positive; FU-P3 keeps the wording fix.*
+- **D-BM-20 Duplicate pairs are planted active.** *(Session 10d, finding F1.)* The first full run
+  found only 9 of 84 planted duplicate subscriptions. Cause: the generator placed each pair at a
+  random date, while REQ-ZS-13a and REQ-ZS-17 say that only series active at the latest date of
+  the ledger count; most pairs ended months before the ledger did, so the labels contradicted the
+  requirement. This is a generator error, not a detector error: the detector follows its
+  requirement. The generator now places Z11–Z13 and NZ14 in the last days of the window (§2.3).
+  The labels, the case catalogue and the detector are unchanged. REQ-BM-22 forbids changing a
+  label or hard negative *to remove a detector error*; this change removes a contradiction with
+  the requirement the label comes from, which REQ-BM-22a spells out. The committed results
+  before this change are kept in §8 as the first measurement.
 
 ## 8 Follow-ups
 
-No detector is changed here (REQ-BM-22). This section is the list the first full run fills.
+No detector is changed here (REQ-BM-22). This section lists what the first full run found, with the
+cause of each finding. Session 10d read the code, the specs and the exported scenarios
+`zs-0000`, `zs-0004`, `zs-0006` and `zs-0036` (the other exported scenarios were not opened; the
+causes below are the same mechanism, not re-read for each id).
 
-**Predicted from reading the code (unverified, to be confirmed or removed by task BM9):**
+**First measurement** (seed 2026, 200 scenarios per app, committed before D-BM-20; the run took
+about 17 s, so `SCENARIOS_PER_APP` stays 200): zombie precision `0.9697`, recall `0.9251`;
+phantom precision `0.7742`, recall `1.0000`; no detector raised an error. Every figure not named
+below was `1.0000` / `1.0000`.
 
-| Id | Detector | Scenario kind | Why it is expected | Expected fix test |
-|---|---|---|---|---|
-| FU-P1 | `pi.iban_change` | NP03 `two_legit_ibans` | `build_master` keeps the first master row per tax id and ignores the others, so an invoice or payment on the second legitimate IBAN is compared with one IBAN only → critical false alarm *(inferred)* | a supplier with two master IBANs: an invoice on either is silent; a third IBAN still alerts |
-| FU-P2 | `zs.recurring_charge` | NZ01 / NZ02 | amounts are drawn at random and never redrawn; four consecutive weekly amounts within 10 % of each other can form a weekly series by chance *(inferred, probability not estimated)* | decide whether irregular-but-similar groceries should qualify; add the case as a test either way |
-| FU-P3 | requirements text | Z10 | REQ-ZS-14 says "more than 5 %" and also "exactly 5 % fires"; a requirement wording fix, not a detector error | amend the sentence |
+### 8.1 Predictions of the first draft, confirmed or removed
 
-**Measured (filled by BM9 after the first full run):** one row per finding, grouped by hard-negative
-kind or case with one example scenario id, in this form:
+| Id | Verdict | Note |
+|---|---|---|
+| FU-P1 | **confirmed** as F3 | `build_master` keeps the first master row per tax id (REQ-PI-09). |
+| FU-P2 | **confirmed, cause refined** as F2 | Not a chance weekly series alone: see F2. |
+| FU-P3 | **open** | REQ-ZS-14 says "more than 5 %" and also "exactly 5 % fires". Wording fix for the owner; the benchmark follows the bullet (D-BM-19). The benchmark found no error here (`zs.price_increase` 84 of 84). |
 
-| Id | Detector | Scenario id(s) | Input (rows) | Observed | Expected | Test to write first |
-|---|---|---|---|---|---|---|
-| *(none yet: the benchmark has not been run)* | | | | | | |
+### 8.2 Measured findings
+
+| Id | Detector | Scenario id(s) | Input (rows) | Observed | Expected | Cause | Case | Handled in |
+|---|---|---|---|---|---|---|---|---|
+| F1 | `zs.duplicate_subscription` | misses of type `zs.duplicate_subscription`: 75 of 84 labels, examples `zs-0004/L4`, `zs-0004/L7`, `zs-0006` (CLOUDNEST pair) | Z11–Z13 pairs of four monthly charges each, placed at a random date | no alert; 9 of 84 found | one warning per pair | REQ-ZS-13a and REQ-ZS-17: only series active at the latest date of the ledger count. In `zs-0004` the LUMENBEAT pair ends on 2025-06-13 and the IVORYNEST pair on 2025-06-30; the ledger ends on 2026-02-08, more than 200 days later. In `zs-0006` the CLOUDNEST pair ends on 2025-08-31, the ledger on 2026-03-29. The 9 found are the pairs that happened to end in the last 33 days. | **(b) generator contradicts the requirement.** The detector is right. | D-BM-20, `late_start` in `scripts/generate_benchmark.py`; tests in `tests/test_benchmark_generator.py` (Task BM9). Results must be regenerated once (§9). |
+| F2 | `zs.recurring_charge` | false alarms (29) on hard negatives `fuel_irregular` (12 of 43 instances, 14 alarms) and `weekly_groceries_irregular` (13 of 43, 15 alarms); examples `zs-0000` (refs `statement.csv:33`, `:41`, `:51`), `zs-0036` (refs `:34`, `:35`, `:38`, `:40`, `:42`), `zs-0009`, `zs-0062` | one shop, 26 weekly or 20 irregular charges with amounts drawn between 15.00 and 120.00 (fuel 20.00 to 75.00) | an info alert for a "series" | none (REQ-ZS-09 E7: weekly charges of varying amounts at one shop give no alert) | `zs-0000`: NIMBUSBOX groceries of 2025-06-04 (115.63), 2025-07-02 (119.51) and 2025-07-30 (114.75) lie 28 days apart and within 10 % of their median: three monthly charges, accepted as a *variable bill* (REQ-ZS-10a(3)). The six other charges of the shop between the first and the last are ignored: the cadence run skips rows that are too close, and the "no other rows in the span" guard of REQ-ZS-10b applies to quarterly and yearly series only. `zs-0036`: four weekly charges (76.16 to 78.36) form a weekly series by chance, and a fifth charge 17 % lower joins as an edge step. E7b passes only because its fixture was built with 13 price levels more than 10 % apart. | **(a) real detector weakness.** The hard negative is what E7 describes. | `.kiro/specs/detector-fixes/`: REQ-DF-10 to REQ-DF-16 |
+| F3 | `pi.iban_change` | false alarms (140) on hard negative `two_legit_ibans`: 35 of 35 instances, 4 alarms each (the 12 noise-only scenarios with an alert carry this kind, which is label-free) | master with two rows for one tax id and two valid IBANs; 2 invoices and 2 payments use the second IBAN | 2 critical `invoice_iban_differs_from_master` and 2 critical `payment_to_non_master_iban` | none: both accounts are in the master | REQ-PI-09 says that when several master rows share a tax id the first is used and the others are ignored; `build_master` does exactly that, so the second legitimate account is a "poltergeist". The generator follows the intent of the detector (flag an account the master does not hold); the requirement text is what is wrong, because suppliers do keep several accounts. | **(a) real weakness, rooted in REQ-PI-09.** NP03 is not changed. | `.kiro/specs/detector-fixes/`: REQ-DF-01 to REQ-DF-09 (amends REQ-PI-09 and REQ-PI-24) |
+
+Per REQ-BM-22 every false positive and miss of `results.json` is covered: the 29 zombie false
+alarms by F2 (both kinds named above), the 140 phantom false alarms by F3 (`two_legit_ibans`),
+the 75 misses by F1 (`zs.duplicate_subscription`). A test reads the committed results and checks
+that every false positive and every miss is named by the index below (a hard-negative kind, a
+miss type or a scenario id between backticks); the index is the only part of this section the
+test parses.
+
+Coverage index (read by `tests/test_benchmark_runner.py`):
+
+- Hard-negative kinds: `fuel_irregular`, `weekly_groceries_irregular`, `two_legit_ibans`
+- Miss types: `zs.duplicate_subscription`
+- Scenario ids: none
+
+**After the fixes.** Three regenerations are expected, in this order, each recorded here by the
+author (no number is written before it is measured): (1) after D-BM-20, the zombie block changes
+because the generator draws other dates; F1 is expected to vanish; (2) after the phantom fix of
+`detector-fixes`, `two_legit_ibans` is expected to give zero false alarms; (3) after the zombie
+fix, the false alarms of F2 are expected to fall; whatever remains is listed with scenario ids
+and judged on its own, never removed by changing the benchmark or a threshold.
+
+| Step | Zombie precision | Zombie recall | Phantom precision | Phantom recall | Remaining findings |
+|---|---|---|---|---|---|
+| First measurement | `0.9697` | `0.9251` | `0.7742` | `1.0000` | F1, F2, F3 |
+| After D-BM-20 | *(to be measured)* | | `0.7742` (unchanged generator) | `1.0000` | |
+| After `detector-fixes` phantom task | | | *(to be measured)* | | |
+| After `detector-fixes` zombie task | *(to be measured)* | | | | |
 
 ## 9 Not verified by the author
 
-Written without running a command. Unverified: the run time of the full benchmark (§4); that every
+Written without running a command. Unverified: the run time of the full benchmark (§4; the user
+measured about 17 s on the first full run, session 10d); that every
 hard negative truly leaves all detectors silent (the benchmark exists to find out); that the
 round-robin schedule reaches the minimum counts (tests assert it); how `AppTest.switch_page`
 treats a function page (§5); the exact alert counts 19 and 9 of the demos (taken from
 `tests/test_showcase_app.py`, not re-run).
+
+Session 10d, also not run: the causes in §8 were read from the code, the specs and four exported
+scenarios, not reproduced by a debugger; the effect of `late_start` on the recall of
+`zs.duplicate_subscription` (expected to rise to `1.0000`, not measured); and the committed
+`results.json` and `benchmark.md` are **stale after D-BM-20** until the author runs
+`python scripts/benchmark.py` once and commits both files. Until then the committed-results
+tests of `tests/test_benchmark_runner.py` fail on purpose.

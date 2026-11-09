@@ -1,0 +1,5631 @@
+{
+  "apps": {
+    "phantom": {
+      "detectors": {
+        "pi.duplicate_invoice": {
+          "alerts": 116,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 116,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 116
+        },
+        "pi.iban_change": {
+          "alerts": 280,
+          "false_alarms_per_noise_scenario": "1.2000",
+          "fn": 0,
+          "fp": 140,
+          "labels": 140,
+          "noise_only_alerts": 48,
+          "noise_only_scenarios_with_alert": 12,
+          "precision": "0.5000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 140
+        },
+        "pi.reconciliation": {
+          "alerts": 84,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 84
+        },
+        "pi.vat_error": {
+          "alerts": 140,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 140,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 140
+        }
+      },
+      "errors": {},
+      "false_positives": [
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:1",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0000",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:5",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0000",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:1",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0000",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:3",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0000",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:16",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0002",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:18",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0002",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:15",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0002",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:18",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0002",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:5",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0011",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0011",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0011",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:7",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0011",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:6",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0019",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0019",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:5",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0019",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0019",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:8",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0020",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:15",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0020",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:9",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0020",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0020",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:9",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0028",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:14",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0028",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:9",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0028",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:15",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0028",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0035",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0035",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0035",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0035",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:21",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0037",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:25",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0037",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:17",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0037",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:25",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0037",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:1",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0046",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0046",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:0",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0046",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0046",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:18",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0054",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0054",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:16",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0054",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:21",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0054",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0055",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:19",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0055",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0055",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:16",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0055",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:3",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0063",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0063",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0063",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0063",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:1",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0070",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:3",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0070",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:2",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0070",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:6",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0070",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:2",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0072",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:7",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0072",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:2",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0072",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:7",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0072",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0081",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:25",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0081",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:20",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0081",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:25",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0081",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0089",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:13",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0089",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0089",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:13",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0089",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:12",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0090",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:16",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0090",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:11",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0090",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:16",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0090",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:15",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0098",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:19",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0098",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:15",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0098",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:19",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0098",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0105",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:13",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0105",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0105",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:14",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0105",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:9",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0107",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0107",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:9",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0107",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0107",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:19",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0116",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0116",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:18",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0116",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0116",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:6",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0124",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0124",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:6",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0124",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0124",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:2",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0125",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:7",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0125",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:0",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0125",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:10",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0125",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0133",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0133",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0133",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0133",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:5",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0140",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0140",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0140",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:11",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0140",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:15",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0142",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:18",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0142",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:16",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0142",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:19",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0142",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:14",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0151",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:17",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0151",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0151",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:17",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0151",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:20",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0159",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0159",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:19",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0159",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:22",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0159",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:13",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0160",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:18",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0160",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:9",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0160",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:15",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0160",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0168",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0168",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0168",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0168",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:6",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0175",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:10",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0175",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:7",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0175",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0175",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:1",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0177",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0177",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:4",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0177",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:5",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0177",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:17",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0186",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:20",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0186",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:16",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0186",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:20",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0186",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:8",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0194",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0194",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:9",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0194",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:12",
+            "suppliers.csv:3"
+          ],
+          "scenario": "pi-0194",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:11",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0195",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "invoices.csv:15",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0195",
+          "type": "pi.iban_change/invoice_iban_differs_from_master"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:8",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0195",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        },
+        {
+          "hard_negative": "two_legit_ibans",
+          "refs": [
+            "payments.csv:14",
+            "suppliers.csv:0"
+          ],
+          "scenario": "pi-0195",
+          "type": "pi.iban_change/payment_to_non_master_iban"
+        }
+      ],
+      "hard_negatives": {
+        "iban_spelling_variant": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        },
+        "missing_iban": {
+          "false_alarms": 0,
+          "instances": 33,
+          "instances_with_false_alarm": 0
+        },
+        "near_number_totals_differ": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        },
+        "non_supplier_payments": {
+          "false_alarms": 0,
+          "instances": 33,
+          "instances_with_false_alarm": 0
+        },
+        "numbering_restart_180": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        },
+        "open_at_due_plus_15": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        },
+        "paid_late_in_full": {
+          "false_alarms": 0,
+          "instances": 35,
+          "instances_with_false_alarm": 0
+        },
+        "paid_on_last_matching_day": {
+          "false_alarms": 0,
+          "instances": 35,
+          "instances_with_false_alarm": 0
+        },
+        "rounding_half_cent": {
+          "false_alarms": 0,
+          "instances": 35,
+          "instances_with_false_alarm": 0
+        },
+        "same_amount_other_months": {
+          "false_alarms": 0,
+          "instances": 35,
+          "instances_with_false_alarm": 0
+        },
+        "same_number_two_suppliers": {
+          "false_alarms": 0,
+          "instances": 35,
+          "instances_with_false_alarm": 0
+        },
+        "same_total_7_days_apart": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        },
+        "two_legit_ibans": {
+          "false_alarms": 140,
+          "instances": 35,
+          "instances_with_false_alarm": 35
+        },
+        "vat_off_by_one_cent": {
+          "false_alarms": 0,
+          "instances": 34,
+          "instances_with_false_alarm": 0
+        }
+      },
+      "misses": [],
+      "noise_only_scenarios": 40,
+      "scenarios": 200,
+      "scenarios_detail": [
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0000",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0001",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0002",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0003",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0004",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0005",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0006",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0007",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0008",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0009",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0010",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0011",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0012",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0013",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0014",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0015",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0016",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0017",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0018",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0019",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0020",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0021",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0022",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0023",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0024",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0025",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0026",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0027",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0028",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0029",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0030",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0031",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0032",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0033",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0034",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0035",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0036",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0037",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0038",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0039",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0040",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0041",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0042",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0043",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0044",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0045",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0046",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0047",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0048",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0049",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0050",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0051",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0052",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0053",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0054",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0055",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0056",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0057",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0058",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0059",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0060",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0061",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0062",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0063",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0064",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0065",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0066",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0067",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0068",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0069",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0070",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0071",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0072",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0073",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0074",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0075",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0076",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0077",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0078",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0079",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0080",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0081",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0082",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0083",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0084",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0085",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0086",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0087",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0088",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0089",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0090",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0091",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0092",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0093",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0094",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0095",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0096",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0097",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0098",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0099",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0100",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0101",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0102",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0103",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0104",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0105",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0106",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0107",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0108",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0109",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0110",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0111",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0112",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0113",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0114",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0115",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0116",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0117",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0118",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0119",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0120",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0121",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0122",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0123",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0124",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0125",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0126",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0127",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0128",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0129",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0130",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0131",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0132",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0133",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0134",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0135",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0136",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0137",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0138",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0139",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0140",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0141",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0142",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0143",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0144",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0145",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0146",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0147",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0148",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0149",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0150",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0151",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0152",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0153",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0154",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0155",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0156",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0157",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0158",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0159",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0160",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0161",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0162",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0163",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0164",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0165",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0166",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0167",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0168",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0169",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0170",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0171",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0172",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0173",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0174",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0175",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0176",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0177",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0178",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0179",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0180",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0181",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0182",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0183",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0184",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0185",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0186",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0187",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0188",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0189",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0190",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0191",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0192",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0193",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0194",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 4,
+          "id": "pi-0195",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0196",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0197",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0198",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "pi-0199",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        }
+      ],
+      "seed": 2026,
+      "totals": {
+        "alerts": 620,
+        "fn": 0,
+        "fp": 140,
+        "labels": 480,
+        "precision": "0.7742",
+        "recall": "1.0000",
+        "tp": 480
+      },
+      "types": {
+        "pi.duplicate_invoice/near_identical_number": {
+          "alerts": 29,
+          "fn": 0,
+          "fp": 0,
+          "labels": 29,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 29
+        },
+        "pi.duplicate_invoice/same_number": {
+          "alerts": 58,
+          "fn": 0,
+          "fp": 0,
+          "labels": 58,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 58
+        },
+        "pi.duplicate_invoice/same_total_close_dates": {
+          "alerts": 29,
+          "fn": 0,
+          "fp": 0,
+          "labels": 29,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 29
+        },
+        "pi.iban_change/iban_invalid": {
+          "alerts": 84,
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 84
+        },
+        "pi.iban_change/invoice_iban_differs_from_master": {
+          "alerts": 98,
+          "fn": 0,
+          "fp": 70,
+          "labels": 28,
+          "precision": "0.2857",
+          "recall": "1.0000",
+          "tp": 28
+        },
+        "pi.iban_change/payment_to_non_master_iban": {
+          "alerts": 98,
+          "fn": 0,
+          "fp": 70,
+          "labels": 28,
+          "precision": "0.2857",
+          "recall": "1.0000",
+          "tp": 28
+        },
+        "pi.reconciliation/invoice_overdue": {
+          "alerts": 56,
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 56
+        },
+        "pi.reconciliation/payment_without_invoice": {
+          "alerts": 28,
+          "fn": 0,
+          "fp": 0,
+          "labels": 28,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 28
+        },
+        "pi.vat_error/total_mismatch": {
+          "alerts": 56,
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 56
+        },
+        "pi.vat_error/vat_amount_mismatch": {
+          "alerts": 56,
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 56
+        },
+        "pi.vat_error/vat_rate_not_allowed": {
+          "alerts": 28,
+          "fn": 0,
+          "fp": 0,
+          "labels": 28,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 28
+        }
+      }
+    },
+    "zombie": {
+      "detectors": {
+        "zs.charges_after_cancellation": {
+          "alerts": 56,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 56
+        },
+        "zs.duplicate_subscription": {
+          "alerts": 84,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 84
+        },
+        "zs.free_trial_to_paid": {
+          "alerts": 56,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 56
+        },
+        "zs.price_increase": {
+          "alerts": 84,
+          "false_alarms_per_noise_scenario": "0.0000",
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 84
+        },
+        "zs.recurring_charge": {
+          "alerts": 751,
+          "false_alarms_per_noise_scenario": "0.3250",
+          "fn": 0,
+          "fp": 29,
+          "labels": 722,
+          "noise_only_alerts": 13,
+          "noise_only_scenarios_with_alert": 11,
+          "precision": "0.9614",
+          "recall": "1.0000",
+          "seed": 2026,
+          "tp": 722
+        }
+      },
+      "errors": {},
+      "false_positives": [
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:33",
+            "statement.csv:41",
+            "statement.csv:51"
+          ],
+          "scenario": "zs-0000",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:57",
+            "statement.csv:68",
+            "statement.csv:77"
+          ],
+          "scenario": "zs-0001",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:74",
+            "statement.csv:85",
+            "statement.csv:91"
+          ],
+          "scenario": "zs-0001",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:29",
+            "statement.csv:32",
+            "statement.csv:36",
+            "statement.csv:42"
+          ],
+          "scenario": "zs-0009",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:44",
+            "statement.csv:57",
+            "statement.csv:69"
+          ],
+          "scenario": "zs-0009",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:50",
+            "statement.csv:59",
+            "statement.csv:63"
+          ],
+          "scenario": "zs-0010",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:55",
+            "statement.csv:61",
+            "statement.csv:65"
+          ],
+          "scenario": "zs-0010",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:5",
+            "statement.csv:12",
+            "statement.csv:16"
+          ],
+          "scenario": "zs-0020",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:2",
+            "statement.csv:13",
+            "statement.csv:26"
+          ],
+          "scenario": "zs-0036",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:20",
+            "statement.csv:31",
+            "statement.csv:41",
+            "statement.csv:51"
+          ],
+          "scenario": "zs-0036",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:34",
+            "statement.csv:35",
+            "statement.csv:38",
+            "statement.csv:40",
+            "statement.csv:42"
+          ],
+          "scenario": "zs-0036",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:24",
+            "statement.csv:34",
+            "statement.csv:43"
+          ],
+          "scenario": "zs-0040",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:21",
+            "statement.csv:31",
+            "statement.csv:39"
+          ],
+          "scenario": "zs-0062",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:34",
+            "statement.csv:42",
+            "statement.csv:52"
+          ],
+          "scenario": "zs-0062",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:50",
+            "statement.csv:61",
+            "statement.csv:71",
+            "statement.csv:83"
+          ],
+          "scenario": "zs-0062",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:24",
+            "statement.csv:33",
+            "statement.csv:48"
+          ],
+          "scenario": "zs-0090",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:29",
+            "statement.csv:40",
+            "statement.csv:51"
+          ],
+          "scenario": "zs-0090",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:24",
+            "statement.csv:34",
+            "statement.csv:41"
+          ],
+          "scenario": "zs-0097",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:32",
+            "statement.csv:35",
+            "statement.csv:37",
+            "statement.csv:39"
+          ],
+          "scenario": "zs-0097",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:43",
+            "statement.csv:58",
+            "statement.csv:68",
+            "statement.csv:81"
+          ],
+          "scenario": "zs-0097",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:30",
+            "statement.csv:42",
+            "statement.csv:51"
+          ],
+          "scenario": "zs-0100",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:46",
+            "statement.csv:55",
+            "statement.csv:67",
+            "statement.csv:79"
+          ],
+          "scenario": "zs-0106",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:53",
+            "statement.csv:62",
+            "statement.csv:70"
+          ],
+          "scenario": "zs-0120",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:46",
+            "statement.csv:57",
+            "statement.csv:65",
+            "statement.csv:78"
+          ],
+          "scenario": "zs-0149",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:33",
+            "statement.csv:42",
+            "statement.csv:51"
+          ],
+          "scenario": "zs-0150",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:15",
+            "statement.csv:24",
+            "statement.csv:36"
+          ],
+          "scenario": "zs-0158",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "fuel_irregular",
+          "refs": [
+            "statement.csv:43",
+            "statement.csv:46",
+            "statement.csv:50",
+            "statement.csv:52",
+            "statement.csv:55"
+          ],
+          "scenario": "zs-0160",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:55",
+            "statement.csv:62",
+            "statement.csv:67"
+          ],
+          "scenario": "zs-0170",
+          "type": "zs.recurring_charge"
+        },
+        {
+          "hard_negative": "weekly_groceries_irregular",
+          "refs": [
+            "statement.csv:5",
+            "statement.csv:9",
+            "statement.csv:15"
+          ],
+          "scenario": "zs-0180",
+          "type": "zs.recurring_charge"
+        }
+      ],
+      "hard_negatives": {
+        "cancel_same_day": {
+          "false_alarms": 0,
+          "instances": 22,
+          "instances_with_false_alarm": 0
+        },
+        "fuel_irregular": {
+          "false_alarms": 14,
+          "instances": 43,
+          "instances_with_false_alarm": 12
+        },
+        "gap_34_days": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "one_off_price_change": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "parallel_amounts_differ": {
+          "false_alarms": 0,
+          "instances": 22,
+          "instances_with_false_alarm": 0
+        },
+        "price_below_threshold": {
+          "false_alarms": 0,
+          "instances": 23,
+          "instances_with_false_alarm": 0
+        },
+        "price_decrease": {
+          "false_alarms": 0,
+          "instances": 23,
+          "instances_with_false_alarm": 0
+        },
+        "refunds": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "salary_credits": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "single_annual_charge": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "trial_amount_above": {
+          "false_alarms": 0,
+          "instances": 23,
+          "instances_with_false_alarm": 0
+        },
+        "trial_too_early": {
+          "false_alarms": 0,
+          "instances": 23,
+          "instances_with_false_alarm": 0
+        },
+        "two_charges_only": {
+          "false_alarms": 0,
+          "instances": 43,
+          "instances_with_false_alarm": 0
+        },
+        "weekly_groceries_irregular": {
+          "false_alarms": 15,
+          "instances": 43,
+          "instances_with_false_alarm": 13
+        }
+      },
+      "misses": [],
+      "noise_only_scenarios": 40,
+      "scenarios": 200,
+      "scenarios_detail": [
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0000",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 2,
+          "id": "zs-0001",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0002",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0003",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0004",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0005",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0006",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0007",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0008",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 2,
+          "id": "zs-0009",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 2,
+          "fn": 0,
+          "fp": 2,
+          "id": "zs-0010",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0011",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0012",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0013",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0014",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0015",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0016",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0017",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0018",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0019",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0020",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0021",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0022",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0023",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0024",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0025",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0026",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0027",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0028",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0029",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0030",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0031",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0032",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0033",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0034",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0035",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 3,
+          "id": "zs-0036",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0037",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0038",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0039",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0040",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0041",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0042",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0043",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0044",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0045",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0046",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0047",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0048",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0049",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0050",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0051",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0052",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0053",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0054",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0055",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0056",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0057",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0058",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0059",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0060",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0061",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 3,
+          "id": "zs-0062",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0063",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0064",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0065",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0066",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0067",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0068",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0069",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0070",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0071",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0072",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0073",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0074",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0075",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0076",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0077",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0078",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0079",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0080",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0081",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0082",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0083",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0084",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0085",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0086",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0087",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0088",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0089",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 2,
+          "fn": 0,
+          "fp": 2,
+          "id": "zs-0090",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0091",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0092",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0093",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0094",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0095",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0096",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 12,
+          "fn": 0,
+          "fp": 3,
+          "id": "zs-0097",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0098",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0099",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0100",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0101",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0102",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0103",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0104",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0105",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0106",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0107",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0108",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0109",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0110",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0111",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0112",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0113",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0114",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0115",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0116",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0117",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0118",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0119",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0120",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0121",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0122",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0123",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0124",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0125",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0126",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0127",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0128",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0129",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0130",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0131",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0132",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0133",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0134",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0135",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0136",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0137",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0138",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 12,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0139",
+          "labels": 12,
+          "noise_only": false,
+          "tp": 12
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0140",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0141",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0142",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0143",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0144",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0145",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0146",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0147",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0148",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0149",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0150",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0151",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0152",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0153",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0154",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0155",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0156",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0157",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0158",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0159",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0160",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0161",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0162",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0163",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0164",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0165",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0166",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0167",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0168",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0169",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0170",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0171",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0172",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0173",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0174",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0175",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0176",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0177",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0178",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0179",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 1,
+          "fn": 0,
+          "fp": 1,
+          "id": "zs-0180",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0181",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 11,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0182",
+          "labels": 11,
+          "noise_only": false,
+          "tp": 11
+        },
+        {
+          "alerts": 9,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0183",
+          "labels": 9,
+          "noise_only": false,
+          "tp": 9
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0184",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0185",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0186",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 4,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0187",
+          "labels": 4,
+          "noise_only": false,
+          "tp": 4
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0188",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 10,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0189",
+          "labels": 10,
+          "noise_only": false,
+          "tp": 10
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0190",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0191",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 6,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0192",
+          "labels": 6,
+          "noise_only": false,
+          "tp": 6
+        },
+        {
+          "alerts": 3,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0193",
+          "labels": 3,
+          "noise_only": false,
+          "tp": 3
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0194",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        },
+        {
+          "alerts": 0,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0195",
+          "labels": 0,
+          "noise_only": true,
+          "tp": 0
+        },
+        {
+          "alerts": 8,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0196",
+          "labels": 8,
+          "noise_only": false,
+          "tp": 8
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0197",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 7,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0198",
+          "labels": 7,
+          "noise_only": false,
+          "tp": 7
+        },
+        {
+          "alerts": 5,
+          "fn": 0,
+          "fp": 0,
+          "id": "zs-0199",
+          "labels": 5,
+          "noise_only": false,
+          "tp": 5
+        }
+      ],
+      "seed": 2026,
+      "totals": {
+        "alerts": 1031,
+        "fn": 0,
+        "fp": 29,
+        "labels": 1002,
+        "precision": "0.9719",
+        "recall": "1.0000",
+        "tp": 1002
+      },
+      "types": {
+        "zs.charges_after_cancellation": {
+          "alerts": 56,
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 56
+        },
+        "zs.duplicate_subscription": {
+          "alerts": 84,
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 84
+        },
+        "zs.free_trial_to_paid": {
+          "alerts": 56,
+          "fn": 0,
+          "fp": 0,
+          "labels": 56,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 56
+        },
+        "zs.price_increase": {
+          "alerts": 84,
+          "fn": 0,
+          "fp": 0,
+          "labels": 84,
+          "precision": "1.0000",
+          "recall": "1.0000",
+          "tp": 84
+        },
+        "zs.recurring_charge": {
+          "alerts": 751,
+          "fn": 0,
+          "fp": 29,
+          "labels": 722,
+          "precision": "0.9614",
+          "recall": "1.0000",
+          "tp": 722
+        }
+      }
+    }
+  },
+  "limits": [
+    "All data is synthetic and comes from `scripts/generate_benchmark.py`; real statements and invoices are messier.",
+    "The labels were written by the project team that also wrote the detector requirements; a pattern nobody thought of is neither planted nor labelled.",
+    "Boundary values follow our reading of the requirements; where a requirement is ambiguous the benchmark follows the documented behaviour.",
+    "The shares of clean and planted scenarios and the number of cases per scenario are our choice; precision and recall describe this mix, not another one.",
+    "Only plain-dialect CSV is benchmarked. The Norma bank-statement format, Facturae, European CSV and the CPI context are covered by other tests.",
+    "VAT amounts and totals in the generator use the same money helpers as the detectors; rounding cases therefore also use hand-checked literal values.",
+    "Payments dated after the matching window of the reconciliation are not benchmarked."
+  ],
+  "matching_rule": "Within one scenario, alerts are visited in ascending order of (natural order of the first source_ref, type, source_refs). An alert is a true positive when a still-unmatched label of the same type exists whose rows share at least one source_ref with the alert; if several labels qualify, the one with the largest overlap wins, ties by label id. A matched label is consumed and cannot match a second alert. An alert that matches no label is a false positive; a label never matched is a false negative. Context rows never match.",
+  "scenarios_per_app": 200,
+  "schema_version": 1,
+  "seed": 2026
+}

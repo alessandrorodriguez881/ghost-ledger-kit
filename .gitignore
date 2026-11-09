@@ -230,6 +230,9 @@ data/real/
 # Official public data under an open licence (public-cpi); see data/public/README.md.
 !data/public/
 !data/public/**
+# Generated benchmark results (synthetic data only); see docs/benchmark.md.
+!data/benchmark/
+!data/benchmark/**
 # Tooling configuration (hooks, settings) is JSON that must stay tracked.
 !.kiro/
 !.kiro/**

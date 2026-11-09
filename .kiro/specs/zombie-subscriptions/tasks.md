@@ -343,3 +343,16 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 - [x] Confirm no test or module reads the clock (`date.today()`, `datetime.now()`), no fixture or sample contains a real brand or person name outside Finance Rule 5 placeholders, and `apps/zombie_subscriptions/requirements.txt` does not exist.
 - [x] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
 - [x] Fix any coverage gaps or lint issues found.
+
+---
+
+## Task ZSA1 — Amendment A-ZS-01: one public `run_pipeline` (session 10b, benchmark D-BM-10)
+
+**Covers**: A-ZS-01, design §7 amendment. Refactor only: no behaviour change, no detector change.
+
+- [x] Tests first in `apps/zombie_subscriptions/tests/test_zs_pipeline.py`: the demo statement gives
+  19 alerts and the same 3 zombies as before; CSV and Norma 43 demos give equal alert counts;
+  credits are not in `debit_ledger`; quarantine is returned; the optional `cache` avoids a second
+  read; `_ingest` of `app.py` still returns what it returned.
+- [x] Add `Pipeline`, `ingest_statement` and `run_pipeline` to `settings.py`; make `app.py` call
+  `run_pipeline` (`_ingest` stays as a wrapper). All existing tests stay green.

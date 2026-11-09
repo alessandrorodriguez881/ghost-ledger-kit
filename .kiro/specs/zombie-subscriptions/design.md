@@ -949,6 +949,30 @@ def format_dates_text(dates) -> str: ...
 
 `[demo]` dates arrive from TOML as strings and are converted with `date.fromisoformat`.
 
+**Amendment A-ZS-01 (session 10b, benchmark D-BM-10).** `settings.py` also holds the pipeline the
+page runs, so the benchmark runner can call the same function:
+
+```python
+@dataclass(frozen=True)
+class Pipeline:
+    ledger: pd.DataFrame            # normalised, debit and credit rows
+    debit_ledger: pd.DataFrame      # flow == "debit", index reset (what the detectors read)
+    quarantine: list[dict]          # reader quarantine + normaliser quarantine
+    results: list[DetectorResult]   # run_all(debit_ledger, namespace="zs", context=...)
+    @property
+    def alerts(self) -> list[Alert]: ...      # all alerts in result order
+
+def ingest_statement(name, data, cache=None) -> tuple[pd.DataFrame, list[dict]]: ...
+def run_pipeline(name, data, *, aliases, cancellation_dates, cpi=None, cache=None) -> Pipeline: ...
+```
+
+`ingest_statement` is the old `app._ingest` body (read with `read_bank_statement`, parse cached by
+sha256 when `cache` is given, then `normalise`); `app._ingest` stays as a thin wrapper so its tests
+are unchanged. `aliases` and `cancellation_dates` arrive already normalised
+(`normalise_alias_map`, `normalise_date_map`). `app.py` calls `run_pipeline`; nothing else in the
+data flow below changes. `compute_zombie_cost` stays in `app.py` (it needs the last-used dates,
+which no benchmark scenario has).
+
 ```
 Path bootstrap (insert repo root into sys.path)
   │

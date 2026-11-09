@@ -2,16 +2,20 @@
 
 Run with: ``streamlit run streamlit_app.py``
 
-``st.navigation`` offers three pages: Home (written below) and the two apps, whose ``app.py``
-files run unchanged as pages. Each app still works alone with
-``streamlit run apps/<name>/app.py``. This file imports neither app (spec: showcase).
+``st.navigation`` offers four pages: Home and Benchmark (functions written below) and the two
+apps, whose ``app.py`` files run unchanged as pages. Each app still works alone with
+``streamlit run apps/<name>/app.py``. This file imports neither app (spec: showcase) and none of
+the benchmark code: the Benchmark page only shows ``data/benchmark/results.json``.
 
 Facts checked in Streamlit 1.67: ``st.set_page_config`` may be called again by a page (the calls
 are additive, the page's title wins); a file page runs as ``__main__``, so the guard at the bottom
 of each app fires; both apps are named ``app.py``, so every page needs an explicit ``url_path``.
 """
 
-from typing import NamedTuple
+import json
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, NamedTuple
 
 import streamlit as st
 
@@ -22,7 +26,7 @@ class PageSpec(NamedTuple):
     title: str
     icon: str
     url_path: str  # explicit and unique: both app files are called app.py
-    script: str | None  # path of an app's app.py relative to this file; None: Home, see home()
+    script: str | None  # path of an app's app.py relative to this file; None: a function page
 
 
 PAGES: tuple[PageSpec, ...] = (
@@ -31,6 +35,7 @@ PAGES: tuple[PageSpec, ...] = (
         "Zombie Subscriptions", "🪦", "zombie-subscriptions", "apps/zombie_subscriptions/app.py"
     ),
     PageSpec("Phantom Invoices", "👻", "phantom-invoices", "apps/phantom_invoices/app.py"),
+    PageSpec("Benchmark", "📊", "benchmark", None),
 )
 
 HOME_TITLE = "👻 Ghost Ledger Kit"
@@ -98,14 +103,111 @@ def home() -> None:
     st.caption(INE_NOTE)
 
 
+# The Benchmark page shows the committed results file and nothing else (REQ-BM-20, REQ-BM-21).
+RESULTS_PATH = Path(__file__).parent / "data" / "benchmark" / "results.json"
+RESULTS_SCHEMA_VERSION = 1
+BENCHMARK_TITLE = "📊 Benchmark"
+NO_RESULTS = "No usable benchmark results. Run: python scripts/benchmark.py"
+BENCHMARK_APPS: tuple[tuple[str, str], ...] = (
+    ("zombie", "Zombie Subscriptions"),
+    ("phantom", "Phantom Invoices"),
+)
+BENCHMARK_NOTE = (
+    "These numbers come from synthetic data that the project generated and labelled itself; "
+    "they describe that mix of problems, not real accounts. Method, matching rule and limits: "
+    "docs/benchmark.md."
+)
+HARD_NEGATIVES_NOTE = "Hard negatives: look-alike clean cases that must stay silent."
+
+
+class BenchmarkApp(NamedTuple):
+    """The rows of one app on the Benchmark page."""
+
+    title: str
+    detectors: list[dict[str, Any]]
+    negatives: list[dict[str, Any]]
+
+
+def _cell(value: Any) -> Any:
+    """A table cell: ``null`` in the results file is shown as ``n/a``."""
+    return "n/a" if value is None else value
+
+
+def _benchmark_app(title: str, data: dict[str, Any]) -> BenchmarkApp:
+    """Turn the block of one app of the results file into table rows (no arithmetic)."""
+    detectors = [
+        {
+            "Detector": name,
+            "Planted": entry["labels"],
+            "Found": entry["tp"],
+            "Missed": entry["fn"],
+            "False alarms": entry["fp"],
+            "Precision": _cell(entry["precision"]),
+            "Recall": _cell(entry["recall"]),
+            "Clean scenarios with an alert": entry["noise_only_scenarios_with_alert"],
+        }
+        for name, entry in sorted(data["detectors"].items())
+    ]
+    negatives = [
+        {
+            "Hard negative": kind,
+            "Instances": row["instances"],
+            "Instances with a false alarm": row["instances_with_false_alarm"],
+            "False alarms": row["false_alarms"],
+        }
+        for kind, row in sorted(data["hard_negatives"].items())
+    ]
+    return BenchmarkApp(title, detectors, negatives)
+
+
+def _load_benchmark(path: Path) -> tuple[str, list[BenchmarkApp], list[str]] | None:
+    """Read the results file; None when it is missing, not JSON, another schema or malformed."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or data.get("schema_version") != RESULTS_SCHEMA_VERSION:
+            return None
+        limits = data["limits"]
+        if not isinstance(limits, list) or not all(isinstance(text, str) for text in limits):
+            return None
+        apps = [_benchmark_app(title, data["apps"][key]) for key, title in BENCHMARK_APPS]
+        header = f"Seed {data['seed']}; {data['scenarios_per_app']} scenarios per app."
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    return header, apps, limits
+
+
+def benchmark() -> None:
+    """Render the Benchmark page from results.json; show one error when it is not usable."""
+    st.title(BENCHMARK_TITLE)
+    loaded = _load_benchmark(RESULTS_PATH)
+    if loaded is None:
+        st.error(NO_RESULTS)
+        return
+    header, apps, limits = loaded
+    st.caption(header)
+    st.caption(BENCHMARK_NOTE)
+    for app in apps:
+        st.subheader(app.title)
+        st.dataframe(app.detectors, hide_index=True)
+        if app.negatives:
+            st.caption(HARD_NEGATIVES_NOTE)
+            st.dataframe(app.negatives, hide_index=True)
+    st.markdown("**Limits**")
+    st.markdown("\n".join(f"- {text}" for text in limits))
+
+
+# Pages without a script are functions, found by their url_path.
+FUNCTION_PAGES: dict[str, Callable[[], None]] = {"home": home, "benchmark": benchmark}
+
+
 def _page(spec: PageSpec) -> st.Page:
     """Build the st.Page of one spec; Home is the default page."""
     return st.Page(
-        spec.script or home,
+        spec.script or FUNCTION_PAGES[spec.url_path],
         title=spec.title,
         icon=spec.icon,
         url_path=spec.url_path,
-        default=spec.script is None,
+        default=spec.url_path == "home",
     )
 
 

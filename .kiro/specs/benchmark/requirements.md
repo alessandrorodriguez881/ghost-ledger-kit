@@ -213,10 +213,12 @@ problem and must not fire (§2.5). **Noise-only scenario**: a scenario with no l
 
 - **REQ-BM-11** *(same pipeline)* `scripts/benchmark.py` shall run every scenario through the
   public pipeline of the app, and shall call detectors only through `run_all`.
-  - Zombie: `read_bank_statement(io.BytesIO(bytes), source_file="statement.csv")` →
-    `normalise(transactions)` → keep `flow == "debit"` → `run_all(debit_ledger, namespace="zs",
-    context={"aliases": normalise_alias_map(...), "cancellation_dates": normalise_date_map(...),
-    "cpi": None})`.
+  - Zombie: `run_pipeline(source_name="statement.csv", data=bytes, aliases=normalise_alias_map(...),
+    cancellation_dates=normalise_date_map(...), cpi=None)` of
+    `apps/zombie_subscriptions/settings.py`, the one function that also `app.py` calls. It reads
+    the bytes with `read_bank_statement`, runs `normalise`, keeps `flow == "debit"` and calls
+    `run_all(debit_ledger, namespace="zs", context={"aliases": ..., "cancellation_dates": ...,
+    "cpi": ...})`. (Amendment of the zombie spec, session 10b; no behaviour change.)
   - Phantom: `run_pipeline(invoice_sources, suppliers_source, payments_source, as_of)` and the
     alerts of its `results`.
   - The runner shall import `apps.zombie_subscriptions.detectors` and
@@ -323,6 +325,11 @@ problem and must not fire (§2.5). **Noise-only scenario**: a scenario with no l
   CSV files and `labels.json`) under `DIR/<scenario id>/` for inspection; these files are not
   committed. `--seed N` and `--scenarios N` are allowed only together with `--out-dir DIR`, which
   redirects the two outputs, so a non-default run can never overwrite the committed files.
+  *(Session 10c: `--export-scenarios` writes only scenario folders, never a committed file, so it
+  may also be combined with `--seed` / `--scenarios` without `--out-dir`; it cannot be combined
+  with `--check`. `--check` with `--out-dir` compares the files of that directory, so the check
+  can be tested without touching the committed files. A missing file is reported as `<path> is
+  missing; run python scripts/benchmark.py`, exit 1.)*
 
   *Acceptance.*
   - `python scripts/benchmark.py --seed 7` → exit 2, message `--seed and --scenarios need
@@ -406,6 +413,19 @@ problem and must not fire (§2.5). **Noise-only scenario**: a scenario with no l
   *Acceptance.* After the first full run, every row of `results.json["apps"][*]["false_positives"]`
   and `["misses"]` is either covered by a Follow-up entry that names its scenario id and type, or
   by a Follow-up entry that groups them by hard-negative kind or case with one example id.
+
+- **REQ-BM-22a** *(a generator that contradicts its requirement)* Where the cause of a miss or a
+  false alarm is that a scenario contradicts the requirement its label comes from (for example a
+  planted problem that the requirement says cannot fire), the generator shall be corrected, test
+  first, and the change recorded in `design.md` as a decision with the finding that led to it.
+  This is not tuning: the label, the case and the detector keep their meaning, and the test
+  states the requirement's own rule with literals taken from the requirement text. A detector
+  error is never handled this way.
+
+  *Acceptance.* Finding F1 (75 of 84 duplicate subscriptions missed because the pairs ended months
+  before the latest date of the ledger, REQ-ZS-13a / REQ-ZS-17) is handled by D-BM-20: the pairs
+  are planted active, a generator test checks that every pair ends within 33 days of the latest
+  date of its scenario, and the detector is untouched.
 
 - **REQ-BM-23** *(hygiene)* The benchmark shall add no dependency to `requirements.txt`, make no
   network call, read no clock, and commit no real data. The new committed files are

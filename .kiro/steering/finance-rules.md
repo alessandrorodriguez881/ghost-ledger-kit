@@ -85,8 +85,9 @@ The `ledger_kit/utils/anonymise.py` module provides helpers to strip or pseudony
   - **Synthetically generated** by a script in `data/generate/`, or
   - **Explicitly public-domain** with a licence reference in `data/samples/README.md`.
 - `data/public/` holds **official public data under an open licence**, each file with its licence reference and the required attribution in `data/public/README.md`. It is written by a developer-run script from an official source, never edited by hand, and never contains personal data.
+- `data/benchmark/` holds the **generated output of the benchmark** (`results.json`), computed from synthetic scenarios that `scripts/generate_benchmark.py` makes from a seed. It is written by `python scripts/benchmark.py`, never edited by hand, and never contains personal data or a real file.
 - Real bank statements, real invoices, or any file containing real personal or financial data must never be committed.
-- `.gitignore` must block `data/real/` and loose `*.csv` / `*.json` / `*.pdf` files outside `data/samples/` and `data/public/`.
+- `.gitignore` must block `data/real/` and loose `*.csv` / `*.json` / `*.pdf` files outside `data/samples/`, `data/public/` and `data/benchmark/`.
 
 ---
 

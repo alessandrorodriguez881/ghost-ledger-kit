@@ -6,8 +6,10 @@ severity grouping). Everything here works without Streamlit so it can be tested 
 
 from __future__ import annotations
 
+import hashlib
+import io
 import tomllib
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -21,8 +23,10 @@ from apps.zombie_subscriptions.explain_support import (
     cpi_uses_lag,
     has_cpi_context,
 )
+from ledger_kit.detectors import DetectorResult, run_all
 from ledger_kit.explainer import fill_fallback
-from ledger_kit.ingestion.sniffer import format_label
+from ledger_kit.ingestion.normaliser import normalise
+from ledger_kit.ingestion.sniffer import format_label, read_bank_statement
 from ledger_kit.models import Alert
 from ledger_kit.public_data import CpiSeries, SnapshotError, load_snapshot
 from ledger_kit.utils.money import format_amount, format_index
@@ -151,6 +155,61 @@ def format_dates_text(dates: dict[str, date]) -> str:
 
 
 # --- View-model helpers for app.py (no Streamlit) ----------------------------------------------
+
+
+@dataclass(frozen=True)
+class Pipeline:
+    """What the page shows, computed once from one statement (amendment A-ZS-01)."""
+
+    ledger: pd.DataFrame  # normalised rows, debits and credits
+    debit_ledger: pd.DataFrame  # flow == "debit", index reset: what the detectors read
+    quarantine: list[dict]  # reader quarantine followed by normaliser quarantine
+    results: list[DetectorResult]  # run_all(debit_ledger, namespace="zs", context=...)
+
+    @property
+    def alerts(self) -> list[Alert]:
+        """Every alert of every detector, in result order."""
+        return [alert for result in self.results for alert in result.alerts]
+
+
+def ingest_statement(
+    name: str, data: bytes, cache: MutableMapping[str, Any] | None = None
+) -> tuple[pd.DataFrame, list[dict]]:
+    """Read one statement (CSV or Norma 43) and normalise it; return ledger, quarantine.
+
+    The content picks the reader, not the file extension (REQ-RF-20). With a `cache` the parse
+    is kept by sha256 of the bytes and the file name, so a rerun does not read the bytes again.
+    """
+    if cache is None:
+        transactions, quarantined = read_bank_statement(io.BytesIO(data), source_file=name)
+    else:
+        key = f"{hashlib.sha256(data).hexdigest()}:{name}"
+        if key not in cache:
+            cache[key] = read_bank_statement(io.BytesIO(data), source_file=name)
+        transactions, quarantined = cache[key]
+    ledger, normalise_quarantine = normalise(transactions)
+    return ledger, [*quarantined, *normalise_quarantine]
+
+
+def run_pipeline(
+    name: str,
+    data: bytes,
+    *,
+    aliases: Mapping[str, Any],
+    cancellation_dates: Mapping[str, Any],
+    cpi: CpiSeries | None = None,
+    cache: MutableMapping[str, Any] | None = None,
+) -> Pipeline:
+    """Read, normalise, keep the debit rows and run every zs.* detector (A-ZS-01).
+
+    `aliases` and `cancellation_dates` are already normalised (`normalise_alias_map`,
+    `normalise_date_map`). The page and the benchmark runner both call this function.
+    """
+    ledger, quarantine = ingest_statement(name, data, cache)
+    debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
+    context = {"aliases": aliases, "cancellation_dates": cancellation_dates, "cpi": cpi}
+    results = run_all(debit_ledger, namespace="zs", context=context)
+    return Pipeline(ledger, debit_ledger, quarantine, results)
 
 
 def apply_demo(state: MutableMapping[str, Any], demo: DemoInputs) -> None:

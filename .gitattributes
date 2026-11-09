@@ -4,3 +4,6 @@ data/samples/phantom_demo/*.csv -text
 data/samples/*.n43 -text
 data/samples/phantom_demo/*.n43 -text
 data/samples/phantom_demo/facturae/*.xml -text
+# Benchmark outputs are byte-compared with a fresh run (REQ-BM-19): no line-ending conversion
+data/benchmark/*.json -text
+docs/benchmark.md -text

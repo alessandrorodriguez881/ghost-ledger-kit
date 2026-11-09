@@ -22,7 +22,7 @@ ZOMBIE_PAGE = "apps/zombie_subscriptions/app.py"
 PHANTOM_PAGE = "apps/phantom_invoices/app.py"
 TIMEOUT_SECONDS = 60
 
-PAGE_TITLES = ["Home", "Zombie Subscriptions", "Phantom Invoices"]
+PAGE_TITLES = ["Home", "Zombie Subscriptions", "Phantom Invoices", "Benchmark"]
 ZS_DETECTORS = 5  # zs.* detectors; the demo statement raises at least one alert for each
 ZS_DEMO_TOMBSTONES = 3
 ZS_DEMO_ALERTS = 19
@@ -87,7 +87,7 @@ def _phantom_demo(at: AppTest) -> AppTest:
     return at
 
 
-# --- the entry page and its three pages -------------------------------------------------------
+# --- the entry page and its four pages --------------------------------------------------------
 
 
 def test_entry_page_starts_without_exception() -> None:
@@ -99,17 +99,18 @@ def test_entry_page_starts_without_exception() -> None:
     assert not at.error
 
 
-def test_there_are_exactly_three_pages_in_order() -> None:
-    """Home, Zombie Subscriptions and Phantom Invoices, Home first and the only default."""
+def test_there_are_exactly_four_pages_in_order() -> None:
+    """Home, both apps and Benchmark; Home first and the only default."""
     pages = streamlit_app.PAGES
 
     assert [page.title for page in pages] == PAGE_TITLES
-    assert [page.script for page in pages] == [None, ZOMBIE_PAGE, PHANTOM_PAGE]
-    assert len({page.url_path for page in pages}) == 3  # both app files are named app.py
+    assert [page.script for page in pages] == [None, ZOMBIE_PAGE, PHANTOM_PAGE, None]
+    assert len({page.url_path for page in pages}) == 4  # both app files are named app.py
     assert all(page.url_path and "/" not in page.url_path for page in pages)
     assert all(page.icon for page in pages)
-    for page in pages[1:]:
-        assert (REPO_ROOT / page.script).is_file()
+    for page in pages:
+        if page.script is not None:
+            assert (REPO_ROOT / page.script).is_file()
 
 
 def test_both_app_pages_are_registered_in_the_navigation() -> None:

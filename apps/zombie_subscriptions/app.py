@@ -6,9 +6,7 @@ Pipeline: ingest (ledger_kit) -> debit rows -> five deterministic zs.* detectors
 and alerts. The LLM only writes the explanation text, and its numbers are checked by the guard.
 """
 
-import hashlib
 import html
-import io
 import os
 import sys
 from collections.abc import Callable, MutableMapping, Sequence
@@ -46,20 +44,20 @@ from apps.zombie_subscriptions.settings import (  # noqa: E402
     demo_inputs,
     group_alerts_by_severity,
     guard_badge,
+    ingest_statement,
     ledger_currency,
     load_config,
     markdown_safe,
     parse_aliases_text,
     parse_dates_text,
     read_cpi,
+    run_pipeline,
     statement_caption,
     tombstone_view,
 )
-from ledger_kit.detectors import run_all  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
-from ledger_kit.ingestion.normaliser import normalise  # noqa: E402
-from ledger_kit.ingestion.sniffer import read_bank_statement, sniff_format  # noqa: E402
+from ledger_kit.ingestion.sniffer import sniff_format  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.public_data import CpiSeries  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
@@ -244,14 +242,10 @@ def _ingest(
 ) -> tuple[pd.DataFrame, list[dict]]:
     """Read one statement (CSV or Norma 43; parsing cached by hash); return ledger, quarantine.
 
-    The content picks the reader, not the file extension (REQ-RF-20).
+    The content picks the reader, not the file extension (REQ-RF-20). The page itself calls
+    `run_pipeline`; this wrapper stays for the tests of the ingestion step.
     """
-    key = f"{hashlib.sha256(data).hexdigest()}:{name}"
-    if key not in cache:
-        cache[key] = read_bank_statement(io.BytesIO(data), source_file=name)
-    transactions, quarantined = cache[key]
-    ledger, normalise_quarantine = normalise(transactions)
-    return ledger, [*quarantined, *normalise_quarantine]
+    return ingest_statement(name, data, cache)
 
 
 def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanation:
@@ -437,14 +431,19 @@ def main() -> None:
     )
 
     name, data = source
-    ledger, quarantine = _ingest(name, data, st.session_state["ingestion_cache"])
-    debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
+    cpi, cpi_unavailable = _load_cpi()
+    pipeline = run_pipeline(
+        name,
+        data,
+        aliases=aliases,
+        cancellation_dates=cancellation_dates,
+        cpi=cpi,
+        cache=st.session_state["ingestion_cache"],
+    )
+    debit_ledger, quarantine = pipeline.debit_ledger, pipeline.quarantine
     st.caption(statement_caption(name, sniff_format(data), len(debit_ledger), len(quarantine)))
 
-    cpi, cpi_unavailable = _load_cpi()
-    context = {"aliases": aliases, "cancellation_dates": cancellation_dates, "cpi": cpi}
-    results = run_all(debit_ledger, namespace="zs", context=context)
-    alerts = [alert for result in results for alert in result.alerts]
+    alerts = pipeline.alerts
     zombies = compute_zombie_cost(debit_ledger, last_used_dates, aliases=aliases)
 
     _render_summary(alerts, len(zombies))

@@ -701,3 +701,20 @@ requirements.txt   # pins all deps needed for apps/zombie_subscriptions; no -e .
   are out of scope. The free-trial-to-paid detector requires an actual debit row (amount ≥ 0.01)
   as evidence of the trial; a zero-amount "charge" never reaches the debit-only detector because
   ledger-core maps `amount == 0.00` to `flow = credit`.
+
+---
+
+## 16 — Amendments
+
+- **A-ZS-01** *(session 10b, from the benchmark spec, D-BM-10)* The read, normalise, debit-filter
+  and detector steps of the page move out of `app.py` into one public function,
+  `run_pipeline(source_name, data, *, aliases, cancellation_dates, cpi=None, cache=None)` in
+  `apps/zombie_subscriptions/settings.py`, mirroring `run_pipeline` of the phantom app. `app.py`
+  and `scripts/benchmark.py` both call it, so the benchmark measures exactly what the app runs.
+  **No behaviour change:** REQ-ZS-01 to REQ-ZS-52 hold unchanged, the sha256 parse cache stays
+  (it is the optional `cache` argument), and the demo still shows 3 tombstones and 19 alerts.
+
+  *Acceptance.* `run_pipeline("zombie_demo_statement.csv", demo_bytes, aliases=..., cancellation_dates=...)`
+  returns `len(alerts) == 19`; the `CSV` and `Real formats` demos give the same alert count; a
+  credit row is not in `debit_ledger`; a statement with a quarantined row returns it in
+  `quarantine`; with a `cache` dict the second call does not read the bytes again.
