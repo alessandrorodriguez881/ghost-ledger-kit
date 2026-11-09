@@ -123,7 +123,10 @@ All helpers are pure functions in `apps/phantom_invoices/detectors/utils.py` and
   - `iban_key(x)` = remove **all** whitespace (including `\u00a0`) and uppercase. Hyphens are not
     removed.
 - **REQ-PI-09** **Supplier master lookup.** The master is keyed by `tax_key(tax_id)`. When several
-  master rows share a key, the first in `source_ref` order is used and the others are ignored.
+  master rows share a key, they are all kept in `source_ref` order: the first row names the
+  supplier, and every row with a present, valid IBAN contributes one **accepted account** of that
+  supplier. *(Amended by REQ-DF-01 to REQ-DF-07, session 10d; before, the first row was used and
+  the others were ignored, so a second legitimate account raised a critical alert.)*
   An invoice maps to the master through `tax_key(supplier_tax_id)`; an invoice whose supplier is
   not in the master has no master (checks that need it are skipped; reconciliation still treats
   the invoice, REQ-PI-37).
@@ -266,22 +269,25 @@ digits and per-country lengths are **not** validated (OD-PI-15).
 
   | Subject | Condition | Severity | `variant` |
   |---|---|---|---|
-  | Invoice | IBAN valid, the invoice's master row has a **valid** IBAN, and `iban_key` differs | `critical` | `invoice_iban_differs_from_master` |
-  | Bank payment | Payment (debit) is attributed to a master supplier (REQ-PI-25), its IBAN is valid, that supplier's master IBAN is valid and `iban_key` differs | `critical` | `payment_to_non_master_iban` |
-  | Invoice, supplier payment (REQ-PI-25) or master row | IBAN present but invalid (REQ-PI-23) | `warning` | `iban_invalid` |
+  | Invoice | IBAN valid, the invoice's supplier has at least one accepted account (REQ-PI-09), and `iban_key` equals none of them | `critical` | `invoice_iban_differs_from_master` |
+  | Bank payment | Payment (debit) is attributed to a master supplier (REQ-PI-25), its IBAN is valid, that supplier has at least one accepted account and `iban_key` equals none of them | `critical` | `payment_to_non_master_iban` |
+  | Invoice, supplier payment (REQ-PI-25) or master row | IBAN present but invalid (REQ-PI-23); every master row is checked for its own IBAN | `warning` | `iban_invalid` |
 
-  Invoice IBAN equal to the master IBAN after `iban_key` (spaces and case ignored) → no alert
-  (acceptance P4). A missing IBAN, a missing master IBAN, or an invoice whose supplier is not in
-  the master → skipped for the comparison. If the master IBAN itself is present but invalid, the
-  master row is flagged once with `iban_invalid` (subject `supplier`) and no comparison against it
-  is made.
-- **REQ-PI-25** **Payment attribution.** A debit payment belongs to at most one master supplier:
-  first, `name_key(counterparty)` equals `name_key(supplier_name)` of exactly one master supplier;
-  otherwise, `iban_key(payment iban)` equals the `iban_key` of the master IBAN of exactly one
-  supplier; otherwise the payment is *not a supplier payment*: it is not checked by
-  `pi.iban_change`, is in no reconciliation bucket and raises no alert. Name is tried first
+  Invoice IBAN equal to any accepted account after `iban_key` (spaces and case ignored) → no alert
+  (acceptance P4). A missing IBAN, a supplier with no accepted account, or an invoice whose
+  supplier is not in the master → skipped for the comparison. If a master IBAN itself is present
+  but invalid, that master row is flagged once with `iban_invalid` (subject `supplier`) and does
+  not count as an account. An IBAN seen on an invoice or payment never joins the accepted
+  accounts. *(Amended by REQ-DF-02 to REQ-DF-06, session 10d.)*
+- **REQ-PI-25** **Payment attribution.** A debit payment belongs to at most one master supplier
+  (rows sharing one tax id are one supplier): first, `name_key(counterparty)` equals
+  `name_key(supplier_name)` of exactly one master supplier; otherwise, `iban_key(payment iban)`
+  equals the `iban_key` of **any** master IBAN of exactly one supplier; otherwise the payment is
+  *not a supplier payment*: it is not checked by `pi.iban_change`, is in no reconciliation bucket
+  and raises no alert. Name is tried first
   so that a payment addressed to a known supplier but sent to another account is caught (OD-PI-09).
-  The same function is used by `pi.reconciliation` (REQ-PI-36).
+  The same function is used by `pi.reconciliation` (REQ-PI-36). *(Amended by REQ-DF-07, session
+  10d.)*
 - **REQ-PI-26** **Fixed deterministic message.** `VERIFY_BY_PHONE_MESSAGE` is the constant text
   `"Verify this change by phone, using a contact you already have for this supplier. Never use a
   phone number or e-mail address printed on the invoice."` (written as one string). It contains no
@@ -291,8 +297,9 @@ digits and per-country lengths are **not** validated (OD-PI-15).
   shows it twice. It is code, not LLM output:
   the LLM remains forbidden to recommend actions (Finance Rule 8) and the explanation text never
   has to contain it.
-- **REQ-PI-27** **Alert contract.** `detector`: `"pi.iban_change"`; `source_refs`: the row and the
-  master row it was compared with (natural order), or the single row for `iban_invalid`.
+- **REQ-PI-27** **Alert contract.** `detector`: `"pi.iban_change"`; `source_refs`: the row, the
+  master row that names the supplier and every master row with an accepted account (natural
+  order, no repeats; REQ-DF-03), or the single row for `iban_invalid`.
 
   `invoice_iban_differs_from_master` (critical), title `"Poltergeist IBAN: <supplier_name>"`:
   ```python

@@ -180,8 +180,12 @@ part of the run.
   segmentation. The new field has a default (`False`) so that existing constructions of `Series`
   stay valid.
 
-  *Acceptance.* `_segment_by_price` returns `variable=True` for the variable-bill branch only;
-  stable, step-change and ambiguous-split series have `variable=False`.
+  *Acceptance.* `_segment_by_price` returns `variable=True` for every run accepted by branch 3 of
+  REQ-ZS-10a, and only for those; stable and step-change series have `variable=False`. An
+  ambiguous split (two valid splits, so no step is recorded) is not one price level and is
+  accepted only by branch 3, so it carries `variable=True` and the guard of REQ-DF-11 applies to
+  it. *(Wording corrected in session 12a: the first draft listed the ambiguous split with the
+  `False` cases; the code and `test_ambiguous_split_is_a_variable_bill` follow design §3.2.)*
 
 - **REQ-DF-15** *(demo and acceptance examples unchanged)* The zombie demo statement shall still
   give 3 tombstones and 19 alerts. REQ-ZS-09 E1 to E7b pass unchanged. The demo's recurring

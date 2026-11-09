@@ -332,12 +332,23 @@ def _segment_by_price(run, interval):
         return Series(run, interval, current_amount=b, price_steps=[(a, b)])
 
     # Branch 3 — variable bill: no step, but every amount within AMOUNT_MATCH_RATIO of the median
+    # (amended by REQ-DF-10: only for the intervals of VARIABLE_BILL_INTERVALS; the run is flagged
+    # variable=True and _accept rejects it when the key has a foreign row in its span, REQ-DF-11)
     m = median(amounts)
     if all(abs(x - m) / m <= AMOUNT_MATCH_RATIO for x in amounts):
         return Series(run, interval, current_amount=round_to_cents(m), price_steps=[])
 
     return None
 ```
+
+> **Amended by `detector-fixes` (REQ-DF-10 to REQ-DF-14, design `detector-fixes` §3; committed in
+> `989789b`).** Branch 3 is reached only when `interval["name"] in VARIABLE_BILL_INTERVALS`
+> (`("monthly", "quarterly", "yearly")`), so a weekly run is a stable or step-change series or
+> nothing. `Series` has a field `variable: bool = False`, true for every run accepted by branch 3
+> (including an ambiguous split, which records no step and has no other way in). `_accept` rejects
+> a series with `variable` true, or with a quarterly or yearly interval, when the key has a foreign
+> row between the first and last charge. The sketch above is the original; the code is the
+> authority.
 
 Notes:
 

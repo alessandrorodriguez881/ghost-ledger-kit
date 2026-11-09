@@ -347,6 +347,14 @@ means "skip this row in supplier-based rules".
 
 ### 4.4 Supplier master and payment attribution (REQ-PI-09, REQ-PI-25)
 
+> **Amended by `detector-fixes` (REQ-DF-01 to REQ-DF-07, design §2; session 10d, committed in
+> `989789b`).** The code below is the original sketch. `Master` now also carries `rows_by_tax`
+> (every row of a tax id in `source_ref` order); `by_tax` is still the first row (it names the
+> supplier); `by_iban` maps the `iban_key` of **any** master IBAN to the supplier's first row once;
+> `accepted_accounts(master, tax)` returns the valid, deduplicated accounts. `iban_change` compares
+> against all accepted accounts and `attribute_payment` counts a supplier once per tax id. With one
+> row per tax id the behaviour is identical to the sketch.
+
 ```python
 @dataclass(frozen=True)
 class Master:

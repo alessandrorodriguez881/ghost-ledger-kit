@@ -495,8 +495,8 @@ below was `1.0000` / `1.0000`.
 | Id | Detector | Scenario id(s) | Input (rows) | Observed | Expected | Cause | Case | Handled in |
 |---|---|---|---|---|---|---|---|---|
 | F1 | `zs.duplicate_subscription` | misses of type `zs.duplicate_subscription`: 75 of 84 labels, examples `zs-0004/L4`, `zs-0004/L7`, `zs-0006` (CLOUDNEST pair) | Z11–Z13 pairs of four monthly charges each, placed at a random date | no alert; 9 of 84 found | one warning per pair | REQ-ZS-13a and REQ-ZS-17: only series active at the latest date of the ledger count. In `zs-0004` the LUMENBEAT pair ends on 2025-06-13 and the IVORYNEST pair on 2025-06-30; the ledger ends on 2026-02-08, more than 200 days later. In `zs-0006` the CLOUDNEST pair ends on 2025-08-31, the ledger on 2026-03-29. The 9 found are the pairs that happened to end in the last 33 days. | **(b) generator contradicts the requirement.** The detector is right. | D-BM-20, `late_start` in `scripts/generate_benchmark.py`; tests in `tests/test_benchmark_generator.py` (Task BM9). Results must be regenerated once (§9). |
-| F2 | `zs.recurring_charge` | false alarms (29) on hard negatives `fuel_irregular` (12 of 43 instances, 14 alarms) and `weekly_groceries_irregular` (13 of 43, 15 alarms); examples `zs-0000` (refs `statement.csv:33`, `:41`, `:51`), `zs-0036` (refs `:34`, `:35`, `:38`, `:40`, `:42`), `zs-0009`, `zs-0062` | one shop, 26 weekly or 20 irregular charges with amounts drawn between 15.00 and 120.00 (fuel 20.00 to 75.00) | an info alert for a "series" | none (REQ-ZS-09 E7: weekly charges of varying amounts at one shop give no alert) | `zs-0000`: NIMBUSBOX groceries of 2025-06-04 (115.63), 2025-07-02 (119.51) and 2025-07-30 (114.75) lie 28 days apart and within 10 % of their median: three monthly charges, accepted as a *variable bill* (REQ-ZS-10a(3)). The six other charges of the shop between the first and the last are ignored: the cadence run skips rows that are too close, and the "no other rows in the span" guard of REQ-ZS-10b applies to quarterly and yearly series only. `zs-0036`: four weekly charges (76.16 to 78.36) form a weekly series by chance, and a fifth charge 17 % lower joins as an edge step. E7b passes only because its fixture was built with 13 price levels more than 10 % apart. | **(a) real detector weakness.** The hard negative is what E7 describes. | `.kiro/specs/detector-fixes/`: REQ-DF-10 to REQ-DF-16 |
-| F3 | `pi.iban_change` | false alarms (140) on hard negative `two_legit_ibans`: 35 of 35 instances, 4 alarms each (the 12 noise-only scenarios with an alert carry this kind, which is label-free) | master with two rows for one tax id and two valid IBANs; 2 invoices and 2 payments use the second IBAN | 2 critical `invoice_iban_differs_from_master` and 2 critical `payment_to_non_master_iban` | none: both accounts are in the master | REQ-PI-09 says that when several master rows share a tax id the first is used and the others are ignored; `build_master` does exactly that, so the second legitimate account is a "poltergeist". The generator follows the intent of the detector (flag an account the master does not hold); the requirement text is what is wrong, because suppliers do keep several accounts. | **(a) real weakness, rooted in REQ-PI-09.** NP03 is not changed. | `.kiro/specs/detector-fixes/`: REQ-DF-01 to REQ-DF-09 (amends REQ-PI-09 and REQ-PI-24) |
+| F2 | `zs.recurring_charge` | false alarms (29) on hard negatives `fuel_irregular` (12 of 43 instances, 14 alarms) and `weekly_groceries_irregular` (13 of 43, 15 alarms); examples `zs-0000` (refs `statement.csv:33`, `:41`, `:51`), `zs-0036` (refs `:34`, `:35`, `:38`, `:40`, `:42`), `zs-0009`, `zs-0062` | one shop, 26 weekly or 20 irregular charges with amounts drawn between 15.00 and 120.00 (fuel 20.00 to 75.00) | an info alert for a "series" | none (REQ-ZS-09 E7: weekly charges of varying amounts at one shop give no alert) | `zs-0000`: NIMBUSBOX groceries of 2025-06-04 (115.63), 2025-07-02 (119.51) and 2025-07-30 (114.75) lie 28 days apart and within 10 % of their median: three monthly charges, accepted as a *variable bill* (REQ-ZS-10a(3)). The six other charges of the shop between the first and the last are ignored: the cadence run skips rows that are too close, and the "no other rows in the span" guard of REQ-ZS-10b applies to quarterly and yearly series only. `zs-0036`: four weekly charges (76.16 to 78.36) form a weekly series by chance, and a fifth charge 17 % lower joins as an edge step. E7b passes only because its fixture was built with 13 price levels more than 10 % apart. | **(a) real detector weakness.** The hard negative is what E7 describes. | `.kiro/specs/detector-fixes/`: REQ-DF-10 to REQ-DF-16. **Fixed (DF3), measured in DF4: 29 → 2 false alarms** (limit 2 of REQ-DF-20) |
+| F3 | `pi.iban_change` | false alarms (140) on hard negative `two_legit_ibans`: 35 of 35 instances, 4 alarms each (the 12 noise-only scenarios with an alert carry this kind, which is label-free) | master with two rows for one tax id and two valid IBANs; 2 invoices and 2 payments use the second IBAN | 2 critical `invoice_iban_differs_from_master` and 2 critical `payment_to_non_master_iban` | none: both accounts are in the master | REQ-PI-09 says that when several master rows share a tax id the first is used and the others are ignored; `build_master` does exactly that, so the second legitimate account is a "poltergeist". The generator follows the intent of the detector (flag an account the master does not hold); the requirement text is what is wrong, because suppliers do keep several accounts. | **(a) real weakness, rooted in REQ-PI-09.** NP03 is not changed. | `.kiro/specs/detector-fixes/`: REQ-DF-01 to REQ-DF-09 (amends REQ-PI-09 and REQ-PI-24). **Fixed (DF1), measured in DF2: 140 → 0 false alarms** |
 
 Per REQ-BM-22 every false positive and miss of `results.json` is covered: the 29 zombie false
 alarms by F2 (both kinds named above), the 140 phantom false alarms by F3 (`two_legit_ibans`),
@@ -522,8 +522,28 @@ and judged on its own, never removed by changing the benchmark or a threshold.
 |---|---|---|---|---|---|
 | First measurement | `0.9697` | `0.9251` | `0.7742` | `1.0000` | F1, F2, F3 |
 | After D-BM-20 | `0.9719` | `1.0000` | `0.7742` (unchanged generator) | `1.0000` | F2, F3 (F1 gone) |
-| After `detector-fixes` phantom task | | | *(to be measured, DF2)* | | |
-| After `detector-fixes` zombie task | *(to be measured, DF4)* | | | | |
+| After `detector-fixes` phantom task (DF1, DF2) | `0.9719` (unchanged) | `1.0000` | `1.0000` | `1.0000` | F3 fixed; F2 open |
+| After `detector-fixes` zombie task (DF3, DF4) | `0.9980` | `1.0000` | `1.0000` | `1.0000` | F2 fixed except 2 false alarms (limit 2 of REQ-DF-20) |
+
+Measured by the owner after the fixes (session 12a; seed 2026, 200 scenarios per app, thresholds,
+generator, labels and hard negatives unchanged; commit `989789b`): zombie planted 1002, alerts 1004,
+found 1002, missed 0, false alarms **29 → 2**, precision `0.9719` → `0.9980`, recall `1.0000`
+before and after. Both remaining false alarms are `zs.recurring_charge` on
+`weekly_groceries_irregular` (`fuel_irregular` now 0, `weekly_groceries_irregular` 2 of 43
+instances); they are recorded as the accepted limit 2 of REQ-DF-20 (charges of one shop that lie
+on one price level at a regular cadence are still a series), not as a new finding, and are not
+removed by tuning. Phantom planted 480, alerts 480, found 480, missed 0, false alarms **140 → 0**
+(`two_legit_ibans` silent), precision `0.7742` → `1.0000`, recall `1.0000` before and after; no
+other phantom figure moved. `docs/benchmark.md` and `data/benchmark/results.json` were regenerated
+and committed. The demo end-to-end tests are unchanged: zombie 3 tombstones and 19 alerts,
+phantom 9 alerts.
+
+The coverage index above still names `fuel_irregular` and `two_legit_ibans` although they now have
+no false alarm: `tests/test_benchmark_runner.py` pins all three kinds in it, and the index may
+list more than the results need.
+
+**F2 and F3 are fixed by `detector-fixes`** (DF3 and DF1, measured in DF4 and DF2). FU-P3 stays
+open.
 
 Baseline measured by the owner after D-BM-20 (seed 2026, 200 scenarios per app, commit `6a3542f`):
 zombie planted 1002, alerts 1031, found 1002, missed 0, false alarms 29, precision `0.9719`,
@@ -545,7 +565,9 @@ treats a function page (§5); the exact alert counts 19 and 9 of the demos (take
 
 Session 10d, also not run: the causes in §8 were read from the code, the specs and four exported
 scenarios, not reproduced by a debugger; the effect of `late_start` on the recall of
-`zs.duplicate_subscription` (expected to rise to `1.0000`, not measured); and the committed
-`results.json` and `benchmark.md` are **stale after D-BM-20** until the author runs
-`python scripts/benchmark.py` once and commits both files. Until then the committed-results
-tests of `tests/test_benchmark_runner.py` fail on purpose.
+`zs.duplicate_subscription` (expected to rise to `1.0000`, not measured; later measured at 84 of
+84, §8); and the committed results were stale after D-BM-20 until the owner re-ran the benchmark.
+Session 12a: the results are no longer stale. The owner re-ran `python scripts/benchmark.py` after
+the D-BM-20 generator fix and after `detector-fixes`, and committed both files; the figures in §8
+are theirs. The classification of the 2 remaining zombie false alarms as limit 2 of REQ-DF-20 was
+not re-read from the exported scenarios by the author.

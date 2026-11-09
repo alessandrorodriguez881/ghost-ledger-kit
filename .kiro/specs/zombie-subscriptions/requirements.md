@@ -108,6 +108,8 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   | E6 | Two charges 30 days apart from a supermarket, mixed varying amounts | No recurring-charge alert. |
   | E7 | Weekly charges from the same shop with varying amounts (e.g. grocery shopping) | No recurring-charge alert. |
   | E7b | 26 weekly supermarket charges between 40.00 and 150.00 over 6 months (deterministic fixture in design §4.8, including pairs of equal amounts 91 days apart) | No alerts of any kind. |
+  | E7c | 4 weekly charges at one shop of 100.00, 104.50, 109.00, 113.50 (each step 4.5 %, all within 10 % of the median) | No series, no alert (REQ-DF-10): a weekly run is never a variable bill. |
+  | E7d | 3 monthly charges of 90.00, 95.00, 100.00, 30 days apart; then the same with one 20.00 purchase under the same key 10 days after the first | Alone: one monthly series, `current_amount` 95.00. With the purchase: no series (REQ-DF-11). |
 
 - **REQ-ZS-10** A group qualifies as a recurring series only if it meets the **minimum occurrence
   count** for its interval type:
@@ -127,12 +129,17 @@ package. All user-facing output is produced by `apps/zombie_subscriptions/`.
   (1) a stable series (the whole run is one level), (2) a step-change series (exactly one split into
   two levels with different rounded medians; the step is recorded in either direction and its ratio
   is computed from the rounded medians), or (3) a variable bill (no step, every amount within
-  `AMOUNT_MATCH_RATIO` of the median; `current_amount` is the median). Otherwise it is not a
-  subscription. A 2-row run must be a single stable level. A step needs at least 2 rows on each
+  `AMOUNT_MATCH_RATIO` of the median; `current_amount` is the median; **only for monthly,
+  quarterly or yearly runs**, the named constant `VARIABLE_BILL_INTERVALS`, and subject to
+  REQ-ZS-10b). Otherwise it is not a subscription. A 2-row run must be a single stable level. A step needs at least 2 rows on each
   side, except one single-row side at either end of the run when the other side has at least the
   interval minimum and the step lies within ±50% (`MAX_EDGE_STEP_RATIO`).
 - **REQ-ZS-10b** *(no subscriptions from ordinary shopping)* A quarterly or yearly series is accepted
   only if its normalised key has no other debit rows between the series' first and last charge.
+  A series accepted only as a variable bill (REQ-ZS-10a(3), at any interval) needs the same
+  exclusive span. Stable and step-change series are not subject to it. *(Amended by REQ-DF-10 to
+  REQ-DF-14, session 10d: the variable-bill branch was the one loose amount rule without an
+  exclusive-span guard.)*
 - **REQ-ZS-10c** An early or late step must be found wherever it falls: a step of 5–50% after any of
   the first 1–5 of 6 monthly charges yields exactly one series with one recorded step.
 
