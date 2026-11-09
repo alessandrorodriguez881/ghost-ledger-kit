@@ -319,15 +319,12 @@ def test_main_bank_mode_writes_output_file(tmp_path):
     assert target.read_bytes() == gen.build_bank_statement(7, 12, "european").encode("utf-8")
 
 
-DEMO_MODES = [("phantom-demo", "phantom-invoices")]
-
-
-@pytest.mark.parametrize(("mode", "spec"), DEMO_MODES)
-def test_demo_modes_are_stubs_owned_by_the_app_specs(mode, spec, capsys, tmp_path):
-    assert mode in gen.MODE_HANDLERS
-    assert gen.main(["--mode", mode, "--out-dir", str(tmp_path)]) == 2
-    assert spec in capsys.readouterr().err
-    assert list(tmp_path.iterdir()) == []
+def test_phantom_demo_mode_is_implemented_by_the_phantom_invoices_spec(capsys, tmp_path):
+    """phantom-demo is no longer a stub: it writes the three demo files (Task P18)."""
+    assert gen.main(["--mode", "phantom-demo", "--out-dir", str(tmp_path)]) == 0
+    written = sorted(p.name for p in (tmp_path / "phantom_demo").iterdir())
+    assert written == ["invoices.csv", "payments.csv", "suppliers.csv"]
+    assert "phantom_demo" in capsys.readouterr().out
 
 
 def test_zombie_demo_mode_is_implemented_by_the_zombie_subscriptions_spec(capsys, tmp_path):

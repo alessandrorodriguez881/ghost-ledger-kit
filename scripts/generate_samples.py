@@ -11,9 +11,11 @@ Modes (``--mode``):
   (``data/samples/zombie_demo_statement.csv``, ~335 rows over 2026-05-01..2026-10-31). The
   planted subscriptions are fixed tables; ``--seed`` only drives the dates and amounts of the
   one-off shops, so the same seed always gives the same bytes.
-* ``phantom-demo``: reserved for the phantom-invoices spec. It is a stub here (see
-  ``run_phantom_demo``); that spec replaces its handler in ``MODE_HANDLERS`` and leaves the other
-  modes untouched.
+* ``phantom-demo``: the demo of the phantom-invoices app
+  (``data/samples/phantom_demo/{suppliers,invoices,payments}.csv``): 25 suppliers, 70 invoice
+  rows, 62 payment rows. The 16 planted cases are literal tables; ``--seed`` only drives the
+  amounts, dates and payment delays of the nine clean suppliers, so the same seed always gives
+  the same bytes.
 
 All data is synthetic: fictional names, IBANs with a valid ISO 13616 mod-97 checksum but wrong
 Spanish national check digits, tax ids with a wrong control character, no e-mail or phone.
@@ -649,6 +651,334 @@ def build_zombie_demo_csv(seed: int = DEFAULT_SEED) -> str:
     return render_bank_csv(build_zombie_demo_rows(seed), "plain")
 
 
+# --- phantom-invoices demo (phantom-invoices design section 15) ---------------------------------
+PHANTOM_DEMO_DIR = "phantom_demo"
+PHANTOM_FILES: tuple[str, ...] = ("suppliers.csv", "invoices.csv", "payments.csv")
+DEMO_LATEST_DATE: date = date(2026, 10, 30)  # the date of one clean payment: the default as_of
+PHANTOM_PAYMENT_CAP: date = date(2026, 10, 29)  # no other payment is dated later than this
+PHANTOM_TERM_DAYS = 30  # payment term of every invoice with a due date (and the reader default)
+PHANTOM_CLEAN_INVOICES = 5  # monthly invoices (May to September) of each clean supplier
+PHANTOM_CLEAN_VAT_RATES: tuple[int, ...] = (21, 21, 21, 10, 4, 0)  # drawn with rng.choice
+PHANTOM_BASE_RANGE: tuple[int, int] = (80, 1800)  # integer part of a clean base amount
+PHANTOM_DELAY_RANGE: tuple[int, int] = (10, 40)  # days from issue to payment (clean invoice)
+PHANTOM_NO_DUE_DATE_MODULUS = 4  # clean invoice (j, m) has no due date when (j + m) % 4 == 0
+PHANTOM_IBAN_STYLES: tuple[str, ...] = ("", "master", "compact_lower")  # cycled by (j + m) % 3
+PHANTOM_DEBIT_NOTE = "Supplier payment"
+
+# Bank and branch of supplier k: BANKS[(k - 1) % 4]; the master account is derived from k alone,
+# so every IBAN is seed-independent.
+BANKS: tuple[tuple[str, str], ...] = (
+    ("2100", "0418"),
+    ("0049", "1500"),
+    ("0182", "5900"),
+    ("0081", "7000"),
+)
+PHANTOM_ACCOUNT_MULTIPLIER = 7_654_321
+PHANTOM_OTHER_ACCOUNT_OFFSET = 1_111_111  # second valid account (P5 invoice, non-master payment)
+PHANTOM_UNRELATED_FIRST_K = 100  # unrelated debit counterparty i uses k = 100 + i
+
+
+class PlanEntry(NamedTuple):
+    """One line of the supplier plan; `code` is the invoice-number prefix of a clean supplier."""
+
+    case: str
+    name: str
+    person: bool  # persons get a NIF, companies a CIF
+    code: str  # "" for the 16 planted cases
+
+
+# Position k (1-based) in this table drives every identifier of the supplier.
+PHANTOM_PLAN: tuple[PlanEntry, ...] = (
+    PlanEntry("P1", "Suministros Ibéricos Aurora, S.L.", False, ""),
+    PlanEntry("P2", "Inmuebles Valdemar, S.L.", False, ""),
+    PlanEntry("P3", "Gráficas Montealto, S.L.", False, ""),
+    PlanEntry("P4", "Limpiezas Brillante Norte, S.L.", False, ""),
+    PlanEntry("P5", "Transportes Hermanos Lage, S.L.", False, ""),
+    PlanEntry("P6", "Material de Oficina Sierra Clara, S.L.", False, ""),
+    PlanEntry("P7", "Informática Rioja Sur, S.L.", False, ""),
+    PlanEntry("P8", "Ana García (Asesoría Fiscal)", True, ""),
+    PlanEntry("P9", "Luigi Rossi (Reformas)", True, ""),
+    PlanEntry("P10", "Distribuciones Costa Azul, S.L.", False, ""),
+    PlanEntry("P11", "Comercial Minorista Pérez, S.L.", False, ""),
+    PlanEntry("P12", "Sophie Dupont (Traducciones)", True, ""),
+    PlanEntry("NON_MASTER_PAYMENT", "Mantenimientos Delta Ibérica, S.L.", False, ""),
+    PlanEntry("OVERDUE", "Carpintería Roble Viejo, S.L.", False, ""),
+    PlanEntry("OPEN_NOT_DUE", "Catering Sabores del Sur, S.L.", False, ""),
+    PlanEntry("MULTI_RATE", "Obras y Reformas Atlántico, S.L.", False, ""),
+    PlanEntry("C1", "Electricidad Luminar, S.L.", False, "EL"),
+    PlanEntry("C2", "Agua y Gas Cantábrico, S.L.", False, "AC"),
+    PlanEntry("C3", "Yusuf Demir (Mantenimiento)", True, "YD"),
+    PlanEntry("C4", "Seguros Faro Mediterráneo, S.L.", False, "SF"),
+    PlanEntry("C5", "Software Colmena, S.L.", False, "SC"),
+    PlanEntry("C6", "Papeles del Duero, S.L.", False, "PD"),
+    PlanEntry("C7", "Mei Chen (Diseño)", True, "MC"),
+    PlanEntry("C8", "Gestoría Tres Cantos, S.L.", False, "GT"),
+    PlanEntry("C9", "Jardinería Verde Mar, S.L.", False, "JV"),
+)
+
+
+class PhantomSupplier(NamedTuple):
+    """A fictional supplier of the phantom demo with its derived identifiers."""
+
+    k: int
+    case: str
+    name: str
+    code: str
+    tax_id: str
+    iban: str  # compact master IBAN
+    other_iban: str  # compact second valid account (P5 invoice, non-master payment)
+
+
+def phantom_iban(k: int, *, other: bool = False) -> str:
+    """Compact IBAN of supplier k (valid mod-97, wrong national digits); `other` = 2nd account."""
+    bank, branch = BANKS[(k - 1) % len(BANKS)]
+    offset = PHANTOM_OTHER_ACCOUNT_OFFSET if other else 0
+    return make_iban(bank, branch, f"{(k * PHANTOM_ACCOUNT_MULTIPLIER + offset) % 10**10:010d}")
+
+
+def _phantom_suppliers() -> tuple[PhantomSupplier, ...]:
+    """The 25 suppliers of PHANTOM_PLAN with their identifiers."""
+    suppliers: list[PhantomSupplier] = []
+    for k, entry in enumerate(PHANTOM_PLAN, start=1):
+        suppliers.append(
+            PhantomSupplier(
+                k,
+                entry.case,
+                entry.name,
+                entry.code,
+                make_nif(k) if entry.person else make_cif(k),
+                phantom_iban(k),
+                phantom_iban(k, other=True),
+            )
+        )
+    return tuple(suppliers)
+
+
+PHANTOM_SUPPLIERS: tuple[PhantomSupplier, ...] = _phantom_suppliers()
+_BY_CASE: dict[str, PhantomSupplier] = {s.case: s for s in PHANTOM_SUPPLIERS}
+PHANTOM_CASES: dict[str, str] = {s.case: s.tax_id for s in PHANTOM_SUPPLIERS if not s.code}
+CLEAN_SUPPLIERS: tuple[str, ...] = tuple(s.tax_id for s in PHANTOM_SUPPLIERS if s.code)
+
+
+def _iban_cell(supplier: PhantomSupplier, style: str) -> str:
+    """Spell a supplier IBAN in one of the styles the demo uses."""
+    spaced = format_iban(supplier.iban)
+    spellings = {
+        "": "",
+        "master": spaced,
+        "other": format_iban(supplier.other_iban),
+        "lower": spaced.lower(),
+        "compact_lower": supplier.iban.lower(),
+        "hyphen": spaced.replace(" ", "-"),
+    }
+    return spellings[style]
+
+
+def _invoice_record(
+    supplier: PhantomSupplier,
+    number: str,
+    issue: date,
+    base: str,
+    rate: str,
+    *,
+    iban: str = "master",
+    vat: str = "",
+    surcharge_rate: str = "",
+    withholding: str = "",
+    due: str | None = None,
+) -> dict[str, str]:
+    """One invoice row as column -> text; VAT, surcharge and total come from the money helpers.
+
+    `vat` overrides the computed VAT (the wrong amount of P7), `withholding` is written as given,
+    `due=None` means issue + 30 days and `due=""` leaves the cell empty.
+    """
+    base_amount = Decimal(base)
+    vat_amount = Decimal(vat) if vat else percent_of(base_amount, Decimal(rate))
+    surcharge = percent_of(base_amount, Decimal(surcharge_rate)) if surcharge_rate else None
+    held = Decimal(withholding) if withholding else None
+    additions = [base_amount, vat_amount] + ([surcharge] if surcharge is not None else [])
+    total = net_total(additions, [held] if held is not None else [])
+    due_text = (issue + timedelta(days=PHANTOM_TERM_DAYS)).isoformat() if due is None else due
+    return {
+        "invoice_number": number,
+        "supplier_name": supplier.name,
+        "supplier_tax_id": supplier.tax_id,
+        "issue_date": issue.isoformat(),
+        "due_date": due_text,
+        "base_amount": base,
+        "vat_rate": rate,
+        "vat_amount": str(vat_amount),
+        "surcharge_amount": "" if surcharge is None else str(surcharge),
+        "withholding_amount": "" if held is None else str(held),
+        "total": str(total),
+        "currency": "EUR",
+        "iban": _iban_cell(supplier, iban),
+    }
+
+
+def _plant(case: str, number: str, issue: date, base: str, rate: str, **kwargs: str) -> dict:
+    """One planted invoice row of the supplier of `case` (no randomness)."""
+    return _invoice_record(_BY_CASE[case], number, issue, base, rate, **kwargs)
+
+
+def _planted_invoices() -> list[dict[str, str]]:
+    """The 25 literal invoice rows of the 16 planted cases (design sections 15.4 and 15.5)."""
+    return [
+        # P1: the same invoice twice
+        _plant("P1", "F-2026-0310", date(2026, 10, 6), "400.00", "21"),
+        _plant("P1", "F-2026-0310", date(2026, 10, 6), "400.00", "21"),
+        # P2: monthly rent, no alert
+        _plant("P2", "ALQ-2026-01", date(2026, 8, 3), "600.00", "21"),
+        _plant("P2", "ALQ-2026-02", date(2026, 9, 2), "600.00", "21"),
+        _plant("P2", "ALQ-2026-03", date(2026, 10, 2), "600.00", "21"),
+        # P3: near-identical numbers
+        _plant("P3", "F-2026-0042", date(2026, 10, 1), "200.00", "21"),
+        _plant("P3", "F2026-042", date(2026, 10, 4), "200.00", "21"),
+        # P4: invoice IBAN in lower case with spaces, same account as the master
+        _plant("P4", "L-2026-118", date(2026, 7, 6), "150.00", "21", iban="lower"),
+        # P5: invoice IBAN is a different valid account
+        _plant("P5", "T-2026-077", date(2026, 10, 9), "300.00", "21", iban="other"),
+        # P6: correct invoice
+        _plant("P6", "MO-2026-031", date(2026, 6, 10), "100.00", "21"),
+        # P7: VAT amount 12.10 instead of 21.00
+        _plant("P7", "IR-2026-044", date(2026, 10, 13), "100.00", "21", vat="12.10"),
+        # P8: withholding 150.00
+        _plant("P8", "AG-2026-007", date(2026, 7, 1), "1000.00", "21", withholding="150.00"),
+        # P9: paid twice
+        _plant("P9", "R-2026-009", date(2026, 7, 14), "500.00", "21"),
+        # P10: same total on four dates 6, 7 and 8 days apart
+        _plant("P10", "FAC-0101", date(2026, 9, 18), "75.00", "21"),
+        _plant("P10", "FAC-0102", date(2026, 9, 24), "75.00", "21"),
+        _plant("P10", "FAC-0103", date(2026, 10, 1), "75.00", "21"),
+        _plant("P10", "FAC-0104", date(2026, 10, 9), "75.00", "21"),
+        # P11: surcharge 5.2 %
+        _plant("P11", "CM-2026-052", date(2026, 8, 12), "100.00", "21", surcharge_rate="5.2"),
+        # P12: hyphenated IBAN, then no IBAN
+        _plant("P12", "TR-2026-014", date(2026, 10, 7), "50.00", "21", iban="hyphen"),
+        _plant("P12", "TR-2026-015", date(2026, 10, 14), "100.00", "21", iban=""),
+        # (a) invoice later paid to a non-master IBAN
+        _plant("NON_MASTER_PAYMENT", "MD-2026-210", date(2026, 8, 18), "1000.00", "21"),
+        # (b) overdue, unpaid
+        _plant("OVERDUE", "CR-2026-051", date(2026, 8, 20), "700.00", "21"),
+        # (c) open, not yet due
+        _plant("OPEN_NOT_DUE", "CS-2026-033", date(2026, 10, 12), "250.00", "21"),
+        # (d) two VAT rates on one invoice: both rows are quarantined by the app
+        _plant("MULTI_RATE", "OB-2026-008", date(2026, 9, 30), "800.00", "21"),
+        _plant("MULTI_RATE", "OB-2026-008", date(2026, 9, 30), "200.00", "10"),
+    ]
+
+
+def _debit(case: str, day: date, amount: str, *, other: bool = False) -> BankRow:
+    """A debit (negative amount) to the supplier of `case`, to its master or its other IBAN."""
+    supplier = _BY_CASE[case]
+    iban = format_iban(supplier.other_iban if other else supplier.iban)
+    return BankRow(day, f"-{amount}", supplier.name, PHANTOM_DEBIT_NOTE, iban)
+
+
+def _planted_payments() -> list[BankRow]:
+    """The 10 literal payments of the planted cases."""
+    return [
+        _debit("P2", date(2026, 8, 5), "726.00"),
+        _debit("P2", date(2026, 9, 4), "726.00"),
+        _debit("P2", date(2026, 10, 5), "726.00"),
+        _debit("P4", date(2026, 8, 4), "181.50"),
+        _debit("P6", date(2026, 7, 8), "121.00"),
+        _debit("P8", date(2026, 7, 30), "1060.00"),
+        _debit("P9", date(2026, 8, 10), "605.00"),
+        _debit("P9", date(2026, 8, 12), "605.00"),
+        _debit("P11", date(2026, 9, 9), "126.20"),
+        _debit("NON_MASTER_PAYMENT", date(2026, 9, 14), "1210.00", other=True),
+    ]
+
+
+# Customer receipts (credits): ignored by every detector.
+PHANTOM_CREDITS: tuple[BankRow, ...] = (
+    BankRow(date(2026, 6, 15), "2400.00", "Cliente Ficticio Alba, S.L.", "Receipt", ""),
+    BankRow(date(2026, 8, 31), "1850.50", "Cliente Ficticio Brisa, S.L.", "Receipt", ""),
+    BankRow(date(2026, 10, 28), "3120.00", "Cliente Ficticio Cometa, S.L.", "Receipt", ""),
+)
+# Debits to counterparties that are no supplier of the master (IBANs outside the master).
+PHANTOM_UNRELATED_DEBITS: tuple[tuple[date, str, str], ...] = (
+    (date(2026, 7, 21), "-48.30", "Papelería La Esquina"),
+    (date(2026, 8, 26), "-212.00", "Ferretería Monte Alto"),
+    (date(2026, 9, 30), "-95.75", "Taxi Ciudad Jardín"),
+    (date(2026, 10, 21), "-310.40", "Cafetería Plaza Nueva"),
+)
+
+
+def _unrelated_payments() -> list[BankRow]:
+    """The three credits and the four unrelated debits (literal rows)."""
+    rows = list(PHANTOM_CREDITS)
+    for i, (day, amount, name) in enumerate(PHANTOM_UNRELATED_DEBITS):
+        iban = format_iban(phantom_iban(PHANTOM_UNRELATED_FIRST_K + i))
+        rows.append(BankRow(day, amount, name, "Card purchase", iban))
+    return rows
+
+
+def _clean_rows(rng: random.Random) -> tuple[list[dict[str, str]], list[BankRow]]:
+    """The 45 invoices and 45 payments of the nine clean suppliers; the only use of `rng`.
+
+    Fixed draw order, per supplier j and invoice m: base integer part, base cents, VAT rate
+    (these three are redrawn until the total is new for the supplier), then the payment delay.
+    """
+    invoices: list[dict[str, str]] = []
+    payments: list[BankRow] = []
+    clean = [s for s in PHANTOM_SUPPLIERS if s.code]
+    for j, supplier in enumerate(clean):
+        totals: set[str] = set()
+        for m in range(PHANTOM_CLEAN_INVOICES):
+            issue = date(2026, 5 + m, 3 + (j * 5 + m * 3) % 20)
+            while True:
+                base = f"{rng.randrange(*PHANTOM_BASE_RANGE)}.{rng.randrange(100):02d}"
+                rate = str(rng.choice(PHANTOM_CLEAN_VAT_RATES))
+                no_due = (j + m) % PHANTOM_NO_DUE_DATE_MODULUS == 0
+                record = _invoice_record(
+                    supplier,
+                    f"{supplier.code}-2026-{m + 1:03d}",
+                    issue,
+                    base,
+                    rate,
+                    iban=PHANTOM_IBAN_STYLES[(j + m) % len(PHANTOM_IBAN_STYLES)],
+                    due="" if no_due else None,
+                )
+                if record["total"] not in totals:
+                    break
+            totals.add(record["total"])
+            delay = rng.randrange(*PHANTOM_DELAY_RANGE)
+            paid = min(issue + timedelta(days=delay), PHANTOM_PAYMENT_CAP)
+            if j == len(clean) - 1 and m == PHANTOM_CLEAN_INVOICES - 1:
+                paid = DEMO_LATEST_DATE
+            iban = format_iban(supplier.iban)
+            payments.append(
+                BankRow(paid, f"-{record['total']}", supplier.name, PHANTOM_DEBIT_NOTE, iban)
+            )
+            invoices.append(record)
+    return invoices, payments
+
+
+def build_phantom_demo(seed: int = DEFAULT_SEED) -> dict[str, str]:
+    """{"suppliers.csv": text, "invoices.csv": text, "payments.csv": text} for `seed`."""
+    rng = random.Random(seed)
+    clean_invoices, clean_payments = _clean_rows(rng)
+    invoices = [*_planted_invoices(), *clean_invoices]
+    payments = [*_planted_payments(), *_unrelated_payments(), *clean_payments]
+    payments.sort(key=lambda r: (r.day, r.counterparty, Decimal(r.amount)))
+    supplier_rows = [[s.name, s.tax_id, format_iban(s.iban)] for s in PHANTOM_SUPPLIERS]
+    invoice_rows = [[r[column] for column in INVOICE_COLUMNS] for r in invoices]
+    return {
+        "suppliers.csv": _csv_text(SUPPLIER_COLUMNS, supplier_rows),
+        "invoices.csv": _csv_text(INVOICE_COLUMNS, invoice_rows),
+        "payments.csv": render_bank_csv(payments, "plain"),
+    }
+
+
+def write_phantom_demo(out_dir: Path, seed: int = DEFAULT_SEED) -> None:
+    """Write the three demo files into `out_dir` as UTF-8 without BOM and LF line endings."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, text in build_phantom_demo(seed).items():
+        (out_dir / name).write_bytes(text.encode("utf-8"))
+
+
 # --- demo modes owned by the app specs ----------------------------------------------------------
 def run_zombie_demo(args: argparse.Namespace) -> int:
     """Write data/samples/zombie_demo_statement.csv (or into --out-dir) for --seed."""
@@ -661,11 +991,12 @@ def run_zombie_demo(args: argparse.Namespace) -> int:
 
 
 def run_phantom_demo(args: argparse.Namespace) -> int:
-    """Stub for phantom-invoices (data/samples/phantom_demo/{suppliers,invoices,payments}.csv)."""
-    raise NotImplementedError(
-        "--mode phantom-demo is specified in .kiro/specs/phantom-invoices (design section 15); "
-        "implement it there and register it in MODE_HANDLERS."
-    )
+    """Write the three phantom-demo CSV files into <out-dir>/phantom_demo for --seed."""
+    out_dir = Path(args.out_dir) / PHANTOM_DEMO_DIR
+    write_phantom_demo(out_dir, args.seed)
+    for name in PHANTOM_FILES:
+        print(f"wrote {out_dir / name}")
+    return 0
 
 
 def run_samples(args: argparse.Namespace) -> int:
@@ -699,7 +1030,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate synthetic sample data.")
     parser.add_argument("--mode", choices=sorted(MODE_HANDLERS), default="samples")
     parser.add_argument(
-        "--seed", type=int, default=DEFAULT_SEED, help="random seed (bank and zombie-demo modes)"
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help="random seed (bank, zombie-demo and phantom-demo modes)",
     )
     parser.add_argument("--rows", type=int, default=10, help="number of rows (bank mode)")
     parser.add_argument("--dialect", choices=("plain", "european"), default="plain")
@@ -707,7 +1041,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out-dir",
         default=str(DEFAULT_OUT_DIR),
-        help="samples and zombie-demo modes: directory",
+        help="samples, zombie-demo and phantom-demo modes: directory",
     )
     return parser
 

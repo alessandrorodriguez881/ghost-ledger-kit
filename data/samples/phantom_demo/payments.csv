@@ -1,0 +1,63 @@
+date,amount,currency,counterparty,description,iban
+2026-05-18,-578.91,EUR,"Agua y Gas Cantábrico, S.L.",Supplier payment,ES87 0049 1500 1801 3777 7778
+2026-05-21,-611.73,EUR,"Software Colmena, S.L.",Supplier payment,ES25 2100 0418 5901 6074 0741
+2026-05-23,-1420.46,EUR,"Papeles del Duero, S.L.",Supplier payment,ES38 0049 1500 1601 6839 5062
+2026-05-27,-1143.97,EUR,Yusuf Demir (Mantenimiento),Supplier payment,ES49 0182 5900 1301 4543 2099
+2026-06-01,-1873.16,EUR,"Jardinería Verde Mar, S.L.",Supplier payment,ES92 2100 0418 5201 9135 8025
+2026-06-05,-1680.86,EUR,"Electricidad Luminar, S.L.",Supplier payment,ES23 2100 0418 5401 3012 3457
+2026-06-14,-405.93,EUR,"Seguros Faro Mediterráneo, S.L.",Supplier payment,ES36 0081 7000 9701 5308 6420
+2026-06-15,2400.00,EUR,"Cliente Ficticio Alba, S.L.",Receipt,
+2026-06-15,-1183.33,EUR,"Gestoría Tres Cantos, S.L.",Supplier payment,ES22 0081 7000 9601 8370 3704
+2026-06-20,-778.41,EUR,"Electricidad Luminar, S.L.",Supplier payment,ES23 2100 0418 5401 3012 3457
+2026-06-21,-759.98,EUR,Mei Chen (Diseño),Supplier payment,ES70 0182 5900 1301 7604 9383
+2026-06-21,-1220.66,EUR,"Software Colmena, S.L.",Supplier payment,ES25 2100 0418 5901 6074 0741
+2026-06-29,-630.37,EUR,Yusuf Demir (Mantenimiento),Supplier payment,ES49 0182 5900 1301 4543 2099
+2026-07-02,-1502.71,EUR,Mei Chen (Diseño),Supplier payment,ES70 0182 5900 1301 7604 9383
+2026-07-05,-231.54,EUR,"Jardinería Verde Mar, S.L.",Supplier payment,ES92 2100 0418 5201 9135 8025
+2026-07-08,-121.00,EUR,"Material de Oficina Sierra Clara, S.L.",Supplier payment,ES16 0049 1500 1500 4592 5926
+2026-07-11,-1229.25,EUR,"Agua y Gas Cantábrico, S.L.",Supplier payment,ES87 0049 1500 1801 3777 7778
+2026-07-12,-1053.51,EUR,"Gestoría Tres Cantos, S.L.",Supplier payment,ES22 0081 7000 9601 8370 3704
+2026-07-20,-1242.04,EUR,"Papeles del Duero, S.L.",Supplier payment,ES38 0049 1500 1601 6839 5062
+2026-07-21,-48.30,EUR,Papelería La Esquina,Card purchase,ES87 0081 7000 9207 6543 2100
+2026-07-29,-550.34,EUR,"Gestoría Tres Cantos, S.L.",Supplier payment,ES22 0081 7000 9601 8370 3704
+2026-07-29,-708.03,EUR,"Seguros Faro Mediterráneo, S.L.",Supplier payment,ES36 0081 7000 9701 5308 6420
+2026-07-30,-1060.00,EUR,Ana García (Asesoría Fiscal),Supplier payment,ES54 0081 7000 9100 6123 4568
+2026-07-31,-1668.36,EUR,"Agua y Gas Cantábrico, S.L.",Supplier payment,ES87 0049 1500 1801 3777 7778
+2026-07-31,-1446.52,EUR,"Papeles del Duero, S.L.",Supplier payment,ES38 0049 1500 1601 6839 5062
+2026-08-04,-181.50,EUR,"Limpiezas Brillante Norte, S.L.",Supplier payment,ES68 0081 7000 9200 3061 7284
+2026-08-05,-726.00,EUR,"Inmuebles Valdemar, S.L.",Supplier payment,ES84 0049 1500 1200 1530 8642
+2026-08-05,-1256.79,EUR,"Jardinería Verde Mar, S.L.",Supplier payment,ES92 2100 0418 5201 9135 8025
+2026-08-05,-993.08,EUR,"Seguros Faro Mediterráneo, S.L.",Supplier payment,ES36 0081 7000 9701 5308 6420
+2026-08-09,-1014.52,EUR,"Software Colmena, S.L.",Supplier payment,ES25 2100 0418 5901 6074 0741
+2026-08-09,-326.07,EUR,Yusuf Demir (Mantenimiento),Supplier payment,ES49 0182 5900 1301 4543 2099
+2026-08-10,-605.00,EUR,Luigi Rossi (Reformas),Supplier payment,ES16 2100 0418 5500 6888 8889
+2026-08-11,-1588.13,EUR,"Electricidad Luminar, S.L.",Supplier payment,ES23 2100 0418 5401 3012 3457
+2026-08-12,-605.00,EUR,Luigi Rossi (Reformas),Supplier payment,ES16 2100 0418 5500 6888 8889
+2026-08-24,-222.05,EUR,"Seguros Faro Mediterráneo, S.L.",Supplier payment,ES36 0081 7000 9701 5308 6420
+2026-08-25,-103.87,EUR,"Jardinería Verde Mar, S.L.",Supplier payment,ES92 2100 0418 5201 9135 8025
+2026-08-26,-212.00,EUR,Ferretería Monte Alto,Card purchase,ES41 2100 0418 5307 7308 6421
+2026-08-26,-1564.89,EUR,Mei Chen (Diseño),Supplier payment,ES70 0182 5900 1301 7604 9383
+2026-08-31,1850.50,EUR,"Cliente Ficticio Brisa, S.L.",Receipt,
+2026-09-03,-1793.72,EUR,"Papeles del Duero, S.L.",Supplier payment,ES38 0049 1500 1601 6839 5062
+2026-09-04,-1243.95,EUR,"Electricidad Luminar, S.L.",Supplier payment,ES23 2100 0418 5401 3012 3457
+2026-09-04,-726.00,EUR,"Inmuebles Valdemar, S.L.",Supplier payment,ES84 0049 1500 1200 1530 8642
+2026-09-09,-126.20,EUR,"Comercial Minorista Pérez, S.L.",Supplier payment,ES42 0182 5900 1400 8419 7531
+2026-09-09,-1689.86,EUR,Mei Chen (Diseño),Supplier payment,ES70 0182 5900 1301 7604 9383
+2026-09-11,-626.89,EUR,"Software Colmena, S.L.",Supplier payment,ES25 2100 0418 5901 6074 0741
+2026-09-13,-323.02,EUR,"Gestoría Tres Cantos, S.L.",Supplier payment,ES22 0081 7000 9601 8370 3704
+2026-09-14,-1210.00,EUR,"Mantenimientos Delta Ibérica, S.L.",Supplier payment,ES84 2100 0418 6001 0061 7284
+2026-09-21,-1209.70,EUR,"Agua y Gas Cantábrico, S.L.",Supplier payment,ES87 0049 1500 1801 3777 7778
+2026-09-25,-304.19,EUR,"Gestoría Tres Cantos, S.L.",Supplier payment,ES22 0081 7000 9601 8370 3704
+2026-09-26,-949.57,EUR,Yusuf Demir (Mantenimiento),Supplier payment,ES49 0182 5900 1301 4543 2099
+2026-09-30,-226.77,EUR,"Software Colmena, S.L.",Supplier payment,ES25 2100 0418 5901 6074 0741
+2026-09-30,-95.75,EUR,Taxi Ciudad Jardín,Card purchase,ES35 0049 1500 1507 8074 0742
+2026-10-01,-175.49,EUR,"Electricidad Luminar, S.L.",Supplier payment,ES23 2100 0418 5401 3012 3457
+2026-10-02,-365.31,EUR,Mei Chen (Diseño),Supplier payment,ES70 0182 5900 1301 7604 9383
+2026-10-02,-185.82,EUR,Yusuf Demir (Mantenimiento),Supplier payment,ES49 0182 5900 1301 4543 2099
+2026-10-05,-726.00,EUR,"Inmuebles Valdemar, S.L.",Supplier payment,ES84 0049 1500 1200 1530 8642
+2026-10-12,-2133.28,EUR,"Papeles del Duero, S.L.",Supplier payment,ES38 0049 1500 1601 6839 5062
+2026-10-17,-2012.68,EUR,"Seguros Faro Mediterráneo, S.L.",Supplier payment,ES36 0081 7000 9701 5308 6420
+2026-10-21,-310.40,EUR,Cafetería Plaza Nueva,Card purchase,ES67 0182 5900 1207 8839 5063
+2026-10-22,-113.70,EUR,"Agua y Gas Cantábrico, S.L.",Supplier payment,ES87 0049 1500 1801 3777 7778
+2026-10-28,3120.00,EUR,"Cliente Ficticio Cometa, S.L.",Receipt,
+2026-10-30,-1786.78,EUR,"Jardinería Verde Mar, S.L.",Supplier payment,ES92 2100 0418 5201 9135 8025

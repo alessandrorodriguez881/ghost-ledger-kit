@@ -33,8 +33,7 @@ python scripts/generate_samples.py --mode bank --seed 42 --rows 50 --dialect eur
 ```
 
 `--mode zombie-demo` writes the demo statement of the zombie-subscriptions app (see below).
-`--mode phantom-demo` belongs to the phantom-invoices spec; it prints a "not implemented" message
-until that spec adds it.
+`--mode phantom-demo` writes the demo files of the phantom-invoices app (see below).
 
 ## Zombie-subscriptions demo statement
 
@@ -63,6 +62,31 @@ synthetic; every merchant is a fictional brand and person names (`Ana García`, 
 
 `--seed` only changes the dates and amounts of the twelve single purchases.
 
+## Phantom-invoices demo (`phantom_demo/`)
+
+```
+python scripts/generate_samples.py --mode phantom-demo --seed 42
+```
+
+writes `phantom_demo/suppliers.csv`, `phantom_demo/invoices.csv` and `phantom_demo/payments.csv`
+(plain dialect: comma, dot decimal, ISO dates; negative amounts are debits). The files are
+**synthetic, no real data**: fictional suppliers and customers, no real invoice, bank statement or
+person (Finance Rules 5 and 6). They are committed and byte-identical to the generator output for
+seed 42 (`apps/phantom_invoices/tests/test_pi_demo_data.py` fails if they are stale).
+`.gitattributes` marks them `-text`, so a Windows checkout does not rewrite the line endings.
+
+| File | Content |
+|---|---|
+| `suppliers.csv` | 25 fictional suppliers (`supplier_name,tax_id,iban`): 16 planted cases and 9 clean ones |
+| `invoices.csv` | 70 invoice rows: 25 planted rows and 45 clean ones (five monthly invoices per clean supplier) |
+| `payments.csv` | 62 bank rows: payments of the clean and some planted invoices, 3 credits, 4 unrelated debits |
+
+The planted cases are literal tables (duplicate invoice, monthly rent, near-identical numbers,
+IBAN spellings, changed IBAN, VAT error, withholding, double payment, same total on close dates,
+surcharge, invalid IBAN, payment to a non-master IBAN, overdue, open, multi-rate invoice). `--seed`
+only changes the amounts, dates and payment delays of the nine clean suppliers. The latest date in
+the data is 2026-10-30.
+
 ## How the identifiers are made safe
 
 - **Names**: fictional (`Ana García`, `Luigi Rossi`, brands such as `Streamly Plus`).
@@ -70,5 +94,5 @@ synthetic; every merchant is a fictional brand and person names (`Ana García`, 
   digits, for example `ES88 2100 0418 5602 0005 1332` (national digits `56` instead of `45`), so
   they cannot be real accounts.
 - **Tax ids**: a wrong control character, a different id per supplier (`B00000019`,
-  `B00000027`, `00001003S`).
+  `B00000027`, `00001003S`). The phantom demo follows the same rule for its 25 suppliers.
 - No e-mail addresses and no phone numbers.

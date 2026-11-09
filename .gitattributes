@@ -1,0 +1,2 @@
+# demo CSVs are byte-compared with the generator output; no autocrlf on Windows (DN-10)
+data/samples/phantom_demo/*.csv -text

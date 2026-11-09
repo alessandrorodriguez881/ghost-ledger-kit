@@ -227,7 +227,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_clean_ledger_10_raises_no_alert_from_any_detector` — the placeholder of Task P9 now runs without skipping.
   - `test_pi_acceptance_p01_no_other_detector_fires` — P1 through `run_pi_detectors`: exactly one alert in total, `critical`.
 - [x] Implement `detectors/__init__.py` (`LABELS`, `auto_discover("apps.phantom_invoices.detectors")`, `run_pi_detectors`) exactly as §1.1. Remove the skip from the Task P9 test.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_registry.py apps/phantom_invoices/tests/test_pi_fixtures.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_registry.py apps/phantom_invoices/tests/test_pi_fixtures.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -241,7 +241,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_guard_rejects_hallucinated_amount`; `test_guard_rejects_uncited_date`; `test_guard_rejects_iban_shaped_token`; `test_no_api_key_returns_fallback_without_network` (REQ-PI-44); `test_template_for_unknown_variant_raises_keyerror_with_clear_message`; `test_build_explain_rows_empty_and_non_frame_inputs`; `test_templates_recommend_no_action` (no "should", "cancel", "refuse", "pay"); `test_allowed_vat_rates_string_tokenises_as_four_numbers`; `test_injected_number_not_in_any_alert`.
   - **Tier 3** (`max_examples=200`): `test_guard_accepts_any_alert_data_sentence`.
 - [x] Implement `apps/phantom_invoices/explain_support.py`: `ROW_COLUMNS`, `TEMPLATES`, `template_for`, `build_explain_rows`, `explain_alert`, `guard_badge`, `HallucinatingStubClient`. It calls `fill_fallback` from `ledger_kit.explainer` where it needs a filled template and defines no wrapper.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_explain_support.py apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes (the scaffold test confirms no private import); `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_explain_support.py apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes (the scaffold test confirms no private import); `ruff check` clean.
 
 ---
 
@@ -254,7 +254,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_script_tag_and_quotes_are_escaped` (`<script>alert(1)</script>`, `"`, `'`, `&` in any cell and in a column name); `test_missing_cells_render_empty` (`None`, `NaN`, `pd.NA`, `"-"` shown as empty); `test_empty_frame_renders_header_only`; `test_row_without_source_ref_column_is_dimmed_when_lit_refs_given`; `test_haunted_css_contains_theme_colours_and_dim_opacity` (`#12101a`, `#7cffb2`, `opacity: 0.25`, `box-shadow`, `radial-gradient`) and `test_haunted_css_has_no_external_url`.
   - **Tier 3** (`max_examples=200`): `test_render_never_emits_unescaped_markup` — for arbitrary text cells, the output contains no `<` other than the fixed tags of the template.
 - [x] Implement `apps/phantom_invoices/flashlight.py` (`HAUNTED_CSS`, `_esc`, `render_ledger_html`). Pure: no Streamlit import.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_flashlight.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_flashlight.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -267,7 +267,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_missing_files_are_empty_inputs_with_canonical_columns` (REQ-ING-28); `test_json_invoices_routed_to_json_reader`; `test_multi_rate_rows_in_quarantine_tagged_with_file_kind`; `test_quarantine_records_keep_ledger_core_shape`; `test_explicit_as_of_wins_over_data`; `test_as_of_used_is_none_without_any_date`; `test_pipeline_does_not_read_the_clock`; `test_credits_in_payments_are_passed_through_not_filtered` (REQ-PI-03).
   - **Tier 3**: `test_run_pipeline_shuffled_rows_same_alerts` for a small generated invoices CSV.
 - [x] Create `apps/phantom_invoices/config.toml` (`[demo]` three paths, `as_of` commented out; no thresholds, no secrets). Implement `settings.py` (`Source`, `Pipeline`, `DemoInputs`, `load_config`, `to_date`, `demo_inputs`, `_tag`, `run_pipeline`). Money is not computed here.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_settings.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_settings.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -275,7 +275,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-54, REQ-PI-55, REQ-PI-56, REQ-PI-58, REQ-PI-70 (part), §15.1–§15.3, §15.5 (clean suppliers)
 
-- [ ] Write `tests/test_pi_demo_generator.py` (the generator module is loaded by path):
+- [x] Write `tests/test_pi_demo_generator.py` (the generator module is loaded by path):
   - `test_build_phantom_demo_is_deterministic` — two calls with seed 42 give identical strings; a different seed changes only the clean-supplier rows (planted rows and tax ids are seed-independent).
   - `test_files_are_plain_dialect_with_documented_columns` — headers equal §15.2; comma separator, dot decimal, ISO dates; no BOM; `\n` line endings.
   - `test_twenty_five_suppliers_sixteen_cases_nine_clean` — `PHANTOM_CASES` has the 16 keys of §15.3; `CLEAN_SUPPLIERS` has 9 tax ids; 20–26 suppliers.
@@ -283,7 +283,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_clean_suppliers_have_five_monthly_invoices_with_distinct_totals`; `test_clean_invoice_amounts_built_with_money_helpers` (vat equals `percent_of(base, rate)`, total equals `net_total`).
   - `test_every_clean_invoice_paid_by_exact_total_inside_window_to_master_iban`; `test_latest_date_in_data_is_demo_latest_date` (`2026-10-30`, a clean payment of `C9`); `test_payments_sorted_by_date_counterparty_amount`; `test_payments_have_three_credits_and_four_unrelated_debits`.
   - `test_generator_uses_only_random_random_with_seed` — `ast` scan: no module-level `random.` call, no `datetime.now`/`today`.
-- [ ] Implement in `scripts/generate_samples.py`: `PHANTOM_CASES`, `CLEAN_SUPPLIERS`, `DEMO_LATEST_DATE`, `BANKS`, supplier plan table, `build_phantom_demo(seed=42)` producing suppliers, the nine clean suppliers' invoices and payments (planted rows are added in Task P19), `write_phantom_demo(out_dir, seed)`, and the CLI `--mode phantom-demo --seed N`. Uses `random.Random(seed)` consumed in fixed order, `csv.writer(lineterminator="\n")`, UTF-8 without BOM.
+- [x] Implement in `scripts/generate_samples.py`: `PHANTOM_CASES`, `CLEAN_SUPPLIERS`, `DEMO_LATEST_DATE`, `BANKS`, supplier plan table, `build_phantom_demo(seed=42)` producing suppliers, the nine clean suppliers' invoices and payments (planted rows are added in Task P19), `write_phantom_demo(out_dir, seed)`, and the CLI `--mode phantom-demo --seed N`. Uses `random.Random(seed)` consumed in fixed order, `csv.writer(lineterminator="\n")`, UTF-8 without BOM.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
 
 ---
@@ -292,14 +292,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-57 (P1–P12 and plants a–e), REQ-PI-56 (size), §15.4, §15.5, §15.6
 
-- [ ] Extend `tests/test_pi_demo_generator.py` first:
+- [x] Extend `tests/test_pi_demo_generator.py` first:
   - `test_demo_sizes` — 70 invoice rows (25 planted + 45 clean), 25 suppliers, 62 payment rows.
   - `test_each_phantom_case_has_a_dedicated_supplier_tax_id` — the 16 `PHANTOM_CASES` values are distinct and appear in `suppliers.csv`.
   - One test per planted case checking its rows against §15.4/§15.5 literally (numbers, issue and due dates, base/rate/VAT/total, payments, IBAN spelling): `test_planted_p1` … `test_planted_p12`, `test_planted_non_master_payment`, `test_planted_overdue`, `test_planted_open_not_due`, `test_planted_multi_rate`, `test_clean_invoices_without_due_date` (those with `(j + m) % 4 == 0`).
   - `test_p12_hyphenated_iban_derived_from_supplier_valid_iban` and `test_p4_invoice_iban_lowercase_with_spaces`.
   - `test_no_planted_invoice_besides_the_overdue_one_is_past_its_grace_period` (`issue + 30 + 15 >= 2026-10-30` unless paid).
   - `test_two_thirds_of_invoices_are_clean`.
-- [ ] Extend `build_phantom_demo` with the 16 literal planted cases; the planted rows use no randomness. Amounts are built from strings and `percent_of` / `net_total` only.
+- [x] Extend `build_phantom_demo` with the 16 literal planted cases; the planted rows use no randomness. Amounts are built from strings and `percent_of` / `net_total` only.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
 
 ---
@@ -308,11 +308,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: DN-10, REQ-PI-54 (byte-identical output on Windows), §1, §15.1
 
-- [ ] Write `tests/test_pi_gitattributes.py`:
+- [x] Write `tests/test_pi_gitattributes.py`:
   - `test_gitattributes_marks_phantom_demo_csvs_binary_like` — `.gitattributes` at the repository root contains the line `data/samples/phantom_demo/*.csv -text`.
   - `test_git_reports_text_unset_for_each_demo_csv` — `subprocess.run(["git", "check-attr", "text", "--", path])` for `suppliers.csv`, `invoices.csv`, `payments.csv` prints `text: unset`; skipped with a reason when `git` is not on `PATH` or the folder is not a repository.
   - `test_gitattributes_does_not_touch_other_patterns` — the file holds no `* text=auto` rule that would override the line (the `-text` line is the more specific, later-or-equal rule).
-- [ ] Create or extend `.gitattributes` with `data/samples/phantom_demo/*.csv -text` (add a comment line above it: `# demo CSVs are byte-compared with the generator output; no autocrlf on Windows (DN-10)`). Do not remove existing lines.
+- [x] Create or extend `.gitattributes` with `data/samples/phantom_demo/*.csv -text` (add a comment line above it: `# demo CSVs are byte-compared with the generator output; no autocrlf on Windows (DN-10)`). Do not remove existing lines.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_gitattributes.py -q` passes.
 
 ---
@@ -321,7 +321,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-54, REQ-PI-55, REQ-PI-58, REQ-PI-70, Finance Rule 6, §15
 
-- [ ] Extend `tests/test_pi_demo_data.py` (written before the files exist, so it fails first):
+- [x] Extend `tests/test_pi_demo_data.py` (written before the files exist, so it fails first):
   - `test_committed_files_equal_generator_output` — each of `data/samples/phantom_demo/{suppliers,invoices,payments}.csv` read as **bytes** equals `build_phantom_demo(42)[name].encode("utf-8")`.
   - `test_committed_files_have_lf_line_endings_and_no_bom`.
   - `test_regenerating_into_tmp_path_twice_is_byte_identical` (`write_phantom_demo`).
