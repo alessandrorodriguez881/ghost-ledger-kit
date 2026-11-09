@@ -8,6 +8,7 @@ dynamic = ["version"]
 description = "Template for financial agent apps that cannot fabricate numbers."
 requires-python = ">=3.11"
 dependencies = [
+    "defusedxml==0.7.1",
     "pandas==3.1.1",
     "pydantic==2.14.3",
     "streamlit==1.67.0",

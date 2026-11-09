@@ -35,3 +35,11 @@ def test_openai_is_optional_extra_only() -> None:
     openai_pins = [dep for dep in llm if dep.lower().startswith("openai")]
     assert len(openai_pins) == 1
     assert "==" in openai_pins[0]
+
+
+def test_defusedxml_is_pinned_exactly_in_both_places() -> None:
+    """REQ-RF-29: defusedxml==0.7.1 is a runtime dependency and in the root requirements."""
+    dependencies = _load_pyproject()["project"]["dependencies"]
+    assert "defusedxml==0.7.1" in dependencies
+    lines = (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
+    assert "defusedxml==0.7.1" in [line.strip() for line in lines]
