@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from hypothesis import given, settings
 
+from apps.phantom_invoices.detectors import run_pi_detectors
 from apps.phantom_invoices.detectors.utils import iban_key, is_missing, n2_key, resolve_as_of
 from apps.phantom_invoices.tests.pi_builders import (
     Scenario,
@@ -186,14 +187,7 @@ def test_clean_ledger_10_raises_no_alert_from_any_detector(
     suppliers_master: pd.DataFrame,
     payments_for_clean: pd.DataFrame,
 ) -> None:
-    """No pi detector fires on the clean fixtures (skipped until Tasks P10-P14 exist)."""
-    for module in ("duplicate_invoice", "iban_change", "reconciliation", "vat_error"):
-        pytest.importorskip(f"apps.phantom_invoices.detectors.{module}")
-    package = pytest.importorskip("apps.phantom_invoices.detectors")
-    run_pi_detectors = getattr(package, "run_pi_detectors", None)
-    if run_pi_detectors is None:
-        pytest.skip("run_pi_detectors is added by Task P14")
-
+    """No pi detector fires on the clean fixtures."""
     results = run_pi_detectors(clean_ledger_10, suppliers_master, payments_for_clean)
 
     assert len(results) == 4

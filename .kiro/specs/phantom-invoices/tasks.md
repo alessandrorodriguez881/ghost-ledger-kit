@@ -170,7 +170,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2** (every row of §7.6 as a named test): `test_empty_n1_row_skipped`; `test_missing_number_date_or_total_skipped`; `test_non_string_number_skipped`; `test_identical_source_ref_uses_one_row`; `test_multi_rate_group_no_alert_second_line_of_defence` (REQ-PI-16); `test_same_number_different_suppliers_no_alert`; `test_rule_c_6_days_alerts_7_does_not`; `test_rule_a_179_days_alerts_180_does_not`; `test_totals_differing_by_one_cent_not_equal`; `test_different_currency_never_paired` (DN-1); `test_group_of_three_with_mixed_rules_gives_one_alert_of_top_rule` (REQ-PI-19); `test_consecutive_numbers_with_equal_totals_fire_rule_c` (documents OD-PI-06); `test_window_constants_ordered` (`DUPLICATE_WINDOW_DAYS <= SAME_NUMBER_WINDOW_DAYS`); `test_constants_values`; `test_empty_ledger_and_empty_dataframe_return_empty_list`; `test_single_row_returns_list`; `test_empty_context_mapping_proxy_does_not_raise`.
   - **Tier 3** (`max_examples=200`): `test_consecutive_numbers_with_different_totals_never_duplicate`; `test_row_order_never_changes_any_detector` (this detector); `test_source_refs_subset_of_loaded_inputs` (via `loaded_source_refs`); `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
 - [x] Implement `detectors/duplicate_invoice.py` (`@register("pi.duplicate_invoice")`, `_Inv`, `_usable`, `_drop_multi_rate`, `_pair_variant`, `_groups`, `_alert`, constants).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_duplicate_invoice.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_duplicate_invoice.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -183,7 +183,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2** (every row of §8.4): `test_ibans_differing_before_last_four_still_alert_with_last4_identical`; `test_nbsp_inside_iban_removed`; `test_hyphen_only_iban_is_missing`; `test_checksum_failure_reason_checksum` (planted by the test only); `test_lowercase_accepted`; `test_invoice_and_payment_same_supplier_two_independent_alerts`; `test_empty_ledger_with_non_master_payment_alerts` (REQ-PI-22); `test_everything_empty_returns_empty_list`; `test_unknown_supplier_skipped`; `test_nan_and_none_ibans_skipped`; `test_invalid_master_iban_flagged_once_and_never_compared`; `test_attribution_by_name_and_by_iban_for_payments`; `test_credit_payments_ignored`; `test_one_alert_per_row`; `test_missing_suppliers_and_payments_keys_in_context`.
   - **Tier 3** (`max_examples=200`): `test_iban_spacing_and_case_never_fire`; `test_alert_data_never_contains_full_iban` (REQ-PII-04); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs` (ledger **and** suppliers **and** payments); `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
 - [x] Implement `detectors/iban_change.py` (`@register("pi.iban_change")`, `VERIFY_BY_PHONE_MESSAGE`, `_iban_state`, `_valid_master_key`, `_invalid`, `_invoice_differs`, `_payment_differs`; re-export of the IBAN constants from `utils`).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_iban_change.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_iban_change.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -196,7 +196,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_vat_amount_boundary_0_01_clean_0_02_alerts`; `test_total_boundary_0_01_clean_0_02_alerts`; `test_rate_21_00_allowed_20_and_5_alert`; `test_rate_zero_with_zero_vat_clean`; `test_missing_base_rate_vat_or_total_skips_only_that_check`; `test_string_and_float_cells_treated_as_missing`; `test_half_up_case_0_50_at_21_percent` (stated `0.11` clean, `0.09` alerts); `test_withholding_larger_than_base_plus_vat_is_total_mismatch_not_error`; `test_missing_surcharge_and_withholding_default_to_zero`; `test_empty_ledger_and_empty_dataframe_return_empty_list`; `test_single_row_returns_list`; `test_constants_values`; `test_duplicate_source_ref_uses_first_row`.
   - **Tier 3** (`max_examples=200`): `test_correct_invoice_never_fires_vat_check`; `test_vat_off_by_two_cents_or_more_always_fires` (uses `assume` to keep the shifted VAT non-negative); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs`; `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
 - [x] Implement `detectors/vat_error.py` (`@register("pi.vat_error")`, `VAT_TOLERANCE`, `TOTAL_TOLERANCE`, `ALLOWED_VAT_RATES`, `_m`, `_alert`). All money through `percent_of`, `net_total`, `within_tolerance`, `round_to_cents`; no arithmetic operator on a `Decimal` in this file (REQ-MON-03; the test scans the module with `ast` for `BinOp` on money names).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_vat_error.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_vat_error.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -209,7 +209,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2** (every row of §10.6): `test_payment_on_issue_date_and_on_due_plus_60_matches_one_day_outside_does_not`; `test_due_plus_15_open_due_plus_16_overdue`; `test_amount_difference_0_01_matches_0_02_does_not`; `test_different_currency_does_not_match`; `test_two_equal_invoices_two_payments_pair_in_date_ref_order`; `test_credits_ignored`; `test_payment_attributed_by_name_and_by_iban`; `test_unknown_counterparty_and_iban_is_in_no_bucket`; `test_as_of_none_no_overdue_alert`; `test_invoice_of_supplier_not_in_master_never_matched` (OD-PI-11); `test_defaulted_due_date_flagged`; `test_duplicate_source_ref_uses_first_row`; `test_unusable_rows_in_no_bucket_and_never_raise`; `test_partial_payment_overpayment_and_payment_before_issue_not_matched` (OD-PI-17); `test_empty_ledger_with_unmatched_supplier_payment_alerts`; `test_everything_empty_returns_empty_list`; `test_constants_values`.
   - **Tier 3** (`max_examples=200`, strategy `reconciliation_inputs`): `test_every_invoice_and_supplier_payment_in_exactly_one_bucket` (keys equal the usable invoices and supplier payments; `matches` one-to-one); `test_row_order_never_changes_any_detector`; `test_source_refs_subset_of_loaded_inputs`; `test_detector_idempotent`; `test_dirty_cells_never_raise`; `test_empty_input_returns_empty`.
 - [x] Implement in `detectors/utils.py`: `PAYMENT_MATCH_WINDOW_DAYS`, `UNPAID_GRACE_DAYS`, `MATCH_AMOUNT_TOLERANCE`, `InvoiceView`, `PaymentView`, `invoice_view`, `payment_view`, `Reconciliation`, `reconcile`. Implement `detectors/reconciliation.py` (`@register("pi.reconciliation")`, constants re-exported).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_reconciliation.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_reconciliation.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -217,7 +217,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-02, REQ-PI-14, REQ-PI-61, OD-PI-04, §1.1
 
-- [ ] Write `tests/test_pi_registry.py` (use the ledger-core `_snapshot_registry` / `_restore_registry` fixtures; no `_clear_registry`):
+- [x] Write `tests/test_pi_registry.py` (use the ledger-core `_snapshot_registry` / `_restore_registry` fixtures; no `_clear_registry`):
   - `test_auto_discover_registers_four_pi_detectors` — exactly `pi.duplicate_invoice`, `pi.iban_change`, `pi.reconciliation`, `pi.vat_error` in `registered_names(namespace="pi")`.
   - `test_labels_cover_every_registered_pi_detector` — `LABELS` keys equal the registered names; `LABELS["pi.iban_change"] == "Poltergeist IBAN"`.
   - `test_run_pi_detectors_empty_everything_returns_empty_alerts` — four `DetectorResult`s, each with `alerts == []` and no error.
@@ -226,7 +226,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_no_zs_detector_runs_in_pi_namespace`.
   - `test_clean_ledger_10_raises_no_alert_from_any_detector` — the placeholder of Task P9 now runs without skipping.
   - `test_pi_acceptance_p01_no_other_detector_fires` — P1 through `run_pi_detectors`: exactly one alert in total, `critical`.
-- [ ] Implement `detectors/__init__.py` (`LABELS`, `auto_discover("apps.phantom_invoices.detectors")`, `run_pi_detectors`) exactly as §1.1. Remove the skip from the Task P9 test.
+- [x] Implement `detectors/__init__.py` (`LABELS`, `auto_discover("apps.phantom_invoices.detectors")`, `run_pi_detectors`) exactly as §1.1. Remove the skip from the Task P9 test.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_registry.py apps/phantom_invoices/tests/test_pi_fixtures.py -q` passes; `ruff check` clean.
 
 ---
@@ -235,12 +235,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-41 to REQ-PI-47, REQ-PI-68, REQ-PI-26, DN-8, DN-9, §12
 
-- [ ] Write `tests/test_pi_explain_support.py` (all with the ledger-core `MockLLMClient`; no network):
+- [x] Write `tests/test_pi_explain_support.py` (all with the ledger-core `MockLLMClient`; no network):
   - **Tier 1**: `test_templates_cover_every_variant` — `TEMPLATES` has exactly the 11 `(detector, variant)` keys of §12.4; `test_every_template_fills_from_a_real_alert` — build one real alert per variant (fixtures P1, P3, same-total, P5, non-master payment, invalid IBAN, P7, a `total_mismatch`, a bad rate, overdue, P9), fill with `fill_fallback` **imported from `ledger_kit.explainer`**: no `{` or `}` left, amounts in European format, a cited `source_ref` present; `test_row_columns_reach_the_client` — `client.calls[0]["messages"]` contains no `iban`, `supplier_tax_id`, `tax_id`, `id` or `description` key; `test_guard_accepts_a_sentence_restating_only_alert_data` for each variant; `test_build_explain_rows_takes_rows_from_all_three_frames` (payment rows contribute only `currency`/`source_ref`, master rows only `supplier_name`/`source_ref`).
   - **Tier 1**: `test_hallucinating_stub_is_rejected_by_number_guard` — `explain_with_meta(alert, rows, fallback_template=..., client=HallucinatingStubClient(fill_fallback(...)), row_columns=ROW_COLUMNS)` → `source == "fallback"`, `rejected_numbers == ("99999.99",)`; `test_guard_badge_three_plus_one_texts` (llm, no key, rejected, key present with error: "Template (LLM unavailable)", DN-8); `test_stub_shape_matches_mock_client` (`chat` and `completions` are properties; `create` returns `choices[0].message.content`).
   - **Tier 2**: `test_guard_rejects_hallucinated_amount`; `test_guard_rejects_uncited_date`; `test_guard_rejects_iban_shaped_token`; `test_no_api_key_returns_fallback_without_network` (REQ-PI-44); `test_template_for_unknown_variant_raises_keyerror_with_clear_message`; `test_build_explain_rows_empty_and_non_frame_inputs`; `test_templates_recommend_no_action` (no "should", "cancel", "refuse", "pay"); `test_allowed_vat_rates_string_tokenises_as_four_numbers`; `test_injected_number_not_in_any_alert`.
   - **Tier 3** (`max_examples=200`): `test_guard_accepts_any_alert_data_sentence`.
-- [ ] Implement `apps/phantom_invoices/explain_support.py`: `ROW_COLUMNS`, `TEMPLATES`, `template_for`, `build_explain_rows`, `explain_alert`, `guard_badge`, `HallucinatingStubClient`. It calls `fill_fallback` from `ledger_kit.explainer` where it needs a filled template and defines no wrapper.
+- [x] Implement `apps/phantom_invoices/explain_support.py`: `ROW_COLUMNS`, `TEMPLATES`, `template_for`, `build_explain_rows`, `explain_alert`, `guard_badge`, `HallucinatingStubClient`. It calls `fill_fallback` from `ledger_kit.explainer` where it needs a filled template and defines no wrapper.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_explain_support.py apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes (the scaffold test confirms no private import); `ruff check` clean.
 
 ---
@@ -249,11 +249,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-48, REQ-PI-50 (renderer half), §13.1, §13.3
 
-- [ ] Write `tests/test_pi_flashlight.py`:
+- [x] Write `tests/test_pi_flashlight.py`:
   - **Tier 1**: `test_cited_rows_lit_and_others_dimmed` — `class="lit"` for refs in `lit_refs`, `class="dim"` for the rest, table class `ledger has-lit`; `test_no_lit_refs_dims_nothing` — table class `ledger`, no `dim`; `test_header_cells_rendered`.
   - **Tier 2**: `test_script_tag_and_quotes_are_escaped` (`<script>alert(1)</script>`, `"`, `'`, `&` in any cell and in a column name); `test_missing_cells_render_empty` (`None`, `NaN`, `pd.NA`, `"-"` shown as empty); `test_empty_frame_renders_header_only`; `test_row_without_source_ref_column_is_dimmed_when_lit_refs_given`; `test_haunted_css_contains_theme_colours_and_dim_opacity` (`#12101a`, `#7cffb2`, `opacity: 0.25`, `box-shadow`, `radial-gradient`) and `test_haunted_css_has_no_external_url`.
   - **Tier 3** (`max_examples=200`): `test_render_never_emits_unescaped_markup` — for arbitrary text cells, the output contains no `<` other than the fixed tags of the template.
-- [ ] Implement `apps/phantom_invoices/flashlight.py` (`HAUNTED_CSS`, `_esc`, `render_ledger_html`). Pure: no Streamlit import.
+- [x] Implement `apps/phantom_invoices/flashlight.py` (`HAUNTED_CSS`, `_esc`, `render_ledger_html`). Pure: no Streamlit import.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_flashlight.py -q` passes; `ruff check` clean.
 
 ---
@@ -262,11 +262,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-01, REQ-PI-02, REQ-PI-03, REQ-PI-04, REQ-PI-59, REQ-PI-60, §3, §14.1
 
-- [ ] Write `tests/test_pi_settings.py`:
+- [x] Write `tests/test_pi_settings.py`:
   - **Tier 1**: `test_load_config_reads_demo_paths`; `test_to_date_accepts_string_and_date`; `test_demo_inputs_reads_three_files_as_sources`; `test_run_pipeline_on_minimal_fixtures` — bytes of small CSVs for the three inputs give a `Pipeline` with clean invoices, suppliers, payments, `as_of_used`, four `DetectorResult`s and a `Reconciliation`; `test_config_has_only_demo_section_and_no_threshold_names` (REQ-PI-59: none of `DUPLICATE_WINDOW_DAYS`, `SAME_NUMBER_WINDOW_DAYS`, `VAT_TOLERANCE`, `TOTAL_TOLERANCE`, `ALLOWED_VAT_RATES`, `PAYMENT_MATCH_WINDOW_DAYS`, `UNPAID_GRACE_DAYS`, `MATCH_AMOUNT_TOLERANCE`, `DUPLICATE_TOTAL_TOLERANCE` appears).
   - **Tier 2**: `test_missing_files_are_empty_inputs_with_canonical_columns` (REQ-ING-28); `test_json_invoices_routed_to_json_reader`; `test_multi_rate_rows_in_quarantine_tagged_with_file_kind`; `test_quarantine_records_keep_ledger_core_shape`; `test_explicit_as_of_wins_over_data`; `test_as_of_used_is_none_without_any_date`; `test_pipeline_does_not_read_the_clock`; `test_credits_in_payments_are_passed_through_not_filtered` (REQ-PI-03).
   - **Tier 3**: `test_run_pipeline_shuffled_rows_same_alerts` for a small generated invoices CSV.
-- [ ] Create `apps/phantom_invoices/config.toml` (`[demo]` three paths, `as_of` commented out; no thresholds, no secrets). Implement `settings.py` (`Source`, `Pipeline`, `DemoInputs`, `load_config`, `to_date`, `demo_inputs`, `_tag`, `run_pipeline`). Money is not computed here.
+- [x] Create `apps/phantom_invoices/config.toml` (`[demo]` three paths, `as_of` commented out; no thresholds, no secrets). Implement `settings.py` (`Source`, `Pipeline`, `DemoInputs`, `load_config`, `to_date`, `demo_inputs`, `_tag`, `run_pipeline`). Money is not computed here.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_settings.py -q` passes; `ruff check` clean.
 
 ---

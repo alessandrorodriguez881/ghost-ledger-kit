@@ -1,0 +1,7 @@
+# Demo inputs of the phantom-invoices app. Paths are relative to the repository root.
+# Nothing else belongs in this file.
+[demo]
+suppliers_path = "data/samples/phantom_demo/suppliers.csv"
+invoices_path  = "data/samples/phantom_demo/invoices.csv"
+payments_path  = "data/samples/phantom_demo/payments.csv"
+# as_of = "2026-10-30"     # absent by default: the latest date in the data is used
