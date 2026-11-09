@@ -42,7 +42,6 @@ ALLOWED_LINK_PREFIXES = (
 
 PATH_SUFFIXES = {".py", ".md", ".toml", ".txt", ".csv", ".json", ".hook", ".example"}
 ROOT_FILE_NAMES = {"LICENSE"}
-PENDING_MCP_CONFIG = ".kiro/settings/mcp.json"
 SKIPPED_DIRS = {".git", ".venv", "__pycache__", ".hypothesis", ".ruff_cache", ".pytest_cache"}
 
 FENCE_RE = re.compile(r"^```.*?^```[ \t]*$", re.DOTALL | re.MULTILINE)
@@ -115,10 +114,6 @@ def test_every_backticked_path_exists(text: str) -> None:
     missing: list[str] = []
     for token in _path_candidates(text):
         path = token.rstrip("/")
-        # The developer creates this file by hand after approving the MCP server
-        # (Kiro protects .kiro/settings from agent writes), so it may not exist yet.
-        if path == PENDING_MCP_CONFIG and not (REPO_ROOT / path).exists():
-            continue
         if "/" in path:
             if not (REPO_ROOT / path).exists():
                 missing.append(token)
@@ -183,3 +178,10 @@ def test_mcp_row_is_planned_unless_config_exists(text: str) -> None:
     mcp_row = next(r for r in _table_rows(_kiro_section(text))[2:] if r[0].lower() == "mcp")
     if not (REPO_ROOT / ".kiro" / "settings" / "mcp.json").exists():
         assert "planned" in mcp_row[1].lower()
+
+
+def test_mcp_row_cites_the_api_checks_document(text: str) -> None:
+    """The MCP row points to docs/mcp-api-checks.md and that file exists."""
+    mcp_row = next(r for r in _table_rows(_kiro_section(text))[2:] if r[0].lower() == "mcp")
+    assert "docs/mcp-api-checks.md" in mcp_row[1]
+    assert (REPO_ROOT / "docs" / "mcp-api-checks.md").is_file()
