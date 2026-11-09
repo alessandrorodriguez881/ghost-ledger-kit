@@ -155,6 +155,20 @@ def guard_badge(meta: Explanation, api_key_present: bool) -> str:
     return BADGE_UNAVAILABLE if api_key_present else BADGE_TEMPLATE
 
 
+def badge_kind(meta: Explanation, api_key_present: bool) -> str:
+    """Return the CSS kind of the badge: 'llm', 'rejected', 'unavailable' or 'template'."""
+    if meta.source == "llm":
+        return "llm"
+    if meta.rejected_numbers:
+        return "rejected"
+    return "unavailable" if api_key_present else "template"
+
+
+def explanation_key(alert: Alert, hallucinate: bool) -> tuple[str, str]:
+    """Return the cache key of an explanation: the alert id and the client mode (REQ-PI-47)."""
+    return alert.id, "hallucinate" if hallucinate else "real"
+
+
 class HallucinatingStubClient:
     """OpenAI-shaped stub whose answer is the filled fallback plus a number in no alert.
 

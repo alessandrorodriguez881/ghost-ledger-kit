@@ -50,7 +50,9 @@ def dirty_cell() -> st.SearchStrategy[Any]:
         st.text(max_size=12),
         st.sampled_from(_BLANK_LIKE),
         st.floats(allow_nan=True, allow_infinity=True),
-        st.decimals(allow_nan=True, allow_infinity=True),
+        # No signaling NaN: it breaks pandas isna/repr and the readers never let it in.
+        st.decimals(allow_nan=False, allow_infinity=True),
+        st.just(Decimal("NaN")),
         st.integers(),
         st.booleans(),
         st.dates(),

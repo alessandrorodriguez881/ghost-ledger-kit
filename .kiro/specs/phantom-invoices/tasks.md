@@ -284,7 +284,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_every_clean_invoice_paid_by_exact_total_inside_window_to_master_iban`; `test_latest_date_in_data_is_demo_latest_date` (`2026-10-30`, a clean payment of `C9`); `test_payments_sorted_by_date_counterparty_amount`; `test_payments_have_three_credits_and_four_unrelated_debits`.
   - `test_generator_uses_only_random_random_with_seed` — `ast` scan: no module-level `random.` call, no `datetime.now`/`today`.
 - [x] Implement in `scripts/generate_samples.py`: `PHANTOM_CASES`, `CLEAN_SUPPLIERS`, `DEMO_LATEST_DATE`, `BANKS`, supplier plan table, `build_phantom_demo(seed=42)` producing suppliers, the nine clean suppliers' invoices and payments (planted rows are added in Task P19), `write_phantom_demo(out_dir, seed)`, and the CLI `--mode phantom-demo --seed N`. Uses `random.Random(seed)` consumed in fixed order, `csv.writer(lineterminator="\n")`, UTF-8 without BOM.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -300,7 +300,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_no_planted_invoice_besides_the_overdue_one_is_past_its_grace_period` (`issue + 30 + 15 >= 2026-10-30` unless paid).
   - `test_two_thirds_of_invoices_are_clean`.
 - [x] Extend `build_phantom_demo` with the 16 literal planted cases; the planted rows use no randomness. Amounts are built from strings and `percent_of` / `net_total` only.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_generator.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -313,7 +313,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_git_reports_text_unset_for_each_demo_csv` — `subprocess.run(["git", "check-attr", "text", "--", path])` for `suppliers.csv`, `invoices.csv`, `payments.csv` prints `text: unset`; skipped with a reason when `git` is not on `PATH` or the folder is not a repository.
   - `test_gitattributes_does_not_touch_other_patterns` — the file holds no `* text=auto` rule that would override the line (the `-text` line is the more specific, later-or-equal rule).
 - [x] Create or extend `.gitattributes` with `data/samples/phantom_demo/*.csv -text` (add a comment line above it: `# demo CSVs are byte-compared with the generator output; no autocrlf on Windows (DN-10)`). Do not remove existing lines.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_gitattributes.py -q` passes.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_gitattributes.py -q` passes.
 
 ---
 
@@ -328,8 +328,8 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_committed_files_parse_with_ledger_core_readers_and_zero_quarantine_except_multi_rate` — `parse_invoice`, `parse_suppliers`, `parse_csv` ingest them; the only quarantine is the two multi-rate rows after `quarantine_multi_rate`.
   - `test_identifier_rules_on_committed_files` (REQ-PI-70: mod-97 valid with wrong national digits; wrong tax-id control characters, all distinct; no e-mail or phone).
   - `test_gitignore_still_allows_data_samples_phantom_demo` — `git check-ignore` reports the three files as not ignored (skipped without git).
-- [ ] Run `python scripts/generate_samples.py --mode phantom-demo --seed 42` to write `data/samples/phantom_demo/{suppliers,invoices,payments}.csv`; add the generation command and a "synthetic, no real data" note for this folder to `data/samples/README.md`.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_data.py -q` passes; `git status` shows the three CSVs as new files with no CRLF conversion warning.
+- [x] Run `python scripts/generate_samples.py --mode phantom-demo --seed 42` to write `data/samples/phantom_demo/{suppliers,invoices,payments}.csv`; add the generation command and a "synthetic, no real data" note for this folder to `data/samples/README.md`.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_demo_data.py -q` passes; `git status` shows the three CSVs as new files with no CRLF conversion warning.
 
 ---
 
@@ -337,7 +337,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-04, REQ-PI-46, REQ-PI-47, REQ-PI-49, REQ-PI-50, REQ-PI-51, REQ-PI-52, REQ-PI-53, DN-11, §13, §14.2
 
-- [ ] Write `tests/test_pi_app_logic.py` for everything that needs no live browser:
+- [x] Write `tests/test_pi_app_logic.py` for everything that needs no live browser:
   - `test_app_py_first_lines_bootstrap_sys_path` — the path bootstrap precedes the first `ledger_kit` import (`ast`).
   - `test_app_uses_on_click_for_load_demo` — `st.sidebar.button("Load demo data", on_click=load_demo)`; no `st.session_state[<widget key>] = ...` under an `if st.button(...)` body.
   - `test_ui_default_as_of_is_only_a_widget_seed` — `UI_DEFAULT_AS_OF == date(2026, 1, 1)`; it is passed to no detector unless `use_as_of` is true (DN-11).
@@ -348,7 +348,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_notice_states_which_checks_need_which_file` (REQ-PI-04).
   - `test_selected_alert_reset_when_not_in_options`.
   - **`AppTest`** (`streamlit.testing.v1.AppTest.from_file("apps/phantom_invoices/app.py")`): `test_app_starts_without_exception`; `test_load_demo_click_shows_all_four_detector_labels_without_widget_error` — click **Load demo data**, `at.exception` is empty (no `StreamlitWidgetAlreadyInstantiatedError`), the severity metrics read 3 and 6, labels of all four detectors are present; `test_hallucination_toggle_shows_warning_badge_with_99999_99` (REQ-PI-47); `test_selecting_an_alert_lights_only_its_source_refs`.
-- [ ] Implement `apps/phantom_invoices/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `on_click`; sidebar uploaders (invoices `.csv`/`.json`, suppliers, payments), `use_as_of` checkbox and `as_of_date` input (seeded with `setdefault`), `hallucinate` toggle; SHA-256-keyed `pipeline_cache`; theme CSS via `st.markdown(..., unsafe_allow_html=True)`; severity metrics; haunted ledger via `render_ledger_html`; `st.radio(key="selected_alert")` flashlight; alert cards with `LABELS`, explanation (cached by `(alert.id, client_mode)`), `guard_badge`, `source_refs`, captions and the verbatim `verification_message`; cited master/payment tables; quarantine expander with the multi-rate limitation note; the `as_of` line. Pure view-model helpers go to `settings.py`/`explain_support.py` so the logic tests need no Streamlit runtime.
+- [x] Implement `apps/phantom_invoices/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `on_click`; sidebar uploaders (invoices `.csv`/`.json`, suppliers, payments), `use_as_of` checkbox and `as_of_date` input (seeded with `setdefault`), `hallucinate` toggle; SHA-256-keyed `pipeline_cache`; theme CSS via `st.markdown(..., unsafe_allow_html=True)`; severity metrics; haunted ledger via `render_ledger_html`; `st.radio(key="selected_alert")` flashlight; alert cards with `LABELS`, explanation (cached by `(alert.id, client_mode)`), `guard_badge`, `source_refs`, captions and the verbatim `verification_message`; cited master/payment tables; quarantine expander with the multi-rate limitation note; the `as_of` line. Pure view-model helpers go to `settings.py`/`explain_support.py` so the logic tests need no Streamlit runtime.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_app_logic.py -q` passes; manual smoke test recorded in the PR: `streamlit run apps/phantom_invoices/app.py` starts; **Load demo data** shows the 9 alerts; `ruff check` clean.
 
 ---
@@ -357,14 +357,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-53 (supersedes per-app `requirements.txt`), requirements §12, OD-PI-14, design §1
 
-- [ ] Write the check first, `tests/test_pi_structure_steering.py`: parse the layout tree of `.kiro/steering/structure.md` and assert that the `phantom_invoices/` block lists exactly the files below, contains no `requirements.txt`, and that every listed path exists on disk (`apps/phantom_invoices/...`, `data/samples/phantom_demo/*.csv`, `scripts/generate_samples.py`, `.gitattributes`).
-- [ ] Replace the `apps/phantom_invoices/` block of the layout tree with the spec's file list:
+- [x] Write the check first, `tests/test_pi_structure_steering.py`: parse the layout tree of `.kiro/steering/structure.md` and assert that the `phantom_invoices/` block lists exactly the files below, contains no `requirements.txt`, and that every listed path exists on disk (`apps/phantom_invoices/...`, `data/samples/phantom_demo/*.csv`, `scripts/generate_samples.py`, `.gitattributes`).
+- [x] Replace the `apps/phantom_invoices/` block of the layout tree with the spec's file list:
   - App root: `__init__.py`, `app.py`, `config.toml`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`; **remove `requirements.txt`**.
   - `detectors/`: `__init__.py`, `utils.py`, `duplicate_invoice.py`, `iban_change.py`, `vat_error.py`, `reconciliation.py`.
   - `tests/`: `conftest.py`, `pi_checkers.py`, and `test_pi_` modules: `scaffold`, `ledger_core_contract`, `utils_keys`, `utils_iban`, `utils_order`, `utils_master`, `prepare`, `identifiers`, `fixtures`, `duplicate_invoice`, `iban_change`, `vat_error`, `reconciliation`, `registry`, `explain_support`, `flashlight`, `settings`, `demo_generator`, `demo_data`, `gitattributes`, `app_logic`, `structure_steering`, `demo_e2e`.
   - Add, if absent: `scripts/generate_samples.py`, `.gitattributes`, `data/samples/phantom_demo/{suppliers,invoices,payments}.csv`, and the root `requirements.txt`.
   - Leave the `zombie_subscriptions/` block untouched (its own task, Z22, rewrites it).
-- [ ] Add a one-line note under "Package boundaries": the phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
+- [x] Add a one-line note under "Package boundaries": the phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_structure_steering.py -q` passes (the `test_pi_demo_e2e.py` entry is created by Task P24, so this check treats that single path as pending until then); no other section of the file changed.
 
 ---
@@ -373,7 +373,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-61 to REQ-PI-70, REQ-PI-12, REQ-PI-15, REQ-PI-57, §15.6, §16.4, §16.5
 
-- [ ] Write `tests/test_pi_demo_e2e.py` (loads the committed `data/samples/phantom_demo/*.csv` through `run_pipeline`, the same path the app uses):
+- [x] Write `tests/test_pi_demo_e2e.py` (loads the committed `data/samples/phantom_demo/*.csv` through `run_pipeline`, the same path the app uses):
   - `test_demo_raises_exactly_nine_alerts_3_critical_6_warning` — total 9; `critical`: the P1 `same_number`, the P5 `invoice_iban_differs_from_master`, the `payment_to_non_master_iban`; `warning`: P3 `near_identical_number`, P10 `same_total_close_dates` (only `FAC-0101` + `FAC-0102`), P12 `iban_invalid` (only `TR-2026-014`), P7 `vat_amount_mismatch`, P9 `payment_without_invoice` (08-12 payment), the overdue `invoice_overdue` (`days_past_due == 41`).
   - `test_each_planted_case_raises_exactly_its_alerts_via_phantom_cases` — per `PHANTOM_CASES` supplier tax id, the alerts citing that supplier's rows equal the expectation of §15.4/§15.5; P2, P4, P6, P8, P11, `OPEN_NOT_DUE` have none.
   - `test_every_detector_fires_at_least_once` — all four `pi.*` names.

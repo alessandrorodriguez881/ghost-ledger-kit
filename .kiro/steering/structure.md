@@ -62,19 +62,47 @@ ghost-ledger-kit/
 │   │       └── test_zs_fixtures.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
 │       ├── __init__.py
+│       ├── app.py                  # Streamlit entry point (path bootstrap at top)
+│       ├── config.toml             # demo input paths (no thresholds, no secrets)
+│       ├── settings.py             # load config.toml, run_pipeline, view-model helpers
+│       ├── prepare.py              # multi-rate invoice quarantine
+│       ├── explain_support.py      # fallback TEMPLATES, ROW_COLUMNS, HallucinatingStubClient
+│       ├── flashlight.py           # haunted-ledger CSS and the flashlight table renderer
 │       ├── detectors/
-│       │   ├── __init__.py
+│       │   ├── __init__.py         # auto_discover; LABELS; run_pi_detectors
+│       │   ├── utils.py            # keys, IBAN validity, ordering, supplier master, reconcile
 │       │   ├── duplicate_invoice.py
 │       │   ├── iban_change.py
-│       │   └── vat_error.py
-│       ├── tests/
-│       │   ├── conftest.py
-│       │   ├── test_pi_duplicate_invoice.py
-│       │   ├── test_pi_iban_change.py
-│       │   └── test_pi_vat_error.py
-│       ├── app.py                  # Streamlit entry point
-│       ├── config.toml
-│       └── requirements.txt
+│       │   ├── vat_error.py
+│       │   └── reconciliation.py
+│       └── tests/
+│           ├── conftest.py         # fixtures; re-exports builders and strategies
+│           ├── pi_builders.py      # make_invoices / make_suppliers / make_payments, identifiers
+│           ├── pi_checkers.py      # test-local mod-97, national-digit and tax-id checkers
+│           ├── pi_strategies.py    # Hypothesis strategies (dirty cells, IBANs, numbers)
+│           ├── test_pi_scaffold.py
+│           ├── test_pi_ledger_core_contract.py
+│           ├── test_pi_utils_keys.py
+│           ├── test_pi_utils_iban.py
+│           ├── test_pi_utils_order.py
+│           ├── test_pi_utils_master.py
+│           ├── test_pi_prepare.py
+│           ├── test_pi_identifiers.py
+│           ├── test_pi_fixtures.py
+│           ├── test_pi_duplicate_invoice.py
+│           ├── test_pi_iban_change.py
+│           ├── test_pi_vat_error.py
+│           ├── test_pi_reconciliation.py
+│           ├── test_pi_registry.py
+│           ├── test_pi_explain_support.py
+│           ├── test_pi_flashlight.py
+│           ├── test_pi_settings.py
+│           ├── test_pi_demo_generator.py
+│           ├── test_pi_demo_data.py
+│           ├── test_pi_gitattributes.py
+│           ├── test_pi_app_logic.py    # pure helpers and headless AppTest runs of app.py
+│           ├── test_pi_structure_steering.py
+│           └── test_pi_demo_e2e.py
 ├── tests/                          # Shared library tests
 │   ├── conftest.py
 │   ├── ingestion/
@@ -91,7 +119,12 @@ ghost-ledger-kit/
 │       ├── README.md               # Licence reference for any public-domain files
 │       ├── bank_statement_sample.csv
 │       ├── invoice_sample.csv
-│       └── zombie_demo_statement.csv   # zombie-subscriptions demo (generate_samples.py)
+│       ├── zombie_demo_statement.csv   # zombie-subscriptions demo (generate_samples.py)
+│       └── phantom_demo/           # phantom-invoices demo (generate_samples.py --mode phantom-demo)
+│           ├── suppliers.csv
+│           ├── invoices.csv
+│           └── payments.csv
+├── .gitattributes                  # demo CSVs are byte-compared: no line-ending conversion
 ├── pyproject.toml
 ├── requirements.txt                # Only requirements file (Streamlit Community Cloud)
 ├── README.md
@@ -125,6 +158,7 @@ Shared library tests in `tests/` carry no prefix.
 - `ledger_kit` is a **library**: it must not import from either app folder.
 - App packages (`apps.zombie_subscriptions`, `apps.phantom_invoices`) **import from `ledger_kit`** and from their own `detectors/` sub-package only.
 - The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py` and `explain_support.py`.
+- The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
 - Apps must not import from each other.
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
