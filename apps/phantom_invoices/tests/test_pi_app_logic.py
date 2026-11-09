@@ -404,7 +404,7 @@ def test_apply_demo_prefills_widget_keys_and_sources() -> None:
     """apply_demo writes the sources and resets the widget keys; as_of only when configured."""
     sources = [Source(name, name.encode()) for name in ("i.csv", "s.csv", "p.csv")]
     state: dict[str, Any] = {
-        "hallucinate": True,
+        "pi_hallucinate": True,
         "selected_alert": "x",
         "as_of_date": date(2020, 5, 5),
     }
@@ -413,7 +413,7 @@ def test_apply_demo_prefills_widget_keys_and_sources() -> None:
 
     expected = dict(zip(("invoices", "suppliers", "payments"), sources, strict=True))
     assert state["sources"] == expected
-    assert state["use_as_of"] is False and state["hallucinate"] is False
+    assert state["use_as_of"] is False and state["pi_hallucinate"] is False
     assert state["selected_alert"] == NO_FLASHLIGHT
     assert state["as_of_date"] == date(2020, 5, 5)  # untouched without a demo as_of
 
@@ -473,7 +473,7 @@ def _run() -> AppTest:
 def _demo() -> AppTest:
     """Run the app and click Load demo data."""
     at = _run()
-    at.button(key="load_demo").click().run()
+    at.button(key="pi_load_demo").click().run()
     return at
 
 
@@ -516,7 +516,7 @@ def _alerts(at: AppTest) -> list[Alert]:
 
 def _modes(at: AppTest) -> set[str]:
     """The client modes present in the explanation cache."""
-    return {mode for _, mode in at.session_state["explanations"]}
+    return {mode for _, mode in at.session_state["pi_explanations"]}
 
 
 def test_app_starts_without_exception() -> None:
@@ -527,7 +527,7 @@ def test_app_starts_without_exception() -> None:
     assert at.title[0].value == "👻 Phantom Invoices"
     assert any("Load demo data" in info.value for info in at.info)
     assert at.sidebar.button[0].label == "Load demo data"
-    assert at.toggle(key="hallucinate").value is False
+    assert at.toggle(key="pi_hallucinate").value is False
     assert at.checkbox(key="use_as_of").value is False
     assert len(at.metric) == 0 and _badges(at) == []
 
@@ -572,8 +572,15 @@ def test_alert_cards_show_refs_badge_and_the_verbatim_verification_message() -> 
     phone = [w.value for w in at.warning if w.value == VERIFY_BY_PHONE_MESSAGE]
     iban_alerts = [a for a in _alerts(at) if verification_message(a) is not None]
     assert len(iban_alerts) == 2 and len(phone) == 2
+    # REQ-SC-08: the message is shown once per card, in the phone box and nowhere else.
+    shown = [*_markdown(at), *(w.value for w in at.warning), *(c.value for c in at.caption)]
+    assert sum(VERIFY_BY_PHONE_MESSAGE in value for value in shown) == 2
+    assert not any("by phone" in value for value in _markdown(at))
     text = " ".join(_explanation_texts(at))
     assert "12,10 EUR" in text and "21,00 EUR" in text  # the VAT alert, European amounts
+    # REQ-SC-07: invoices issued on one date read "issued on <date>", never "between D and D".
+    assert re.search(r"issued between (\S+) and \1\b", text) is None
+    assert "issued on 2026-10-06" in text
 
 
 def test_hallucination_toggle_shows_warning_badge_with_99999_99() -> None:
@@ -581,7 +588,7 @@ def test_hallucination_toggle_shows_warning_badge_with_99999_99() -> None:
     at = _demo()
     assert _modes(at) == {"real"}
 
-    at.toggle(key="hallucinate").set_value(True).run()
+    at.toggle(key="pi_hallucinate").set_value(True).run()
 
     assert not at.exception
     badges = _badges(at)
@@ -592,7 +599,7 @@ def test_hallucination_toggle_shows_warning_badge_with_99999_99() -> None:
     assert not any("99999.99" in value for value in _explanation_texts(at))
     assert _modes(at) == {"real", "hallucinate"}
 
-    at.toggle(key="hallucinate").set_value(False).run()
+    at.toggle(key="pi_hallucinate").set_value(False).run()
 
     assert not at.exception
     assert all("pi-badge-template" in badge for badge in _badges(at))

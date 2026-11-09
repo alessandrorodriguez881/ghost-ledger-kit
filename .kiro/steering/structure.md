@@ -124,6 +124,9 @@ ghost-ledger-kit/
 │           ├── suppliers.csv
 │           ├── invoices.csv
 │           └── payments.csv
+├── streamlit_app.py                # Showcase entry (st.navigation: Home + both apps); Community Cloud default
+├── .streamlit/
+│   └── config.toml                 # Shared dark Halloween theme: [theme] keys only, no secrets
 ├── .gitattributes                  # demo CSVs are byte-compared: no line-ending conversion
 ├── pyproject.toml
 ├── requirements.txt                # Only requirements file (Streamlit Community Cloud)

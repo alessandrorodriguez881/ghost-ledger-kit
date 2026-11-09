@@ -1,4 +1,5 @@
-# runtime
+# runtime: everything ledger_kit, the apps and streamlit_app.py import (numpy is imported
+# directly by apps/phantom_invoices/detectors/utils.py)
 pandas==3.1.1
 numpy==2.5.4
 pydantic==2.14.3
@@ -11,5 +12,6 @@ freezegun==1.5.5
 pytest-cov==7.1.0
 ruff==0.17.4
 
-# optional (llm extra)
+# optional (llm extra): imported lazily by ledger_kit/explainer.py; without it, or without an
+# API key, the fixed fallback templates are used
 openai==3.46.0

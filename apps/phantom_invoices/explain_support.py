@@ -52,12 +52,12 @@ TEMPLATES: dict[tuple[str, str], str] = {
     ("pi.iban_change", "invoice_iban_differs_from_master"): (
         "Invoice {invoice_number} from {supplier_name} names the account {invoice_iban_masked}, "
         "which differs from the account {master_iban_masked} in the supplier master. "
-        "{verification_message} Source: {source_refs}."
+        "Source: {source_refs}."
     ),
     ("pi.iban_change", "payment_to_non_master_iban"): (
         "A payment of {payment_amount:money} on {payment_date} to {supplier_name} went to the "
         "account {payment_iban_masked}, which differs from the account {master_iban_masked} in "
-        "the supplier master. {verification_message} Source: {source_refs}."
+        "the supplier master. Source: {source_refs}."
     ),
     ("pi.iban_change", "iban_invalid"): (
         "The IBAN {iban_masked} on the {subject} {label} is not a valid IBAN (failed {reason} "
@@ -88,6 +88,25 @@ TEMPLATES: dict[tuple[str, str], str] = {
     ),
 }
 
+# Wording used instead of the TEMPLATES entry when all invoices of a duplicate group share one
+# issue date (first_issue_date == last_issue_date), so the text never reads "between D and D" or
+# "0 days apart". Same placeholders rules as TEMPLATES; the keys are a subset of TEMPLATES.
+SAME_DAY_TEMPLATES: dict[tuple[str, str], str] = {
+    ("pi.duplicate_invoice", "same_number"): (
+        "Supplier {supplier_name} sent {invoice_count} invoices with the same invoice number, "
+        "all issued on {first_issue_date}. Source: {source_refs}."
+    ),
+    ("pi.duplicate_invoice", "near_identical_number"): (
+        "Supplier {supplier_name} has {invoice_count} invoices with near-identical numbers and "
+        "the same total of {total:money}, all issued on {first_issue_date}. "
+        "Source: {source_refs}."
+    ),
+    ("pi.duplicate_invoice", "same_total_close_dates"): (
+        "Supplier {supplier_name} has {invoice_count} invoices with the same total of "
+        "{total:money}, all issued on {first_issue_date}. Source: {source_refs}."
+    ),
+}
+
 # Guard-badge texts (REQ-PI-46).
 BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
@@ -96,10 +115,17 @@ BADGE_REJECTED: str = "⚠️ LLM answer rejected: invented number {numbers}"
 
 
 def template_for(alert: Alert) -> str:
-    """Return the fallback template of the alert's (detector, variant); KeyError if unknown."""
+    """Return the fallback template of the alert's (detector, variant); KeyError if unknown.
+
+    A duplicate-invoice alert whose invoices share one issue date gets the same-day wording.
+    """
     variant = str(alert.data.get("variant", ""))
+    key = (alert.detector, variant)
+    first, last = alert.data.get("first_issue_date"), alert.data.get("last_issue_date")
+    if key in SAME_DAY_TEMPLATES and first is not None and first == last:
+        return SAME_DAY_TEMPLATES[key]
     try:
-        return TEMPLATES[(alert.detector, variant)]
+        return TEMPLATES[key]
     except KeyError:
         message = f"no fallback template for detector {alert.detector!r} and variant {variant!r}"
         raise KeyError(message) from None

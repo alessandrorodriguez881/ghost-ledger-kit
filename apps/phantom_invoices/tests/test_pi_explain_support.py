@@ -20,9 +20,11 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from apps.phantom_invoices.detectors import run_pi_detectors
+from apps.phantom_invoices.detectors.iban_change import VERIFY_BY_PHONE_MESSAGE
 from apps.phantom_invoices.detectors.utils import is_missing
 from apps.phantom_invoices.explain_support import (
     ROW_COLUMNS,
+    SAME_DAY_TEMPLATES,
     TEMPLATES,
     HallucinatingStubClient,
     build_explain_rows,
@@ -62,6 +64,17 @@ VARIANT_KEYS: list[tuple[str, str]] = [
 ]
 SUPPLIER_NAMES = ["Inmuebles Valdemar, S.L.", "Luigi Rossi (Reformas)", "Sophie Dupont"]
 
+DUPLICATE_VARIANTS: list[tuple[str, str]] = [
+    ("pi.duplicate_invoice", "same_number"),
+    ("pi.duplicate_invoice", "near_identical_number"),
+    ("pi.duplicate_invoice", "same_total_close_dates"),
+]
+IBAN_CRITICAL_VARIANTS: list[tuple[str, str]] = [
+    ("pi.iban_change", "invoice_iban_differs_from_master"),
+    ("pi.iban_change", "payment_to_non_master_iban"),
+]
+ISSUE_DAY = "2026-10-06"
+
 
 class _RecordingClient:
     """OpenAI-shaped client that records every call and returns a fixed answer or raises."""
@@ -91,6 +104,35 @@ class _RecordingClient:
 
 
 Case = tuple[Alert, pd.DataFrame, pd.DataFrame, pd.DataFrame]
+
+
+def _duplicate_alert(variant: str, first: str, last: str) -> Alert:
+    """Build a duplicate-invoice alert whose invoices were issued on `first` and `last`."""
+    days = (date.fromisoformat(last) - date.fromisoformat(first)).days
+    return Alert(
+        detector="pi.duplicate_invoice",
+        severity="warning",
+        title="Possible duplicate invoice",
+        source_refs=["inv.csv:0", "inv.csv:1"],
+        data={
+            "variant": variant,
+            "supplier_name": "Sophie Dupont",
+            "invoice_count": 2,
+            "total": "121.00",
+            "first_issue_date": first,
+            "last_issue_date": last,
+            "days_apart": days,
+        },
+    )
+
+
+def _expected_template(alert: Alert) -> str:
+    """The template template_for must pick: the same-day wording when the dates are equal."""
+    key = (alert.detector, alert.data["variant"])
+    same_day = alert.data.get("first_issue_date") == alert.data.get("last_issue_date")
+    if key in SAME_DAY_TEMPLATES and same_day:
+        return SAME_DAY_TEMPLATES[key]
+    return TEMPLATES[key]
 
 
 def _pick(
@@ -200,7 +242,7 @@ def test_every_template_fills_from_a_real_alert(
 
     text = fill_fallback(template, alert)
 
-    assert template == TEMPLATES[key]
+    assert template == _expected_template(alert)
     assert PLACEHOLDER.search(text) is None, text
     assert any(ref in text for ref in alert.source_refs)
     for field in MONEY_PLACEHOLDER.findall(template):
@@ -229,7 +271,7 @@ def test_guard_accepts_a_sentence_restating_only_alert_data(
 ) -> None:
     """The filled template, as an LLM answer, passes the number guard for every variant."""
     case = cases[key]
-    filled = fill_fallback(TEMPLATES[key], case[0])
+    filled = fill_fallback(template_for(case[0]), case[0])
 
     meta, _ = _llm_says(case, filled)
 
@@ -308,6 +350,95 @@ def test_stub_shape_matches_mock_client() -> None:
     content = response.choices[0].message.content
     assert content == f"Filled text. Total exposure: {INJECTED} EUR."
     assert HallucinatingStubClient.INJECTED_NUMBER == INJECTED
+
+
+# Wording polish (REQ-SC-07, REQ-SC-08, REQ-SC-09)
+
+
+def test_same_day_templates_cover_the_three_duplicate_variants() -> None:
+    """SAME_DAY_TEMPLATES refines exactly the duplicate variants; TEMPLATES keeps its 11 keys."""
+    assert set(SAME_DAY_TEMPLATES) == set(DUPLICATE_VARIANTS)
+    assert set(SAME_DAY_TEMPLATES) <= set(TEMPLATES)
+    for key, template in SAME_DAY_TEMPLATES.items():
+        assert "{first_issue_date}" in template, key
+        assert "{last_issue_date}" not in template, key
+        assert "between" not in template and "days_apart" not in template, key
+
+
+@pytest.mark.parametrize("key", DUPLICATE_VARIANTS)
+def test_duplicates_issued_on_one_date_read_issued_on(key: tuple[str, str]) -> None:
+    """Equal issue dates give 'issued on <date>', never 'between D and D' or '0 days apart'."""
+    alert = _duplicate_alert(key[1], ISSUE_DAY, ISSUE_DAY)
+
+    text = fill_fallback(template_for(alert), alert)
+
+    assert f"issued on {ISSUE_DAY}" in text
+    assert "between" not in text
+    assert "0 days apart" not in text
+    assert PLACEHOLDER.search(text) is None, text
+    assert "inv.csv:0" in text and "inv.csv:1" in text
+
+
+def test_duplicates_issued_on_different_dates_keep_the_range_wording() -> None:
+    """Different issue dates keep 'between D1 and D2' (same_number) and 'N days apart'."""
+    same_number = _duplicate_alert("same_number", ISSUE_DAY, "2026-10-09")
+    near = _duplicate_alert("near_identical_number", ISSUE_DAY, "2026-10-09")
+    close = _duplicate_alert("same_total_close_dates", ISSUE_DAY, "2026-10-09")
+
+    assert "issued between 2026-10-06 and 2026-10-09" in fill_fallback(
+        template_for(same_number), same_number
+    )
+    for alert in (near, close):
+        text = fill_fallback(template_for(alert), alert)
+        assert "issued 3 days apart" in text
+        assert "issued on" not in text
+
+
+def test_real_same_number_alert_with_one_issue_date_reads_issued_on(
+    cases: dict[tuple[str, str], Case],
+) -> None:
+    """The detector's own same_number alert (both invoices on one day) uses the new wording."""
+    alert = cases[("pi.duplicate_invoice", "same_number")][0]
+    assert alert.data["first_issue_date"] == alert.data["last_issue_date"]
+
+    text = fill_fallback(template_for(alert), alert)
+
+    assert f"issued on {alert.data['first_issue_date']}" in text
+    assert "between" not in text
+
+
+@pytest.mark.parametrize("key", DUPLICATE_VARIANTS)
+def test_guard_accepts_the_same_day_wording_and_rejects_a_foreign_date(
+    key: tuple[str, str],
+) -> None:
+    """The same-day sentence passes the guard; an extra date that is in no field is rejected."""
+    alert = _duplicate_alert(key[1], ISSUE_DAY, ISSUE_DAY)
+    case: Case = (alert, make_invoices([{}, {}]), make_suppliers([]), make_payments([]))
+    filled = fill_fallback(template_for(alert), alert)
+
+    accepted, _ = _llm_says(case, filled)
+    rejected, _ = _llm_says(case, f"{filled} Reminded on 1999-01-01.")
+
+    assert accepted.source == "llm" and accepted.text == filled
+    assert rejected.source == "fallback"
+    assert rejected.rejected_numbers == ("1999-01-01",)
+    assert rejected.text == filled
+
+
+@pytest.mark.parametrize("key", IBAN_CRITICAL_VARIANTS)
+def test_critical_iban_templates_do_not_repeat_the_verification_message(
+    cases: dict[tuple[str, str], Case], key: tuple[str, str]
+) -> None:
+    """The phone box carries the message; the explanation text of the card does not."""
+    alert = cases[key][0]
+    text = fill_fallback(template_for(alert), alert)
+
+    assert "{verification_message}" not in TEMPLATES[key]
+    assert alert.data["verification_message"] == VERIFY_BY_PHONE_MESSAGE  # the box still has it
+    assert VERIFY_BY_PHONE_MESSAGE not in text
+    assert "by phone" not in text
+    assert any(ref in text for ref in alert.source_refs)
+    assert PLACEHOLDER.search(text) is None, text
 
 
 # Tier 2: edge cases

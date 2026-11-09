@@ -77,6 +77,18 @@ SOURCE_KINDS: tuple[str, ...] = ("invoices", "suppliers", "payments")
 AS_OF_MIN: date = date(2000, 1, 1)
 AS_OF_MAX: date = date(2100, 12, 31)
 
+# Session-state keys carry the app prefix `pi_` where the name could clash with the other app of
+# the showcase (REQ-SC-04); the zombie app uses `zs_`.
+LOAD_DEMO_KEY = "pi_load_demo"
+HALLUCINATE_KEY = "pi_hallucinate"
+EXPLANATIONS_KEY = "pi_explanations"
+
+# Widget state is dropped when a run does not render the widget (the user visited another page of
+# the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
+# back before the widgets are built (REQ-SC-05). Uploaded files cannot be kept this way.
+WIDGET_KEYS: tuple[str, ...] = ("use_as_of", "as_of_date", HALLUCINATE_KEY)
+KEPT_KEY = "pi_kept"
+
 # App-level additions to the haunted-ledger theme (REQ-PI-48): CSS only, no external resource.
 APP_CSS = """
 [data-testid="stSidebar"] { background-color: #0d0b14; }
@@ -114,22 +126,34 @@ def load_demo() -> None:
     apply_demo(st.session_state, demo_inputs(CONFIG, ROOT))
 
 
+def _restore_widgets() -> None:
+    """Put back the widget values kept from the previous visit, before any widget is built."""
+    for key, value in st.session_state.get(KEPT_KEY, {}).items():
+        st.session_state.setdefault(key, value)
+
+
+def _keep_widgets() -> None:
+    """Copy the widget values to a plain key so they survive a visit to another page."""
+    st.session_state[KEPT_KEY] = {key: st.session_state[key] for key in WIDGET_KEYS}
+
+
 def _init_state() -> None:
     """Set the defaults of the widget keys and caches once, before any widget exists."""
+    _restore_widgets()
     st.session_state.setdefault("sources", {kind: None for kind in SOURCE_KINDS})
     st.session_state.setdefault("use_as_of", False)
     # A widget placeholder only: it reaches a detector when the user ticks use_as_of (DN-11).
     st.session_state.setdefault("as_of_date", UI_DEFAULT_AS_OF)
-    st.session_state.setdefault("hallucinate", False)
+    st.session_state.setdefault(HALLUCINATE_KEY, False)
     st.session_state.setdefault("selected_alert", NO_FLASHLIGHT)
     st.session_state.setdefault("pipeline_cache", {})
-    st.session_state.setdefault("explanations", {})
+    st.session_state.setdefault(EXPLANATIONS_KEY, {})
 
 
 def _render_sidebar() -> dict[str, Any]:
     """Draw the sidebar widgets and return the uploaded files by kind (None when not given)."""
     st.sidebar.header("Controls")
-    st.sidebar.button("Load demo data", key="load_demo", on_click=load_demo)
+    st.sidebar.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
     uploads = {
         "invoices": st.sidebar.file_uploader(
             "Invoices (.csv or .json)", type=["csv", "json"], key="upload_invoices"
@@ -155,7 +179,7 @@ def _render_sidebar() -> dict[str, Any]:
     )
     st.sidebar.toggle(
         "Simulate a hallucinating LLM",
-        key="hallucinate",
+        key=HALLUCINATE_KEY,
         help="Replaces the LLM with a stub that invents 99999.99; the number guard rejects it.",
     )
     return uploads
@@ -191,7 +215,7 @@ def _pipeline(sources: dict[str, Source | None], as_of: date | None) -> Pipeline
 
 def _explain(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> Explanation:
     """Explain one alert; cached per (alert.id, client mode) across reruns (REQ-PI-47)."""
-    cache = st.session_state["explanations"]
+    cache = st.session_state[EXPLANATIONS_KEY]
     key = explanation_key(alert, hallucinate)
     if key not in cache:
         client = None
@@ -310,6 +334,7 @@ def main() -> None:
     st.markdown(f"<style>{HAUNTED_CSS}{APP_CSS}</style>", unsafe_allow_html=True)
     _init_state()
     uploads = _render_sidebar()
+    _keep_widgets()
 
     st.title("👻 Phantom Invoices")
     st.caption("Every figure comes from a cited row of your files. The LLM only explains.")
@@ -333,7 +358,7 @@ def main() -> None:
     _render_summary(alerts)
     _render_ledger(pipeline, alerts)
     _render_quarantine(pipeline.quarantine)
-    _render_alerts(alerts, pipeline, bool(st.session_state["hallucinate"]))
+    _render_alerts(alerts, pipeline, bool(st.session_state[HALLUCINATE_KEY]))
     st.caption(as_of_note(pipeline.as_of_used, fixed))
 
 

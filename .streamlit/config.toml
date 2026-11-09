@@ -1,0 +1,9 @@
+# Shared dark Halloween theme of the showcase. Colours come from the CSS of the apps
+# (haunted ledger: #12101a background, #7cffb2 accent, #e8dcc0 text, #1c1829 inputs).
+# Theme keys only: no credentials and no server settings (Community Cloud manages those).
+[theme]
+base = "dark"
+primaryColor = "#7cffb2"
+backgroundColor = "#12101a"
+secondaryBackgroundColor = "#1c1829"
+textColor = "#e8dcc0"

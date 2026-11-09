@@ -228,7 +228,7 @@ def apply_demo(state: MutableMapping[str, Any], demo: DemoInputs) -> None:
     state["use_as_of"] = demo.as_of is not None
     if demo.as_of is not None:
         state["as_of_date"] = demo.as_of
-    state["hallucinate"] = False
+    state["pi_hallucinate"] = False
     state["selected_alert"] = NO_FLASHLIGHT
 
 

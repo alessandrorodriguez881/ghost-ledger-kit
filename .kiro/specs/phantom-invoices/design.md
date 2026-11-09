@@ -1377,7 +1377,10 @@ asserts that a sentence restating only `Alert.data` values and cited cells passe
 `TEMPLATES: dict[tuple[str, str], str]` is keyed by `(alert.detector, alert.data["variant"])`;
 `template_for(alert)` looks it up. `{key:money}` formats with `format_amount`; `{key}` is plain;
 `{source_refs}` is the comma-joined refs. Templates state facts and recommend nothing
-(Finance Rule 8).
+(Finance Rule 8). `SAME_DAY_TEMPLATES` (showcase REQ-SC-07) holds the wording of the three
+duplicate variants for invoices that share one issue date; `template_for` returns it when
+`first_issue_date == last_issue_date`. The two critical IBAN templates do not contain
+`{verification_message}`: the phone box shows it once (REQ-SC-08).
 
 ```python
 TEMPLATES: dict[tuple[str, str], str] = {
@@ -1393,11 +1396,11 @@ TEMPLATES: dict[tuple[str, str], str] = {
     ("pi.iban_change", "invoice_iban_differs_from_master"):
         "Invoice {invoice_number} from {supplier_name} names the account {invoice_iban_masked}, "
         "which differs from the account {master_iban_masked} in the supplier master. "
-        "{verification_message} Source: {source_refs}.",
+        "Source: {source_refs}.",
     ("pi.iban_change", "payment_to_non_master_iban"):
         "A payment of {payment_amount:money} on {payment_date} to {supplier_name} went to the "
         "account {payment_iban_masked}, which differs from the account {master_iban_masked} in the "
-        "supplier master. {verification_message} Source: {source_refs}.",
+        "supplier master. Source: {source_refs}.",
     ("pi.iban_change", "iban_invalid"):
         "The IBAN {iban_masked} on the {subject} {label} is not a valid IBAN (failed {reason} "
         "check). Source: {source_refs}.",

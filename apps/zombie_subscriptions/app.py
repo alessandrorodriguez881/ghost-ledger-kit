@@ -62,6 +62,18 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 ROOT = _ROOT
 CONFIG_PATH = Path(__file__).resolve().parent / "config.toml"
 
+# Session-state keys carry the app prefix `zs_` where the name could clash with the other app of
+# the showcase (REQ-SC-04); the phantom app uses `pi_`.
+LOAD_DEMO_KEY = "zs_load_demo"
+HALLUCINATE_KEY = "zs_hallucinate"
+EXPLANATIONS_KEY = "zs_explanations"
+
+# Widget state is dropped when a run does not render the widget (the user visited another page of
+# the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
+# back before the widgets are built (REQ-SC-05).
+WIDGET_KEYS: tuple[str, ...] = ("aliases_text", "last_used_text", "cancel_text", HALLUCINATE_KEY)
+KEPT_KEY = "zs_kept"
+
 # Tombstones per row of the graveyard.
 TOMBSTONES_PER_ROW: int = 3
 
@@ -118,21 +130,33 @@ def load_demo() -> None:
     apply_demo(st.session_state, demo_inputs(load_config(CONFIG_PATH), ROOT))
 
 
+def _restore_widgets() -> None:
+    """Put back the widget values kept from the previous visit, before any widget is built."""
+    for key, value in st.session_state.get(KEPT_KEY, {}).items():
+        st.session_state.setdefault(key, value)
+
+
+def _keep_widgets() -> None:
+    """Copy the widget values to a plain key so they survive a visit to another page."""
+    st.session_state[KEPT_KEY] = {key: st.session_state[key] for key in WIDGET_KEYS}
+
+
 def _init_state() -> None:
     """Set the defaults of the widget keys and caches once, before any widget exists."""
+    _restore_widgets()
     for key in ("aliases_text", "last_used_text", "cancel_text"):
         st.session_state.setdefault(key, "")
-    st.session_state.setdefault("hallucinate", False)
+    st.session_state.setdefault(HALLUCINATE_KEY, False)
     st.session_state.setdefault("demo_loaded", False)
     st.session_state.setdefault("ingestion_cache", {})
-    st.session_state.setdefault("explanations", {})
+    st.session_state.setdefault(EXPLANATIONS_KEY, {})
 
 
 def _render_sidebar() -> Any:
     """Draw the sidebar widgets and return the uploaded file (None when there is none)."""
     with st.sidebar:
         st.header("Controls")
-        st.button("Load demo data", key="load_demo", on_click=load_demo)
+        st.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
         st.text_area(
             "Aliases",
             key="aliases_text",
@@ -153,7 +177,7 @@ def _render_sidebar() -> Any:
         )
         st.toggle(
             "Simulate a hallucinating LLM",
-            key="hallucinate",
+            key=HALLUCINATE_KEY,
             help="Replaces the LLM with a stub that invents 99999.99; the guard rejects it.",
         )
         return st.file_uploader("Bank statement CSV", type="csv")
@@ -193,7 +217,7 @@ def _ingest(
 
 def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanation:
     """Explain one alert; cached per (alert.id, client mode) across reruns (design §7)."""
-    cache = st.session_state["explanations"]
+    cache = st.session_state[EXPLANATIONS_KEY]
     key = (alert.id, "hallucinate" if hallucinate else "real")
     if key not in cache:
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
@@ -306,6 +330,7 @@ def main() -> None:
     st.markdown(GRAVEYARD_CSS, unsafe_allow_html=True)
     _init_state()
     uploaded = _render_sidebar()
+    _keep_widgets()
 
     st.title("🪦 Zombie Subscriptions")
     st.caption("Every figure comes from a cited row of your statement. The LLM only explains.")
@@ -338,7 +363,7 @@ def main() -> None:
     _render_summary(alerts, len(zombies))
     _render_quarantine(quarantine)
     _render_graveyard(zombies, ledger_currency(debit_ledger))
-    _render_alerts(alerts, debit_ledger, bool(st.session_state["hallucinate"]))
+    _render_alerts(alerts, debit_ledger, bool(st.session_state[HALLUCINATE_KEY]))
 
 
 # Streamlit executes the script as __main__; importing the module (tests) renders nothing.

@@ -286,7 +286,9 @@ digits and per-country lengths are **not** validated (OD-PI-15).
   `"Verify this change by phone, using a contact you already have for this supplier. Never use a
   phone number or e-mail address printed on the invoice."` (written as one string). It contains no
   digit. Both `critical` variants carry it in `Alert.data["verification_message"]`; the UI shows it
-  verbatim below the alert and it is part of the fallback template. It is code, not LLM output:
+  verbatim once, in the phone box below the explanation of the alert. Since the showcase work
+  (REQ-SC-08) the fallback templates of the two variants do **not** repeat it, so the card never
+  shows it twice. It is code, not LLM output:
   the LLM remains forbidden to recommend actions (Finance Rule 8) and the explanation text never
   has to contain it.
 - **REQ-PI-27** **Alert contract.** `detector`: `"pi.iban_change"`; `source_refs`: the row and the

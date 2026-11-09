@@ -51,7 +51,7 @@ def _run() -> AppTest:
 def _demo() -> AppTest:
     """Run the app and click Load demo data."""
     at = _run()
-    at.button(key="load_demo").click().run()
+    at.button(key="zs_load_demo").click().run()
     return at
 
 
@@ -82,8 +82,8 @@ def test_app_starts_without_exception() -> None:
     assert not at.exception
     assert at.title[0].value == "🪦 Zombie Subscriptions"
     assert any("Load demo data" in info.value for info in at.info)
-    assert at.button(key="load_demo").label == "Load demo data"
-    assert at.toggle(key="hallucinate").value is False
+    assert at.button(key="zs_load_demo").label == "Load demo data"
+    assert at.toggle(key="zs_hallucinate").value is False
     assert _tombstones(at) == []
     assert _alert_titles(at) == []
 
@@ -140,7 +140,7 @@ def test_hallucination_toggle_produces_fallback_with_guard_badge() -> None:
     """The stub LLM invents 99999.99: every explanation falls back and carries the badge."""
     at = _demo()
 
-    at.toggle(key="hallucinate").set_value(True).run()
+    at.toggle(key="zs_hallucinate").set_value(True).run()
 
     assert not at.exception
     badges = _badges(at)
@@ -152,7 +152,7 @@ def test_hallucination_toggle_produces_fallback_with_guard_badge() -> None:
     assert not any("99999.99" in value for value in explanations)
     assert any("36,00 EUR" in value for value in explanations)  # the filled fallback template
 
-    at.toggle(key="hallucinate").set_value(False).run()
+    at.toggle(key="zs_hallucinate").set_value(False).run()
 
     assert not at.exception
     assert all("zs-badge-template" in badge for badge in _badges(at))
