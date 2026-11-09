@@ -251,7 +251,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_parse_empty_text_returns_empty_dict`; `test_parse_ignores_blank_lines_and_whitespace`; `test_config_contains_no_threshold_constants` (REQ-ZS-42); `test_demo_section_has_at_least_3_last_used_and_1_cancellation`.
   - **Tier 3**: `test_format_then_parse_is_identity` for generated alias maps and date maps.
 - [x] Create `apps/zombie_subscriptions/config.toml` (`[aliases]` with fictional services, `[demo]` as in design §10.1; no thresholds). Implement `settings.py` (`load_config`, `demo_inputs`, `to_date`, `parse_*_text`, `format_*_text`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -264,7 +264,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 1**: `test_hallucinating_stub_is_rejected_by_number_guard` — `explain_with_meta(alert, rows, fallback_template=..., client=HallucinatingStubClient())` → `source == "fallback"` and `"99999.99"` in `rejected_numbers`; `test_stub_shape_matches_mock_client` (`chat` and `completions` are properties, `create` returns `choices[0].message.content`).
   - **Tier 2**: `test_stub_ignores_extra_kwargs`; `test_injected_number_not_in_any_fixture_alert`.
 - [x] Implement `explain_support.py` (`TEMPLATES`, `HallucinatingStubClient`).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -279,8 +279,8 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_demo_contains_all_planted_patterns` — each key of design §10 exists with its pattern (E1–E5 shapes, free-trial pair 14 days apart, `GYMPLUS` rows after 2026-07-31, zombie candidates).
   - `test_demo_noise_merchants_follow_e7b_construction_and_produce_no_series`.
 - [x] Implement the `zombie-demo` mode in `scripts/generate_samples.py` (replaces the stub entry in `MODE_HANDLERS`; `random.Random(42)` drives only the one-off shops) and add its provenance to `data/samples/README.md`.
-- [ ] Generate and commit `data/samples/zombie_demo_statement.csv`: `python scripts/generate_samples.py --mode zombie-demo --seed 42`.
-- [ ] Verify: tests pass, `ruff check` clean; `.gitignore` still allows `data/samples/`.
+- [x] Generate and commit `data/samples/zombie_demo_statement.csv`: `python scripts/generate_samples.py --mode zombie-demo --seed 42`.
+- [x] Verify: tests pass, `ruff check` clean; `.gitignore` still allows `data/samples/`.
 
 ---
 
@@ -295,8 +295,8 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_demo_has_at_least_three_tombstones_with_nonzero_cost` — `compute_zombie_cost(...)` gives ≥ 3 entries with `cost_since_last_used > 0`.
   - `test_demo_noise_merchants_produce_no_alerts` — no alert cites a row of the grocery/noise merchants.
   - `test_demo_alert_source_refs_exist_in_csv`.
-- [ ] Fix `config.toml` / generator output until the test passes (names must match exactly).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Fix `config.toml` / generator output until the test passes (names must match exactly).
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -304,14 +304,15 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-01, REQ-ZS-02, REQ-ZS-03, REQ-ZS-04, REQ-ZS-35, REQ-ZS-36, REQ-ZS-37, REQ-ZS-37a, REQ-ZS-39, REQ-ZS-40, REQ-ZS-41, §7, §8
 
-- [ ] Write `tests/test_zs_app_logic.py` for everything that does not need a Streamlit runtime:
+- [x] Write `tests/test_zs_app_logic.py` for everything that does not need a Streamlit runtime:
   - `test_app_py_first_lines_bootstrap_sys_path` — parse `app.py` source: the path bootstrap precedes the first `ledger_kit` import.
   - `test_app_uses_on_click_for_load_demo` — AST check: `st.button("Load demo data", ..., on_click=...)` is used and no `st.session_state[<widget key>] = ...` assignment appears under an `if st.button(...)` body.
   - `test_load_demo_callback_prefills_widget_keys` — call the callback logic from `settings` with a plain dict standing in for `session_state`: the keys `aliases_text`, `last_used_text`, `cancel_text`, `source`, `demo_loaded` are set.
   - `test_all_amounts_rendered_with_format_amount` — the view-model helper returns European-formatted strings (`"1.234,56 EUR"`).
   - `test_guard_badge_selection` — `source == "llm"` → 🤖 ✓; fallback without key → 📋; fallback with `rejected_numbers` → ⚠️ naming the number.
   - `test_alerts_grouped_critical_warning_info`.
-- [ ] Implement `apps/zombie_subscriptions/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `st.button("Load demo data", on_click=load_demo)`; sidebar text areas keyed `aliases_text`, `last_used_text`, `cancel_text`; hallucination toggle; file uploader; ingestion cache by sha256; debit filter; `run_all`; `compute_zombie_cost`; explanation cache keyed `(alert.id, client_mode)`; Halloween graveyard CSS via `st.markdown(..., unsafe_allow_html=True)`; tombstone cards (name, "Died on", "Cost since then", "Yearly cost", collapsible `source_refs`); alert list by severity with guard badge and collapsible source rows; quarantine section. Put pure view-model code in `settings.py`/helpers so the tests above need no Streamlit.
+- [x] Write `tests/test_zs_app.py` with `streamlit.testing.v1.AppTest` (`default_timeout=60`, detector registry snapshot/restore, `OPENAI_API_KEY` removed): the app starts without exception; after clicking **Load demo data** the 3 demo tombstones and the alerts of all five detectors render without exception; the hallucination toggle gives the fallback text with the ⚠️ badge naming `99999.99`; the zs detectors stay registered.
+- [x] Implement `apps/zombie_subscriptions/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `st.button("Load demo data", on_click=load_demo)`; sidebar text areas keyed `aliases_text`, `last_used_text`, `cancel_text`; hallucination toggle; file uploader; ingestion cache by sha256; debit filter; `run_all`; `compute_zombie_cost`; explanation cache keyed `(alert.id, client_mode)`; Halloween graveyard CSS via `st.markdown(..., unsafe_allow_html=True)`; tombstone cards (name, "Died on", "Cost since then", "Yearly cost", collapsible `source_refs`); alert list by severity with guard badge and collapsible source rows; quarantine section. Put pure view-model code in `settings.py`/helpers so the tests above need no Streamlit.
 - [ ] Verify (manual smoke test, recorded in the PR): `streamlit run apps/zombie_subscriptions/app.py` starts; clicking **Load demo data** shows ≥ 3 tombstones and all five alert types without `StreamlitWidgetAlreadyInstantiatedError`; the hallucination toggle shows the ⚠️ badge with `99999.99`.
 - [ ] Verify: tests pass, `ruff check` clean.
 
@@ -321,14 +322,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-41, design §1; keeps the steering document consistent with the spec (requirements §13 supersedes the illustrative list)
 
-- [ ] Replace the `apps/zombie_subscriptions/` block of the layout tree in `.kiro/steering/structure.md` with the spec's file list:
+- [x] Replace the `apps/zombie_subscriptions/` block of the layout tree in `.kiro/steering/structure.md` with the spec's file list:
   - `detectors/`: `__init__.py`, `utils.py`, `recurring_charge.py`, `price_increase.py`, `duplicate_subscription.py`, `free_trial_to_paid.py`, `charges_after_cancellation.py` (remove `last_use_gap.py` and `dormant_subscription.py`).
   - `tests/`: `conftest.py`, `test_zs_recurring_charge.py`, `test_zs_price_increase.py`, `test_zs_duplicate_subscription.py`, `test_zs_free_trial_to_paid.py`, `test_zs_charges_after_cancellation.py`, `test_zs_demo_e2e.py` plus the helper test modules (`test_zs_utils_normalise.py`, `test_zs_utils_helpers.py`, `test_zs_series_primitives.py`, `test_zs_segment_by_price.py`, `test_zs_find_series.py`, `test_zs_active.py`, `test_zs_compute_zombie_cost.py`, `test_zs_registry.py`, `test_zs_settings.py`, `test_zs_explain_support.py`, `test_zs_demo_generator.py`, `test_zs_app_logic.py`, `test_zs_scaffold.py`, `test_zs_fixtures.py`).
   - App root: `app.py`, `config.toml`, `settings.py`, `explain_support.py`; **remove `requirements.txt`** from the zombie block (the root `requirements.txt` is the only one; an app-level file would hide it on Streamlit Community Cloud).
   - Add `scripts/generate_samples.py` and `data/samples/zombie_demo_statement.csv` to the tree if absent; add `requirements.txt` at the repository root.
   - Leave the `phantom_invoices/` block untouched.
-- [ ] Add a one-line note under "Package boundaries": the zombie app may import `ledger_kit` and its own `detectors/`, `settings.py`, `explain_support.py`.
-- [ ] Verify: the tree in `structure.md` matches `requirements.md` §13 for the zombie app; no other section of the file changed.
+- [x] Add a one-line note under "Package boundaries": the zombie app may import `ledger_kit` and its own `detectors/`, `settings.py`, `explain_support.py`.
+- [x] Verify: the tree in `structure.md` matches `requirements.md` §13 for the zombie app; no other section of the file changed.
 
 ---
 
@@ -337,8 +338,8 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 **Covers**: REQ-ZS-45, REQ-ZS-47, REQ-ZS-48, REQ-ZS-49, REQ-ZS-50, REQ-ZS-51
 
 - [ ] Run `pytest apps/zombie_subscriptions/ --cov=apps/zombie_subscriptions --cov-fail-under=80`, then the full `pytest` to confirm ledger-core is unaffected.
-- [ ] Confirm every acceptance example has a named test: E1, E2, E3, E4, E5, E6, E7, E7b (`test_zs_acceptance_e*`), plus the downgrade test.
-- [ ] Confirm all three tiers exist for each of the five detectors and for `compute_zombie_cost`, and that all mandatory properties of REQ-ZS-48 are present with `@settings(max_examples=200)`.
-- [ ] Confirm no test or module reads the clock (`date.today()`, `datetime.now()`), no fixture or sample contains a real brand or person name outside Finance Rule 5 placeholders, and `apps/zombie_subscriptions/requirements.txt` does not exist.
+- [x] Confirm every acceptance example has a named test: E1, E2, E3, E4, E5, E6, E7, E7b (`test_zs_acceptance_e*`), plus the downgrade test.
+- [x] Confirm all three tiers exist for each of the five detectors and for `compute_zombie_cost`, and that all mandatory properties of REQ-ZS-48 are present with `@settings(max_examples=200)`.
+- [x] Confirm no test or module reads the clock (`date.today()`, `datetime.now()`), no fixture or sample contains a real brand or person name outside Finance Rule 5 placeholders, and `apps/zombie_subscriptions/requirements.txt` does not exist.
 - [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
 - [ ] Fix any coverage gaps or lint issues found.

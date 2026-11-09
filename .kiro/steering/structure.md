@@ -25,19 +25,41 @@ ghost-ledger-kit/
 ├── apps/
 │   ├── zombie_subscriptions/       # App 1: personal recurring-charge detector
 │   │   ├── __init__.py
+│   │   ├── app.py                  # Streamlit entry point (path bootstrap at top)
+│   │   ├── config.toml             # aliases, demo inputs (no thresholds)
+│   │   ├── settings.py             # load config.toml, demo inputs, sidebar text parse/format
+│   │   ├── explain_support.py      # fallback TEMPLATES, HallucinatingStubClient
 │   │   ├── detectors/
-│   │   │   ├── __init__.py
+│   │   │   ├── __init__.py         # auto_discover; run_zs_detectors convenience wrapper
+│   │   │   ├── utils.py            # normalisation, series helpers, compute_zombie_cost
 │   │   │   ├── recurring_charge.py
-│   │   │   ├── last_use_gap.py
-│   │   │   └── dormant_subscription.py
-│   │   ├── tests/
-│   │   │   ├── conftest.py
-│   │   │   ├── test_zs_recurring_charge.py
-│   │   │   ├── test_zs_last_use_gap.py
-│   │   │   └── test_zs_dormant_subscription.py
-│   │   ├── app.py                  # Streamlit entry point
-│   │   ├── config.toml
-│   │   └── requirements.txt
+│   │   │   ├── price_increase.py
+│   │   │   ├── duplicate_subscription.py
+│   │   │   ├── free_trial_to_paid.py
+│   │   │   └── charges_after_cancellation.py
+│   │   └── tests/
+│   │       ├── conftest.py
+│   │       ├── test_zs_recurring_charge.py
+│   │       ├── test_zs_price_increase.py
+│   │       ├── test_zs_duplicate_subscription.py
+│   │       ├── test_zs_free_trial_to_paid.py
+│   │       ├── test_zs_charges_after_cancellation.py
+│   │       ├── test_zs_demo_e2e.py
+│   │       ├── test_zs_utils_normalise.py
+│   │       ├── test_zs_utils_helpers.py
+│   │       ├── test_zs_series_primitives.py
+│   │       ├── test_zs_segment_by_price.py
+│   │       ├── test_zs_find_series.py
+│   │       ├── test_zs_active.py
+│   │       ├── test_zs_compute_zombie_cost.py
+│   │       ├── test_zs_registry.py
+│   │       ├── test_zs_settings.py
+│   │       ├── test_zs_explain_support.py
+│   │       ├── test_zs_demo_generator.py
+│   │       ├── test_zs_app_logic.py
+│   │       ├── test_zs_app.py      # headless AppTest runs of app.py
+│   │       ├── test_zs_scaffold.py
+│   │       └── test_zs_fixtures.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
 │       ├── __init__.py
 │       ├── detectors/
@@ -62,12 +84,16 @@ ghost-ledger-kit/
 │   ├── test_models.py
 │   ├── test_money.py
 │   └── test_anonymise.py
+├── scripts/
+│   └── generate_samples.py         # Deterministic synthetic sample generator (--mode, --seed)
 ├── data/
 │   └── samples/                    # Synthetic or public-domain sample files only
 │       ├── README.md               # Licence reference for any public-domain files
 │       ├── bank_statement_sample.csv
-│       └── invoice_sample.csv
+│       ├── invoice_sample.csv
+│       └── zombie_demo_statement.csv   # zombie-subscriptions demo (generate_samples.py)
 ├── pyproject.toml
+├── requirements.txt                # Only requirements file (Streamlit Community Cloud)
 ├── README.md
 └── .env.example
 ```
@@ -98,6 +124,7 @@ Shared library tests in `tests/` carry no prefix.
 
 - `ledger_kit` is a **library**: it must not import from either app folder.
 - App packages (`apps.zombie_subscriptions`, `apps.phantom_invoices`) **import from `ledger_kit`** and from their own `detectors/` sub-package only.
+- The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py` and `explain_support.py`.
 - Apps must not import from each other.
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
