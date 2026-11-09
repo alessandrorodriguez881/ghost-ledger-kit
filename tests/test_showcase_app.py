@@ -13,6 +13,7 @@ from streamlit.testing.v1 import AppTest
 import apps.phantom_invoices.detectors  # noqa: F401  (registers the pi.* detectors)
 import apps.zombie_subscriptions.detectors  # noqa: F401  (registers the zs.* detectors)
 import streamlit_app
+from apps.phantom_invoices.settings import SIGNATURE_NOTE
 from ledger_kit.detectors import _restore_registry, _snapshot_registry, registered_names
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +25,11 @@ TIMEOUT_SECONDS = 60
 PAGE_TITLES = ["Home", "Zombie Subscriptions", "Phantom Invoices"]
 ZS_DETECTORS = 5  # zs.* detectors; the demo statement raises at least one alert for each
 ZS_DEMO_TOMBSTONES = 3
+ZS_DEMO_ALERTS = 19
 PI_DEMO_CRITICAL, PI_DEMO_WARNING = 3, 6
 PI_DEMO_ALERTS = PI_DEMO_CRITICAL + PI_DEMO_WARNING
+PI_DEMO_FACTURAE_FILES = 25
+CSV_FORMAT, REAL_FORMATS = "CSV", "Real formats"  # the options of both demo-format radios
 
 
 @pytest.fixture(autouse=True)
@@ -202,9 +206,81 @@ def test_the_two_apps_share_no_session_state_or_widget_key() -> None:
     zombie_keys = set(zombie.session_state.keys())
     phantom_keys = set(phantom.session_state.keys())
 
-    assert {"zs_load_demo", "zs_hallucinate", "zs_explanations"} <= zombie_keys
-    assert {"pi_load_demo", "pi_hallucinate", "pi_explanations"} <= phantom_keys
+    assert {"zs_load_demo", "zs_hallucinate", "zs_explanations", "zs_demo_format"} <= zombie_keys
+    assert {"pi_load_demo", "pi_hallucinate", "pi_explanations", "pi_demo_format"} <= phantom_keys
     assert zombie_keys.isdisjoint(phantom_keys), zombie_keys & phantom_keys
+
+
+def test_the_new_widget_keys_are_disjoint_and_prefixed_with_real_formats_selected() -> None:
+    """REQ-RF-22: with Real formats loaded, the key sets are still disjoint and prefixed."""
+    zombie = _run(str(REPO_ROOT / ZOMBIE_PAGE))
+    zombie.radio(key="zs_demo_format").set_value(REAL_FORMATS).run()
+    _zombie_demo(zombie)
+    phantom = _run(str(REPO_ROOT / PHANTOM_PAGE))
+    phantom.radio(key="pi_demo_format").set_value(REAL_FORMATS).run()
+    _phantom_demo(phantom)
+
+    zombie_keys = set(zombie.session_state.keys())
+    phantom_keys = set(phantom.session_state.keys())
+
+    assert zombie_keys.isdisjoint(phantom_keys), zombie_keys & phantom_keys
+    assert "zs_demo_format" in zombie_keys and "pi_demo_format" in phantom_keys
+
+
+def test_the_new_upload_keys_are_prefixed_and_disjoint_in_the_app_sources() -> None:
+    """REQ-RF-22: the six new widget keys are written in the app files, one prefix per app."""
+    zombie_source = (REPO_ROOT / ZOMBIE_PAGE).read_text(encoding="utf-8")
+    phantom_source = (REPO_ROOT / PHANTOM_PAGE).read_text(encoding="utf-8")
+    zombie_new = {"zs_upload_statement", "zs_demo_format"}
+    phantom_new = {
+        "pi_upload_invoices",
+        "pi_upload_suppliers",
+        "pi_upload_payments",
+        "pi_demo_format",
+    }
+
+    assert zombie_new.isdisjoint(phantom_new)
+    assert all(f'"{key}"' in zombie_source and key not in phantom_source for key in zombie_new)
+    assert all(f'"{key}"' in phantom_source and key not in zombie_source for key in phantom_new)
+
+
+def test_both_pages_load_the_real_formats_demo_inside_the_showcase() -> None:
+    """With Real formats selected each app shows its usual counts, from the new files."""
+    at = _zombie(_run())
+    at.radio(key="zs_demo_format").set_value(REAL_FORMATS).run()
+    _zombie_demo(at)
+
+    assert not at.sidebar.error and not at.error
+    assert at.session_state["source"][2] == "zombie_demo_statement.n43"
+    assert len(_starting(at, '<div class="zs-tombstone">')) == ZS_DEMO_TOMBSTONES
+    assert len(_starting(at, '<div class="zs-alert-title">')) == ZS_DEMO_ALERTS
+
+    _phantom(at)
+    at.radio(key="pi_demo_format").set_value(REAL_FORMATS).run()
+    _phantom_demo(at)
+
+    assert not at.error
+    assert {m.label.split()[-1]: m.value for m in at.metric} == {
+        "critical": str(PI_DEMO_CRITICAL),
+        "warning": str(PI_DEMO_WARNING),
+    }
+    assert len(_starting(at, '<div class="pi-alert-title">')) == PI_DEMO_ALERTS
+    assert SIGNATURE_NOTE in [c.value for c in at.caption]
+    assert len(at.session_state["sources"]["invoices"]) == PI_DEMO_FACTURAE_FILES
+
+
+def test_the_demo_format_survives_a_visit_to_the_other_page() -> None:
+    """REQ-SC-05: both radios are in WIDGET_KEYS, so the choice is kept across pages."""
+    at = _zombie(_run())
+    at.radio(key="zs_demo_format").set_value(REAL_FORMATS).run()
+    _phantom(at)
+    assert at.radio(key="pi_demo_format").value == CSV_FORMAT  # not the zombie radio
+    at.radio(key="pi_demo_format").set_value(REAL_FORMATS).run()
+
+    _zombie(at)
+    assert at.radio(key="zs_demo_format").value == REAL_FORMATS
+    _phantom(at)
+    assert at.radio(key="pi_demo_format").value == REAL_FORMATS
 
 
 def test_each_app_keeps_its_state_when_the_user_visits_the_other_page() -> None:

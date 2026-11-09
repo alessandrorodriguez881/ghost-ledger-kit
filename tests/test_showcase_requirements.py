@@ -95,6 +95,18 @@ def test_every_third_party_import_is_pinned_in_the_root_requirements() -> None:
     assert missing == {}
 
 
+def test_defusedxml_is_pinned_exactly_for_the_facturae_reader() -> None:
+    """The only XML parser the showcase may use is the pinned defusedxml (REQ-RF-29, DN-RF-15)."""
+    assert "defusedxml==0.7.1" in _requirement_lines()
+    users = {
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in _runtime_files()
+        for module, _names in _imports(path)
+        if module.split(".")[0] == "defusedxml"
+    }
+    assert users == {"ledger_kit/ingestion/facturae_reader.py"}
+
+
 def test_no_app_has_its_own_requirements_file() -> None:
     """An app-level requirements.txt would hide the root one on Streamlit Community Cloud."""
     assert REQUIREMENTS.is_file()

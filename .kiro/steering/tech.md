@@ -14,7 +14,9 @@
 | LLM calls | **openai** (optional extra `llm`, exact pin; or any OpenAI-compatible SDK) | Only used in the explanation layer. Imported lazily inside the guarded call in `explainer.py`; without it the fallback template is used. |
 | Testing | **pytest ≥ 8.0** + **Hypothesis ≥ 6.100** | See `testing.md` for strategy. |
 | CSV parsing | stdlib `csv` + pandas | No third-party CSV parsers needed. |
-| Invoice parsing | stdlib `csv` + stdlib `json` | CSV and JSON invoice formats (e.g. FATURA annotations). Only used in the ingestion layer. No PDF parsing. |
+| Invoice parsing | stdlib `csv` + stdlib `json` + **defusedxml** (exact pin) | CSV and JSON invoice formats (e.g. FATURA annotations) and Facturae 3.2 / 3.2.1 / 3.2.2 XML. Only used in the ingestion layer. No PDF parsing. |
+| XML safety | **defusedxml** (exact pin, `0.7.1`) | `facturae_reader.py` parses untrusted XML only through `defusedxml.ElementTree` with `forbid_dtd=True`; no other module imports an XML parser. |
+| Bank statements | stdlib only | Norma 43 (AEB CSB 43) is fixed-width text read by `norma43_reader.py`; the content sniffer picks CSV or Norma 43. |
 | Typing | **pydantic ≥ 2.0** | `Transaction` and `Alert` models are Pydantic models for validation and serialisation. |
 | Linting / formatting | **ruff** | Single tool for lint + format; config in `pyproject.toml`. |
 
@@ -31,7 +33,7 @@ class Transaction(BaseModel):
     counterparty: str
     description: str
     source_file: str         # original filename
-    source_row: int          # 0-based row index in source file
+    source_row: int          # CSV: 0-based row index; Norma 43: 1-based line of the record 22; Facturae: 1-based position of the invoice (DN-RF-01)
     source_ref: str          # f"{source_file}:{source_row}"
     tags: list[str] = []
 ```
@@ -51,6 +53,7 @@ class Alert(BaseModel):
 ## Arithmetic rules
 - All monetary arithmetic uses `decimal.Decimal` with `ROUND_HALF_UP` and two decimal places.
 - Never use `float` for amounts. Pandas columns that hold amounts use `object` dtype backed by `Decimal`, or convert to `Decimal` immediately after reading from CSV.
+- The same holds for Norma 43 (implied-decimal digit fields) and Facturae (decimal text): amounts are built with `Decimal` from text, never through `float`.
 - See `finance-rules.md` for the complete set of numerical and display rules.
 
 ## LLM integration constraints

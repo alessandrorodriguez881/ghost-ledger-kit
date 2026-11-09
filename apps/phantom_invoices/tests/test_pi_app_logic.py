@@ -398,26 +398,40 @@ def test_pipeline_key_depends_on_names_bytes_and_as_of() -> None:
     assert base != pipeline_key(a, b, None, date(2026, 1, 1))
     assert base != pipeline_key(a, b, b, None)
     assert pipeline_key(None, None, None, None) != pipeline_key(a, None, None, None)
+    assert pipeline_key(a, b, None, None) == pipeline_key((a,), b, None, None)  # one file
+
+
+def test_pipeline_key_ignores_selection_order_and_covers_every_invoice_file() -> None:
+    """REQ-RF-21: the key hashes the file count, then each name and content in name order."""
+    a, b = Source("01-a.xml", b"1"), Source("02-b.xml", b"2")
+    key = pipeline_key((a, b), None, None, None)
+
+    assert key == pipeline_key((b, a), None, None, None)
+    assert key != pipeline_key((a,), None, None, None)  # a file less
+    assert key != pipeline_key((a, Source("02-b.xml", b"2x")), None, None, None)
+    assert key != pipeline_key((a, Source("03-b.xml", b"2")), None, None, None)
+    assert key != pipeline_key((a, b, b), None, None, None)  # a repeated name counts
 
 
 def test_apply_demo_prefills_widget_keys_and_sources() -> None:
     """apply_demo writes the sources and resets the widget keys; as_of only when configured."""
     sources = [Source(name, name.encode()) for name in ("i.csv", "s.csv", "p.csv")]
+    invoices = (sources[0],)
     state: dict[str, Any] = {
         "pi_hallucinate": True,
         "selected_alert": "x",
         "as_of_date": date(2020, 5, 5),
     }
 
-    apply_demo(state, DemoInputs(*sources))
+    apply_demo(state, DemoInputs(invoices, sources[1], sources[2]))
 
-    expected = dict(zip(("invoices", "suppliers", "payments"), sources, strict=True))
+    expected = {"invoices": invoices, "suppliers": sources[1], "payments": sources[2]}
     assert state["sources"] == expected
     assert state["use_as_of"] is False and state["pi_hallucinate"] is False
     assert state["selected_alert"] == NO_FLASHLIGHT
     assert state["as_of_date"] == date(2020, 5, 5)  # untouched without a demo as_of
 
-    apply_demo(state, DemoInputs(*sources, as_of=date(2026, 10, 30)))
+    apply_demo(state, DemoInputs(invoices, sources[1], sources[2], as_of=date(2026, 10, 30)))
 
     assert state["use_as_of"] is True and state["as_of_date"] == date(2026, 10, 30)
 

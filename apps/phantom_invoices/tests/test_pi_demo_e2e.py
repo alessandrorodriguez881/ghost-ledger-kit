@@ -73,7 +73,8 @@ EXPECTED_BY_CASE: dict[str, list[tuple[str, str, str]]] = {
 def _sources() -> tuple[Source, Source, Source, date | None]:
     """The invoices, suppliers and payments Sources of [demo] in config.toml, and its as_of."""
     demo = demo_inputs(load_config(CONFIG_PATH), REPO_ROOT)
-    return demo.invoices, demo.suppliers, demo.payments, demo.as_of
+    [invoices] = demo.invoices  # the CSV demo is one invoices file
+    return invoices, demo.suppliers, demo.payments, demo.as_of
 
 
 def _run(sources: tuple[Source, Source, Source, date | None] | None = None) -> Pipeline:

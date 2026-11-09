@@ -46,6 +46,19 @@ KIND_DESCRIPTIONS: dict[str, str] = {
 
 Source = Path | str | IO[str] | IO[bytes]
 
+# How a recognised format is named on the pages (REQ-RF-23); `empty` and `unknown` have no label.
+FORMAT_LABELS: dict[str, str] = {
+    "csv": "CSV",
+    "json": "JSON",
+    "norma43": "Norma 43",
+    "facturae": "Facturae XML",
+}
+
+
+def format_label(kind: str) -> str | None:
+    """Return the page label of a sniffed kind, or None when it is empty or not recognised."""
+    return FORMAT_LABELS.get(kind)
+
 
 def _xml_kind(head: bytes) -> FormatKind:
     """Classify an XML document by the local name of its first start tag."""

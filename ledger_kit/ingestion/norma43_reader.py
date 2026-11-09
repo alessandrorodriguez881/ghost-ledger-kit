@@ -9,7 +9,7 @@ document, and converted once by `_cut`.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -75,6 +75,17 @@ CONTROL_CHECK_FAILED_MESSAGE = (
     "This bank file is incomplete or was edited: its totals do not match its movements. "
     "Download a fresh export from your bank and load it again."
 )
+CONTROL_CHECK_REASON_PREFIX = "control_check_failed:"
+
+
+def control_check_messages(records: Iterable[dict]) -> list[str]:
+    """Return one plain-words line per `control_check_failed:*` record, in record order."""
+    return [
+        f"{record.get('source_file', '')} ({record['reason']}): {CONTROL_CHECK_FAILED_MESSAGE}"
+        for record in records
+        if str(record.get("reason", "")).startswith(CONTROL_CHECK_REASON_PREFIX)
+    ]
+
 
 Span = tuple[int, int]
 

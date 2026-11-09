@@ -35,6 +35,7 @@ from apps.zombie_subscriptions.explain_support import (  # noqa: E402
     HallucinatingStubClient,
 )
 from apps.zombie_subscriptions.settings import (  # noqa: E402
+    DEMO_FORMATS,
     SEVERITY_ORDER,
     apply_demo,
     demo_inputs,
@@ -42,14 +43,17 @@ from apps.zombie_subscriptions.settings import (  # noqa: E402
     guard_badge,
     ledger_currency,
     load_config,
+    markdown_safe,
     parse_aliases_text,
     parse_dates_text,
+    statement_caption,
     tombstone_view,
 )
 from ledger_kit.detectors import run_all  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta  # noqa: E402
-from ledger_kit.ingestion.csv_reader import parse_csv  # noqa: E402
+from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.ingestion.normaliser import normalise  # noqa: E402
+from ledger_kit.ingestion.sniffer import read_bank_statement, sniff_format  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     SEVERITY_BADGES,
@@ -67,11 +71,19 @@ CONFIG_PATH = Path(__file__).resolve().parent / "config.toml"
 LOAD_DEMO_KEY = "zs_load_demo"
 HALLUCINATE_KEY = "zs_hallucinate"
 EXPLANATIONS_KEY = "zs_explanations"
+DEMO_FORMAT_KEY = "zs_demo_format"
+UPLOAD_STATEMENT_KEY = "zs_upload_statement"
 
 # Widget state is dropped when a run does not render the widget (the user visited another page of
 # the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
 # back before the widgets are built (REQ-SC-05).
-WIDGET_KEYS: tuple[str, ...] = ("aliases_text", "last_used_text", "cancel_text", HALLUCINATE_KEY)
+WIDGET_KEYS: tuple[str, ...] = (
+    "aliases_text",
+    "last_used_text",
+    "cancel_text",
+    HALLUCINATE_KEY,
+    DEMO_FORMAT_KEY,
+)
 KEPT_KEY = "zs_kept"
 
 # Tombstones per row of the graveyard.
@@ -127,7 +139,12 @@ def load_demo() -> None:
     It runs before the script reruns and builds any widget, so writing the widget keys is
     allowed here (and would raise StreamlitWidgetAlreadyInstantiatedError in an `if` body).
     """
-    apply_demo(st.session_state, demo_inputs(load_config(CONFIG_PATH), ROOT))
+    apply_demo(
+        st.session_state,
+        demo_inputs(
+            load_config(CONFIG_PATH), ROOT, DEMO_FORMATS[st.session_state[DEMO_FORMAT_KEY]]
+        ),
+    )
 
 
 def _restore_widgets() -> None:
@@ -147,6 +164,7 @@ def _init_state() -> None:
     for key in ("aliases_text", "last_used_text", "cancel_text"):
         st.session_state.setdefault(key, "")
     st.session_state.setdefault(HALLUCINATE_KEY, False)
+    st.session_state.setdefault(DEMO_FORMAT_KEY, next(iter(DEMO_FORMATS)))
     st.session_state.setdefault("demo_loaded", False)
     st.session_state.setdefault("ingestion_cache", {})
     st.session_state.setdefault(EXPLANATIONS_KEY, {})
@@ -156,6 +174,13 @@ def _render_sidebar() -> Any:
     """Draw the sidebar widgets and return the uploaded file (None when there is none)."""
     with st.sidebar:
         st.header("Controls")
+        st.radio(
+            "Demo format",
+            list(DEMO_FORMATS),
+            key=DEMO_FORMAT_KEY,
+            horizontal=True,
+            help="CSV: the CSV demo statement. Real formats: the same statement as Norma 43.",
+        )
         st.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
         st.text_area(
             "Aliases",
@@ -180,7 +205,11 @@ def _render_sidebar() -> Any:
             key=HALLUCINATE_KEY,
             help="Replaces the LLM with a stub that invents 99999.99; the guard rejects it.",
         )
-        return st.file_uploader("Bank statement CSV", type="csv")
+        return st.file_uploader(
+            "Bank statement (.csv or Norma 43)",
+            type=["csv", "n43", "txt", "aeb", "csb43"],
+            key=UPLOAD_STATEMENT_KEY,
+        )
 
 
 def _parse_field(label: str, parser: Callable[[str], _T], text: str, empty: _T) -> _T:
@@ -206,10 +235,13 @@ def _current_source(uploaded: Any) -> tuple[str, bytes] | None:
 def _ingest(
     name: str, data: bytes, cache: MutableMapping[str, Any]
 ) -> tuple[pd.DataFrame, list[dict]]:
-    """Parse and normalise one CSV (parsing cached by content hash); return ledger, quarantine."""
+    """Read one statement (CSV or Norma 43; parsing cached by hash); return ledger, quarantine.
+
+    The content picks the reader, not the file extension (REQ-RF-20).
+    """
     key = f"{hashlib.sha256(data).hexdigest()}:{name}"
     if key not in cache:
-        cache[key] = parse_csv(io.BytesIO(data), source_file=name)
+        cache[key] = read_bank_statement(io.BytesIO(data), source_file=name)
     transactions, quarantined = cache[key]
     ledger, normalise_quarantine = normalise(transactions)
     return ledger, [*quarantined, *normalise_quarantine]
@@ -321,6 +353,8 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
         return
     with st.expander(f"⚠ Quarantined rows ({len(quarantine)})"):
         st.warning("These rows were not loaded. Fix them in the source file and upload it again.")
+        for message in control_check_messages(quarantine):
+            st.error(markdown_safe(message))
         st.dataframe(quarantine_table(quarantine), hide_index=True, width="stretch")
 
 
@@ -337,7 +371,9 @@ def main() -> None:
 
     source = _current_source(uploaded)
     if source is None:
-        st.info("Click Load demo data in the sidebar, or upload a bank statement CSV.")
+        st.info(
+            "Click Load demo data in the sidebar, or upload a bank statement (CSV or Norma 43)."
+        )
         return
 
     aliases = normalise_alias_map(
@@ -353,7 +389,7 @@ def main() -> None:
     name, data = source
     ledger, quarantine = _ingest(name, data, st.session_state["ingestion_cache"])
     debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
-    st.caption(f"{name}: {len(debit_ledger)} debit rows analysed, {len(quarantine)} quarantined")
+    st.caption(statement_caption(name, sniff_format(data), len(debit_ledger), len(quarantine)))
 
     context = {"aliases": aliases, "cancellation_dates": cancellation_dates}
     results = run_all(debit_ledger, namespace="zs", context=context)

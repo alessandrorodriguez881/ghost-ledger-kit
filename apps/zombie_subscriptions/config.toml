@@ -12,6 +12,8 @@ music = ["BEATSTREAM", "BEATSTREAM PREMIUM"]
 # tests/test_zs_demo_e2e.py). Dates are converted with date.fromisoformat.
 [demo]
 csv_path = "data/samples/zombie_demo_statement.csv"
+# The "Real formats" demo: the same statement as Norma 43. Aliases and dates below apply to both.
+n43_path = "data/samples/zombie_demo_statement.n43"
 
 [demo.aliases]
 streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]

@@ -56,8 +56,8 @@ def _inputs() -> DemoInputs:
 
 def _transactions(inputs: DemoInputs) -> list[Transaction]:
     """Parse the demo CSV; it must not quarantine anything."""
-    source = io.BytesIO(inputs.csv_bytes)
-    transactions, quarantined = parse_csv(source, source_file=inputs.csv_name)
+    source = io.BytesIO(inputs.statement_bytes)
+    transactions, quarantined = parse_csv(source, source_file=inputs.statement_name)
     assert quarantined == []
     return transactions
 
@@ -177,4 +177,6 @@ def test_demo_alert_source_refs_exist_in_csv() -> None:
         for alert in alerts:
             assert alert.source_refs, name
             assert set(alert.source_refs) <= known, name
-            assert all(ref.startswith(f"{inputs.csv_name}:") for ref in alert.source_refs), name
+            assert all(ref.startswith(f"{inputs.statement_name}:") for ref in alert.source_refs), (
+                name
+            )

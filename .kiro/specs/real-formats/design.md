@@ -541,11 +541,12 @@ cannot pass.
 | DN-RF-20 | In the sample Facturae, a row without a due date loses its IBAN | The schema cannot express an IBAN without a due date. Equivalence depends on those rows being alert-free either way; the equivalence test is what proves it (§11, Q1) |
 | DN-RF-21 | Demo format is a radio read by the existing `on_click` callback | Keeps the "write widget keys only in callbacks" rule of the existing apps; `AppTest` can drive a radio |
 | DN-RF-22 | No `AppTest` upload tests | Support for `file_uploader` in `AppTest` was not confirmed (§6) |
-| DN-RF-23 | Facturae samples are not validated against the official XSD | No XSD or `lxml` in the project; the writer follows the element order of the standard and the reader is tolerant. Stated as a limit, not hidden |
+| DN-RF-23 | Facturae samples are validated against the official XSD once, by the reviewer, not in CI | No XSD or `lxml` in the project. In the session 8e review the reviewer validated all 25 generated files against `Facturaev3_2_2` with `lxml`: 25 of 25 valid. The check is a one-off: it is not repeated in CI, so a later change of the writer must be validated again by hand. Stated as a limit, not hidden |
 | DN-RF-24 | Series and number are joined without a separator (`A` + `0042` → `A0042`), accepted in the session 8b review | The duplicate-invoice detector normalises keys anyway, so a plain `A0042` and a series `A` + `0042` meet in the same key, which is the wanted behaviour |
 | DN-RF-25 | Several installments use the latest due date, accepted in the session 8b review | An invoice is fully due on its last installment; the limit (a partly overdue invoice can look not yet due) is stated, not hidden |
 | DN-RF-26 | A record 24 with a numeric code outside the eleven Annex 2 codes keeps the movement and is tagged `original_currency_code:<NNN>` | A card purchase abroad is normal; quarantining it would drop a real movement, and guessing the alphabetic code would invent a datum. Only a malformed or repeated 24 is `bad_currency_equivalence` |
 | DN-RF-27 | The strict `33` and `88` checks stay; every `control_check_failed:*` record is shown with `CONTROL_CHECK_FAILED_MESSAGE` | The wanted behaviour for a file that does not add up is rejection; the plain message tells the user the file is incomplete or edited and to download a fresh export |
+| DN-RF-28 | The shared view helpers live in the library: `control_check_messages` (`norma43_reader.py`, one `st.error` line per `control_check_failed:*` record, inside the quarantine panel) and `format_label` / `FORMAT_LABELS` (`sniffer.py`, the name of a detected format) | Both apps need the same wording and apps may not import each other. `Pipeline.notes` (phantom) and `statement_caption` (zombie) carry the detected format; the invoices box names its files per format (`25 files: Facturae XML`) so 25 files do not make 25 lines |
 
 ## 11 — Open questions for the reviewer
 
@@ -558,3 +559,8 @@ installment (DN-RF-25).
    alert, the fix is a spec change (for example giving those rows an explicit due date and accepting
    `due_date_is_default=False`), not a test change. RF9 and RF10 surface it first.
 2. Streamlit 1.67 `type` rules and `AppTest` uploader support are unverified (§6).
+3. XSD validation of the sample Facturae files (session 8e): done once by the reviewer with `lxml`
+   against the official `Facturaev3_2_2` XSD, 25 of 25 valid; not part of CI (DN-RF-23). Parsed counts
+   in that review: `zombie_demo_statement.n43` 335 transactions (CSV 335 rows), `payments.n43` 62
+   transactions, no quarantine in either; the Facturae folder 68 invoices and one `multiple_vat_rates`
+   record.

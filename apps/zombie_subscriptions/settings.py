@@ -11,10 +11,11 @@ from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 
+from ledger_kit.ingestion.sniffer import format_label
 from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount
 
@@ -28,6 +29,10 @@ SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
 # Currency shown when the ledger has no currency column or no rows.
 DEFAULT_CURRENCY: str = "EUR"
 
+# Demo format radio (REQ-RF-24): the option shown, and the `fmt` of `demo_inputs` it selects.
+DemoFormat = Literal["csv", "real"]
+DEMO_FORMATS: dict[str, DemoFormat] = {"CSV": "csv", "Real formats": "real"}
+
 # Guard-badge labels (REQ-ZS-37). `{numbers}` is replaced by the rejected tokens.
 BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
@@ -37,10 +42,10 @@ BADGE_REJECTED: str = "⚠️ LLM answer rejected: invented number {numbers}"
 
 @dataclass(frozen=True)
 class DemoInputs:
-    """The demo CSV and the user inputs that go with it (all keys as written in config.toml)."""
+    """The demo statement and the user inputs that go with it (keys as in config.toml)."""
 
-    csv_bytes: bytes
-    csv_name: str
+    statement_bytes: bytes
+    statement_name: str
     aliases: dict[str, list[str]] = field(default_factory=dict)
     last_used_dates: dict[str, date] = field(default_factory=dict)
     cancellation_dates: dict[str, date] = field(default_factory=dict)
@@ -71,13 +76,22 @@ def _alias_table(table: dict[str, Any]) -> dict[str, list[str]]:
     return {str(name): [str(key) for key in keys] for name, keys in table.items()}
 
 
-def demo_inputs(config: dict[str, Any], root: Path) -> DemoInputs:
-    """Read the demo CSV named by [demo].csv_path (relative to `root`) and its user inputs."""
+def demo_inputs(config: dict[str, Any], root: Path, fmt: DemoFormat = "csv") -> DemoInputs:
+    """Read the demo statement named by [demo] (relative to `root`) and its user inputs.
+
+    `csv` reads `csv_path`, `real` reads `n43_path`. The aliases and the dates are the same for
+    both: they are keyed by counterparty, which is identical in both files (REQ-RF-25).
+    """
     demo = config["demo"]
-    csv_path = Path(root) / demo["csv_path"]
+    if fmt == "csv":
+        path = Path(root) / demo["csv_path"]
+    elif fmt == "real":
+        path = Path(root) / demo["n43_path"]
+    else:
+        raise ValueError(f"unknown demo format {fmt!r}")
     return DemoInputs(
-        csv_bytes=csv_path.read_bytes(),
-        csv_name=csv_path.name,
+        statement_bytes=path.read_bytes(),
+        statement_name=path.name,
         aliases=_alias_table(demo.get("aliases", {})),
         last_used_dates=_date_table(demo.get("last_used_dates", {})),
         cancellation_dates=_date_table(demo.get("cancellation_dates", {})),
@@ -137,11 +151,23 @@ def apply_demo(state: MutableMapping[str, Any], demo: DemoInputs) -> None:
     Must run inside an `on_click` callback: assigning a widget key after its widget exists in
     the same script run raises StreamlitWidgetAlreadyInstantiatedError.
     """
-    state["source"] = ("demo", demo.csv_bytes, demo.csv_name)
+    state["source"] = ("demo", demo.statement_bytes, demo.statement_name)
     state["aliases_text"] = format_aliases_text(demo.aliases)
     state["last_used_text"] = format_dates_text(demo.last_used_dates)
     state["cancel_text"] = format_dates_text(demo.cancellation_dates)
     state["demo_loaded"] = True
+
+
+def markdown_safe(text: str) -> str:
+    """Backslash-escape the markdown characters of `text` so it is shown literally."""
+    return "".join(f"\\{char}" if char in "\\`*_~$<>[]" else char for char in text)
+
+
+def statement_caption(name: str, kind: str, debit_rows: int, quarantined: int) -> str:
+    """Return the line under the title: the file, its detected format and the row counts."""
+    label = format_label(kind)
+    shown = name if label is None else f"{name} ({label})"
+    return f"{shown}: {debit_rows} debit rows analysed, {quarantined} quarantined"
 
 
 def ledger_currency(ledger: pd.DataFrame) -> str:

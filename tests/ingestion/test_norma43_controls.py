@@ -22,6 +22,7 @@ from n43_builders import (
 from ledger_kit.ingestion.norma43_reader import (
     CONTROL_CHECK_FAILED_MESSAGE,
     check_block,
+    control_check_messages,
     parse_norma43,
 )
 from ledger_kit.models import Transaction
@@ -69,6 +70,18 @@ def test_fixture_a_passes_every_check() -> None:
 
     assert quarantine == []
     assert len(transactions) == 2
+
+
+def test_control_check_messages_has_one_plain_line_per_control_record() -> None:
+    """The apps show this line for every control_check_failed record (RF9, RF10)."""
+    _, block = parse(fixture_a(trailer=closing_33(debit_total="13.00")))
+    other = {"source_file": "x.n43", "source_row": 2, "reason": "unparseable_date", "raw": "r"}
+
+    assert control_check_messages([other, *block, other]) == [
+        f"{NAME} (control_check_failed:debit_total): {CONTROL_CHECK_FAILED_MESSAGE}"
+    ]
+    assert control_check_messages([other]) == []
+    assert control_check_messages([]) == []
 
 
 def test_debit_total_failure_names_declared_and_computed() -> None:

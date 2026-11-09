@@ -36,6 +36,7 @@ from apps.phantom_invoices.explain_support import (  # noqa: E402
 )
 from apps.phantom_invoices.flashlight import HAUNTED_CSS, render_ledger_html  # noqa: E402
 from apps.phantom_invoices.settings import (  # noqa: E402
+    DEMO_FORMATS,
     MULTI_RATE_NOTE,
     NO_FLASHLIGHT,
     SEVERITY_ICONS,
@@ -66,6 +67,7 @@ from apps.phantom_invoices.settings import (  # noqa: E402
     verification_message,
 )
 from ledger_kit.explainer import Explanation, fill_fallback  # noqa: E402
+from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 
 ROOT = _ROOT
@@ -82,11 +84,15 @@ AS_OF_MAX: date = date(2100, 12, 31)
 LOAD_DEMO_KEY = "pi_load_demo"
 HALLUCINATE_KEY = "pi_hallucinate"
 EXPLANATIONS_KEY = "pi_explanations"
+DEMO_FORMAT_KEY = "pi_demo_format"
+UPLOAD_INVOICES_KEY = "pi_upload_invoices"
+UPLOAD_SUPPLIERS_KEY = "pi_upload_suppliers"
+UPLOAD_PAYMENTS_KEY = "pi_upload_payments"
 
 # Widget state is dropped when a run does not render the widget (the user visited another page of
 # the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
 # back before the widgets are built (REQ-SC-05). Uploaded files cannot be kept this way.
-WIDGET_KEYS: tuple[str, ...] = ("use_as_of", "as_of_date", HALLUCINATE_KEY)
+WIDGET_KEYS: tuple[str, ...] = ("use_as_of", "as_of_date", HALLUCINATE_KEY, DEMO_FORMAT_KEY)
 KEPT_KEY = "pi_kept"
 
 # App-level additions to the haunted-ledger theme (REQ-PI-48): CSS only, no external resource.
@@ -123,7 +129,10 @@ def load_demo() -> None:
     It runs before the script reruns and builds any widget, so writing the widget keys is
     allowed here (and would raise StreamlitWidgetAlreadyInstantiatedError in an `if` body).
     """
-    apply_demo(st.session_state, demo_inputs(CONFIG, ROOT))
+    apply_demo(
+        st.session_state,
+        demo_inputs(CONFIG, ROOT, DEMO_FORMATS[st.session_state[DEMO_FORMAT_KEY]]),
+    )
 
 
 def _restore_widgets() -> None:
@@ -145,6 +154,7 @@ def _init_state() -> None:
     # A widget placeholder only: it reaches a detector when the user ticks use_as_of (DN-11).
     st.session_state.setdefault("as_of_date", UI_DEFAULT_AS_OF)
     st.session_state.setdefault(HALLUCINATE_KEY, False)
+    st.session_state.setdefault(DEMO_FORMAT_KEY, next(iter(DEMO_FORMATS)))
     st.session_state.setdefault("selected_alert", NO_FLASHLIGHT)
     st.session_state.setdefault("pipeline_cache", {})
     st.session_state.setdefault(EXPLANATIONS_KEY, {})
@@ -153,16 +163,28 @@ def _init_state() -> None:
 def _render_sidebar() -> dict[str, Any]:
     """Draw the sidebar widgets and return the uploaded files by kind (None when not given)."""
     st.sidebar.header("Controls")
+    st.sidebar.radio(
+        "Demo format",
+        list(DEMO_FORMATS),
+        key=DEMO_FORMAT_KEY,
+        horizontal=True,
+        help="CSV: the CSV demo files. Real formats: Facturae XML invoices and a Norma 43 file.",
+    )
     st.sidebar.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
     uploads = {
         "invoices": st.sidebar.file_uploader(
-            "Invoices (.csv or .json)", type=["csv", "json"], key="upload_invoices"
+            "Invoices (.csv, .json, .xml or .xsig; several files allowed)",
+            type=["csv", "json", "xml", "xsig"],
+            accept_multiple_files=True,
+            key=UPLOAD_INVOICES_KEY,
         ),
         "suppliers": st.sidebar.file_uploader(
-            "Supplier master (.csv)", type="csv", key="upload_suppliers"
+            "Supplier master (.csv)", type="csv", key=UPLOAD_SUPPLIERS_KEY
         ),
         "payments": st.sidebar.file_uploader(
-            "Bank payments (.csv)", type="csv", key="upload_payments"
+            "Bank payments (.csv or Norma 43)",
+            type=["csv", "n43", "txt", "aeb", "csb43"],
+            key=UPLOAD_PAYMENTS_KEY,
         ),
     }
     st.sidebar.checkbox(
@@ -185,11 +207,20 @@ def _render_sidebar() -> dict[str, Any]:
     return uploads
 
 
-def _current_sources(uploads: dict[str, Any]) -> dict[str, Source | None]:
-    """Return one Source per input: the uploaded file, else the loaded demo file, else None."""
+def _current_sources(uploads: dict[str, Any]) -> dict[str, Any]:
+    """Return the inputs: the uploaded files, else the loaded demo files, else None.
+
+    `invoices` is a tuple of Source (several files are allowed) or None; the others are one
+    Source or None.
+    """
     stored = st.session_state["sources"]
-    sources: dict[str, Source | None] = {}
-    for kind in SOURCE_KINDS:
+    sources: dict[str, Any] = {}
+    uploaded_invoices = uploads["invoices"] or []
+    if uploaded_invoices:
+        sources["invoices"] = tuple(Source(f.name, f.getvalue()) for f in uploaded_invoices)
+    else:
+        sources["invoices"] = tuple(stored.get("invoices") or ()) or None
+    for kind in ("suppliers", "payments"):
         upload = uploads[kind]
         if upload is not None:
             sources[kind] = Source(name=upload.name, data=upload.getvalue())
@@ -198,8 +229,8 @@ def _current_sources(uploads: dict[str, Any]) -> dict[str, Source | None]:
     return sources
 
 
-def _pipeline(sources: dict[str, Source | None], as_of: date | None) -> Pipeline | None:
-    """Return the pipeline for these inputs, cached by the SHA-256 of the three files."""
+def _pipeline(sources: dict[str, Any], as_of: date | None) -> Pipeline | None:
+    """Return the pipeline for these inputs, cached by the SHA-256 of the files."""
     key = pipeline_key(sources["invoices"], sources["suppliers"], sources["payments"], as_of)
     cache = st.session_state["pipeline_cache"]
     if key not in cache:
@@ -324,6 +355,8 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
         return
     with st.expander(f"⚠ Quarantined rows ({len(quarantine)})"):
         st.warning("These rows were not analysed. Fix them in the file and upload it again.")
+        for message in control_check_messages(quarantine):
+            st.error(markdown_safe(message))
         st.caption(MULTI_RATE_NOTE)
         st.dataframe(quarantine_view(quarantine), hide_index=True, width="stretch")
 
@@ -355,6 +388,8 @@ def main() -> None:
 
     alerts = ordered_alerts(alert for result in pipeline.results for alert in result.alerts)
     st.info(input_notice(sources["suppliers"] is not None, sources["payments"] is not None))
+    for note in pipeline.notes:
+        st.caption(markdown_safe(note))
     _render_summary(alerts)
     _render_ledger(pipeline, alerts)
     _render_quarantine(pipeline.quarantine)

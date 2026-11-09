@@ -4,4 +4,7 @@
 suppliers_path = "data/samples/phantom_demo/suppliers.csv"
 invoices_path  = "data/samples/phantom_demo/invoices.csv"
 payments_path  = "data/samples/phantom_demo/payments.csv"
+# The "Real formats" demo: the same payments as Norma 43 and one Facturae file per supplier.
+payments_n43_path = "data/samples/phantom_demo/payments.n43"
+facturae_dir      = "data/samples/phantom_demo/facturae"
 # as_of = "2026-10-30"     # absent by default: the latest date in the data is used

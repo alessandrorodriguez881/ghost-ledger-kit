@@ -125,7 +125,7 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
   `render_facturae` (`Modality` `I` for one invoice, `L` for a batch of several; Batch totals via
   `sum_amounts`; tests for both), the `build_*_real` functions and their wiring in the `zombie-demo` and
   `phantom-demo` modes; add the `.gitattributes` lines.
-- [ ] The user runs `python scripts/generate_samples.py --mode zombie-demo --seed 42` and
+- [x] The user runs `python scripts/generate_samples.py --mode zombie-demo --seed 42` and
   `--mode phantom-demo --seed 42` and commits the new files (a command the author could not run).
 
 ## Task RF8 — Round-trip and tamper properties
@@ -136,49 +136,53 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
   1 to 6 of §9.1 (round trip N43 under every layout, round trip Facturae, no invention including the
   zombie detectors over an N43 ledger with `loaded_source_refs`, tamper detection, never raises,
   idempotency).
-- [ ] Fix whatever the properties find in the readers or the writers. No new feature code is expected.
-  (Open: the properties have not been run yet; the user's `pytest` run decides.)
+- [x] Fix whatever the properties find in the readers or the writers. No new feature code is expected.
+  (Done in session 8e: the committed-file failures are gone and all tests pass.)
 
 ## Task RF9 — Phantom Invoices: uploaders, demo format, equivalence
 
 **Covers**: REQ-RF-20 to REQ-RF-25, §7.1, §7.3, §7.4, §9.2
 
-- [ ] Update the tests that pin `DemoInputs.invoices`, `upload_*` keys and the extension rule
-  (`test_pi_settings.py`, `test_pi_app_logic.py`).
-- [ ] `test_pi_real_formats.py`: `run_pipeline` with one `Source` and with a tuple; file-name ordering
+- [x] Update the tests that pin `DemoInputs.invoices`, `upload_*` keys and the extension rule
+  (`test_pi_settings.py`, `test_pi_app_logic.py`; also `test_pi_demo_e2e.py` and
+  `test_pi_structure_steering.py`).
+- [x] `test_pi_real_formats.py`: `run_pipeline` with one `Source` and with a tuple; file-name ordering
   (two selection orders, same alerts and same cache key); `duplicate_file_name`; a Facturae in the
   payments slot and a Norma 43 in the invoices slot show their `unsupported_format` records; the signature
   caption appears with a Facturae and not with CSV; `AppTest`: the radio defaults to `CSV`, the CSV demo
   still gives 9 alerts (3 critical, 6 warning), the `Real formats` demo gives the same, and the mapped
   comparison of §9.2 passes element for element; the quarantine panel lists one `multiple_vat_rates`
   record instead of two `multi_rate_invoice_out_of_scope` records.
-- [ ] Implement §7.1 in `settings.py`, `app.py`, `config.toml`; rename the upload keys. Show every
+  (Written; not run by the author. Also pins the caption for a Norma 43 payments file without an IBAN
+  record and the plain-words message of a tampered Norma 43.)
+- [x] Implement §7.1 in `settings.py`, `app.py`, `config.toml`; rename the upload keys. Show every
   `control_check_failed:*` record with `CONTROL_CHECK_FAILED_MESSAGE`; show `NO_PAYMENT_IBAN_NOTE` when
   the payments file is Norma 43 and no transaction has an `iban` (tests for both).
 - [ ] If the equivalence test fails, stop and report: the likely cause is DN-RF-20 (§11 Q1); do not weaken
-  the comparison.
+  the comparison. (Open until the user's `pytest` run.)
 
 ## Task RF10 — Zombie Subscriptions: uploader, demo format, equivalence
 
 **Covers**: REQ-RF-20, REQ-RF-22, REQ-RF-24, REQ-RF-25, §7.2, §7.3, §9.2
 
-- [ ] Update the tests that pin `DemoInputs.csv_bytes/csv_name` and the uploader
-  (`test_zs_settings.py`, `test_zs_app.py`, `test_zs_demo_e2e.py`).
-- [ ] `test_zs_real_formats.py`: `_ingest` of a Norma 43 and of a CSV; a Norma 43 named `.txt`; a
+- [x] Update the tests that pin `DemoInputs.csv_bytes/csv_name` and the uploader
+  (`test_zs_settings.py`, `test_zs_app_logic.py`, `test_zs_demo_e2e.py`; `test_zs_app.py` pinned neither).
+- [x] `test_zs_real_formats.py`: `_ingest` of a Norma 43 and of a CSV; a Norma 43 named `.txt`; a
   Facturae in the statement slot gives `unsupported_format:facturae`; `AppTest`: both demos give 3
   tombstones and 19 alerts (1 critical, 4 warning, 14 info), the same tombstone figures, and the
   mapped comparison of §9.2; the aliases, last-used and cancellation texts are the same for both.
-- [ ] Implement §7.2 in `settings.py`, `app.py`, `config.toml`. Show every `control_check_failed:*`
+  (Written; not run by the author.)
+- [x] Implement §7.2 in `settings.py`, `app.py`, `config.toml`. Show every `control_check_failed:*`
   record with `CONTROL_CHECK_FAILED_MESSAGE` (a test feeds a tampered Norma 43).
 
 ## Task RF11 — Showcase keys, steering and layout
 
 **Covers**: REQ-RF-22, REQ-RF-29, §1, §7.3, §10 (DN-RF-01)
 
-- [ ] Extend the showcase tests (`tests/test_showcase_app.py`, `tests/test_showcase_requirements.py`) with the
+- [x] Extend the showcase tests (`tests/test_showcase_app.py`, `tests/test_showcase_requirements.py`) with the
   new disjoint key sets and the `defusedxml` pin; `AppTest` of `streamlit_app.py` loads both apps with
   `Real formats` selected.
-- [ ] Update `.kiro/steering/structure.md` (new modules, tests, sample files, naming of the new
+- [x] Update `.kiro/steering/structure.md` (new modules, tests, sample files, naming of the new
   tests) and `.kiro/steering/tech.md` (a `defusedxml` row; the invoice-parsing row now lists Facturae;
   `source_row` of Norma 43 and Facturae is 1-based, DN-RF-01). Do not touch the README (session 7).
 

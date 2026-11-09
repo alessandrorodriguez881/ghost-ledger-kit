@@ -12,7 +12,11 @@ ghost-ledger-kit/
 │   ├── ingestion/
 │   │   ├── __init__.py
 │   │   ├── csv_reader.py           # Bank-statement CSV parser → list[Transaction]
-│   │   ├── invoice_reader.py       # Invoice parser (CSV + JSON, e.g. FATURA) → list[Transaction]
+│   │   ├── invoice_reader.py       # Invoice parser (CSV + JSON, e.g. FATURA) → list[Invoice]
+│   │   ├── norma43_reader.py       # AEB Norma 43 bank-statement parser (control checks, quarantine)
+│   │   ├── facturae_reader.py      # Facturae 3.2/3.2.1/3.2.2 XML invoice parser (defusedxml only)
+│   │   ├── iso4217.py              # The eleven AEB Annex 2 numeric → alpha currency codes
+│   │   ├── sniffer.py              # Content sniffer; read_bank_statement / read_invoices routers
 │   │   └── normaliser.py           # Merge sources, validate, assign source_ref
 │   ├── detectors/
 │   │   ├── __init__.py
@@ -58,6 +62,7 @@ ghost-ledger-kit/
 │   │       ├── test_zs_demo_generator.py
 │   │       ├── test_zs_app_logic.py
 │   │       ├── test_zs_app.py      # headless AppTest runs of app.py
+│   │       ├── test_zs_real_formats.py  # Norma 43 demo, routers, equivalence with the CSV demo
 │   │       ├── test_zs_scaffold.py
 │   │       └── test_zs_fixtures.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
@@ -102,13 +107,27 @@ ghost-ledger-kit/
 │           ├── test_pi_gitattributes.py
 │           ├── test_pi_app_logic.py    # pure helpers and headless AppTest runs of app.py
 │           ├── test_pi_structure_steering.py
+│           ├── test_pi_real_formats.py  # Facturae + Norma 43 demo, routers, equivalence with CSV
 │           └── test_pi_demo_e2e.py
 ├── tests/                          # Shared library tests
 │   ├── conftest.py
 │   ├── ingestion/
+│   │   ├── n43_builders.py         # Norma 43 record builders (n43_line, fixture_a)
+│   │   ├── facturae_builders.py    # Facturae document builders (facturae_doc)
+│   │   ├── rf_strategies.py        # Hypothesis strategies for the real-format round trips
 │   │   ├── test_csv_reader.py
 │   │   ├── test_invoice_reader.py
-│   │   └── test_normaliser.py
+│   │   ├── test_normaliser.py
+│   │   ├── test_iso4217.py
+│   │   ├── test_sniffer.py
+│   │   ├── test_norma43_reader.py
+│   │   ├── test_norma43_controls.py
+│   │   ├── test_facturae_reader.py
+│   │   ├── test_facturae_security.py
+│   │   └── test_real_formats_roundtrip.py
+│   ├── test_generate_real_formats.py   # Norma 43 / Facturae writers and committed samples
+│   ├── test_showcase_app.py        # headless AppTest runs of streamlit_app.py
+│   ├── test_showcase_requirements.py
 │   ├── test_models.py
 │   ├── test_money.py
 │   └── test_anonymise.py
@@ -120,14 +139,17 @@ ghost-ledger-kit/
 │       ├── bank_statement_sample.csv
 │       ├── invoice_sample.csv
 │       ├── zombie_demo_statement.csv   # zombie-subscriptions demo (generate_samples.py)
+│       ├── zombie_demo_statement.n43   # the same demo as Norma 43 (information mode 3, SEPA)
 │       └── phantom_demo/           # phantom-invoices demo (generate_samples.py --mode phantom-demo)
 │           ├── suppliers.csv
 │           ├── invoices.csv
-│           └── payments.csv
+│           ├── payments.csv
+│           ├── payments.n43        # the same payments as Norma 43 (mode 1)
+│           └── facturae/           # one Facturae 3.2.2 file per supplier: <kk>-<case>.xml
 ├── streamlit_app.py                # Showcase entry (st.navigation: Home + both apps); Community Cloud default
 ├── .streamlit/
 │   └── config.toml                 # Shared dark Halloween theme: [theme] keys only, no secrets
-├── .gitattributes                  # demo CSVs are byte-compared: no line-ending conversion
+├── .gitattributes                  # demo CSV, .n43 and .xml samples are byte-compared: no line-ending conversion
 ├── pyproject.toml
 ├── requirements.txt                # Only requirements file (Streamlit Community Cloud)
 ├── README.md
@@ -156,6 +178,13 @@ To prevent pytest collection collisions, test files inside each app's `tests/` f
 
 Shared library tests in `tests/` carry no prefix.
 
+Tests of the real formats follow the same rules: library tests are named after the module they pin
+(`test_norma43_reader.py`, `test_facturae_reader.py`, `test_sniffer.py`; builders and strategies
+are `n43_builders.py`, `facturae_builders.py`, `rf_strategies.py` in `tests/ingestion/`), and each
+app has one real-format test module with its prefix (`test_zs_real_formats.py`,
+`test_pi_real_formats.py`). App tests do not import the builders of `tests/ingestion/`; they build
+files with the generator (`scripts/generate_samples.py`).
+
 ## Package boundaries
 
 - `ledger_kit` is a **library**: it must not import from either app folder.
@@ -163,6 +192,9 @@ Shared library tests in `tests/` carry no prefix.
 - The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py` and `explain_support.py`.
 - The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
 - Apps must not import from each other.
+- Apps read bank statements and invoices through the routers of `ledger_kit/ingestion/sniffer.py`
+  (`read_bank_statement`, `read_invoices`); the content, not the file extension, picks the reader.
+- `facturae_reader.py` is the only module that parses XML, and it imports XML only from `defusedxml`.
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
 

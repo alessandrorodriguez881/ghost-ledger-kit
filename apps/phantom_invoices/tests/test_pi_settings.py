@@ -94,6 +94,8 @@ def test_load_config_reads_demo_paths() -> None:
     assert config["demo"]["suppliers_path"] == "data/samples/phantom_demo/suppliers.csv"
     assert config["demo"]["invoices_path"] == "data/samples/phantom_demo/invoices.csv"
     assert config["demo"]["payments_path"] == "data/samples/phantom_demo/payments.csv"
+    assert config["demo"]["payments_n43_path"] == "data/samples/phantom_demo/payments.n43"
+    assert config["demo"]["facturae_dir"] == "data/samples/phantom_demo/facturae"
     assert "as_of" not in config["demo"]
 
 
@@ -125,7 +127,7 @@ def test_demo_inputs_reads_three_files_as_sources(tmp_path: Path) -> None:
     with_as_of = demo_inputs({"demo": {**config["demo"], "as_of": "2026-10-30"}}, tmp_path)
 
     assert isinstance(demo, DemoInputs)
-    assert demo.invoices == Source("invoices.csv", INVOICES_CSV.encode("utf-8"))
+    assert demo.invoices == (Source("invoices.csv", INVOICES_CSV.encode("utf-8")),)
     assert demo.suppliers == Source("suppliers.csv", SUPPLIERS_CSV.encode("utf-8"))
     assert demo.payments == Source("payments.csv", PAYMENTS_CSV.encode("utf-8"))
     assert demo.as_of is None
@@ -167,7 +169,14 @@ def test_config_has_only_demo_section_and_no_threshold_names() -> None:
     config = tomllib.loads(text)
 
     assert set(config) == {"demo"}
-    assert set(config["demo"]) <= {"suppliers_path", "invoices_path", "payments_path", "as_of"}
+    assert set(config["demo"]) <= {
+        "suppliers_path",
+        "invoices_path",
+        "payments_path",
+        "payments_n43_path",
+        "facturae_dir",
+        "as_of",
+    }
     for name in THRESHOLD_NAMES:
         assert name not in text, name
     for word in SECRET_WORDS:

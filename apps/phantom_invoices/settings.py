@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -29,9 +29,13 @@ from apps.phantom_invoices.detectors.utils import (
 )
 from apps.phantom_invoices.prepare import quarantine_multi_rate
 from ledger_kit.detectors import DetectorResult, run_all
-from ledger_kit.ingestion.csv_reader import parse_csv
-from ledger_kit.ingestion.invoice_reader import parse_invoice
 from ledger_kit.ingestion.normaliser import normalise
+from ledger_kit.ingestion.sniffer import (
+    format_label,
+    read_bank_statement,
+    read_invoices,
+    sniff_format,
+)
 from ledger_kit.ingestion.supplier_reader import parse_suppliers
 from ledger_kit.models import Alert
 from ledger_kit.utils.anonymise import mask_iban
@@ -59,11 +63,35 @@ LAST4_CAPTION: str = "The last four characters match; the difference is elsewher
 DEFAULT_DUE_DATE_CAPTION: str = "Due date assumed: issue date plus the default payment term."
 DEFAULT_DUE_DATE_MARK: str = " (assumed)"
 
-# Explained to the user next to the quarantine panel (OD-PI-08).
+# Explained to the user next to the quarantine panel (OD-PI-08, DN-RF-08): the CSV reader splits a
+# multi-rate invoice into rows and the Facturae reader quarantines the whole invoice.
 MULTI_RATE_NOTE: str = (
-    "Invoices that mix more than one VAT rate are out of scope: they are listed here and no "
-    "check is run on them."
+    "Invoices that mix more than one VAT rate are out of scope (reason "
+    "multi_rate_invoice_out_of_scope for CSV rows, multiple_vat_rates for a Facturae invoice): "
+    "they are listed here and no check is run on them."
 )
+
+# Shown whenever a Facturae file was read (REQ-RF-19, REQ-RF-23, DN-RF-14).
+SIGNATURE_NOTE: str = (
+    "Facturae digital signatures (.xsig) are read but not verified: this app does not check "
+    "who signed a file."
+)
+# Shown when the payments file is Norma 43 and none of its movements carries an IBAN record
+# (REQ-RF-23, DN-RF-03): the standard has no counterparty IBAN field.
+NO_PAYMENT_IBAN_NOTE: str = (
+    "This Norma 43 file carries no IBAN for its payments, so the payment-side IBAN checks are "
+    "skipped for this file."
+)
+# Quarantine reason of a second invoice file with a name that was already loaded (REQ-RF-21).
+DUPLICATE_FILE_REASON: str = "duplicate_file_name"
+
+# Demo format radio (REQ-RF-24): the option shown, and the `fmt` of `demo_inputs` it selects.
+DemoFormat = Literal["csv", "real"]
+DEMO_FORMATS: dict[str, DemoFormat] = {"CSV": "csv", "Real formats": "real"}
+
+# Kinds each box reads; the format of a file of another kind is not named (it is quarantined).
+INVOICE_KINDS: frozenset[str] = frozenset({"csv", "json", "facturae"})
+PAYMENT_KINDS: frozenset[str] = frozenset({"csv", "norma43"})
 
 # Columns of the haunted ledger, in order. No tax-id column (REQ-PI-49).
 LEDGER_COLUMNS: tuple[str, ...] = (
@@ -109,9 +137,9 @@ class Source:
 
 @dataclass(frozen=True)
 class DemoInputs:
-    """The three demo files and the optional demo `as_of` date."""
+    """The demo files (one or more invoice files) and the optional demo `as_of` date."""
 
-    invoices: Source
+    invoices: tuple[Source, ...]
     suppliers: Source
     payments: Source
     as_of: date | None = None
@@ -128,6 +156,7 @@ class Pipeline:
     as_of_used: date | None
     results: list[DetectorResult]
     reconciliation: Reconciliation
+    notes: tuple[str, ...] = ()  # detected formats, signature note, no-payment-IBAN note
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -151,14 +180,30 @@ def _read_source(root: Path, relative: str) -> Source:
     return Source(name=path.name, data=path.read_bytes())
 
 
-def demo_inputs(config: dict[str, Any], root: Path) -> DemoInputs:
-    """Read the three files named by [demo] (relative to `root`) and the optional as_of."""
+def demo_inputs(config: dict[str, Any], root: Path, fmt: DemoFormat = "csv") -> DemoInputs:
+    """Read the demo files named by [demo] (relative to `root`) and the optional as_of.
+
+    `csv`: invoices.csv and payments.csv. `real`: every `*.xml` of `facturae_dir` (in file-name
+    order) and the Norma 43 payments file. The supplier master is the same for both.
+    """
     demo = config["demo"]
     as_of = demo.get("as_of")
+    if fmt == "csv":
+        invoices = (_read_source(root, demo["invoices_path"]),)
+        payments = _read_source(root, demo["payments_path"])
+    elif fmt == "real":
+        folder = Path(root) / demo["facturae_dir"]
+        invoices = tuple(
+            Source(path.name, path.read_bytes())
+            for path in sorted(folder.glob("*.xml"), key=lambda path: path.name)
+        )
+        payments = _read_source(root, demo["payments_n43_path"])
+    else:
+        raise ValueError(f"unknown demo format {fmt!r}")
     return DemoInputs(
-        invoices=_read_source(root, demo["invoices_path"]),
+        invoices=invoices,
         suppliers=_read_source(root, demo["suppliers_path"]),
-        payments=_read_source(root, demo["payments_path"]),
+        payments=payments,
         as_of=None if as_of is None else to_date(as_of),
     )
 
@@ -168,22 +213,79 @@ def _tag(kind: str, records: list[dict]) -> list[dict]:
     return [{**record, "file_kind": kind} for record in records]
 
 
+InvoiceInput = Source | Sequence[Source] | None
+
+
+def invoice_files(invoices: InvoiceInput) -> tuple[Source, ...]:
+    """Return the invoice files in file-name order (DN-RF-18); one Source or None is accepted.
+
+    The sort is stable, so of two files with one name the one given first stays first.
+    """
+    if invoices is None:
+        return ()
+    files = (invoices,) if isinstance(invoices, Source) else tuple(invoices)
+    return tuple(sorted(files, key=lambda source: source.name))
+
+
+def _read_invoice_files(
+    files: tuple[Source, ...],
+) -> tuple[list[list], list[dict], list[tuple[str, str]]]:
+    """Read each invoice file once; return the model lists, the quarantine and (name, kind) read.
+
+    A second file with a name already read is not read: it gives one `duplicate_file_name`
+    record (REQ-RF-21).
+    """
+    lists: list[list] = []
+    quarantine: list[dict] = []
+    read: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for source in files:
+        if source.name in seen:
+            quarantine.append(
+                {
+                    "source_file": source.name,
+                    "source_row": None,
+                    "reason": DUPLICATE_FILE_REASON,
+                    "raw": f"{source.name}: a file with this name was already loaded; not read.",
+                }
+            )
+            continue
+        seen.add(source.name)
+        invoices, rejected = read_invoices(io.BytesIO(source.data), source_file=source.name)
+        lists.append(invoices)
+        quarantine.extend(rejected)
+        read.append((source.name, sniff_format(source.data)))
+    return lists, quarantine, read
+
+
+def _format_notes(
+    read: Sequence[tuple[str, str]], payments: Source | None, payments_kind: str
+) -> list[str]:
+    """Name the detected format of the invoice files and of the payments file (REQ-RF-23)."""
+    notes: list[str] = []
+    accepted = [(name, kind) for name, kind in read if kind in INVOICE_KINDS]
+    for kind in dict.fromkeys(kind for _, kind in accepted):
+        names = [name for name, other in accepted if other == kind]
+        label = format_label(kind)
+        notes.append(f"{names[0]}: {label}" if len(names) == 1 else f"{len(names)} files: {label}")
+    if payments is not None and payments_kind in PAYMENT_KINDS:
+        notes.append(f"{payments.name}: {format_label(payments_kind)}")
+    return notes
+
+
 def run_pipeline(
-    invoices: Source | None,
+    invoices: InvoiceInput,
     suppliers: Source | None,
     payments: Source | None,
     as_of: date | None,
 ) -> Pipeline:
-    """Parse, normalise, quarantine multi-rate invoices, run pi.* detectors and reconcile."""
-    inv_list, inv_q = (
-        ([], [])
-        if invoices is None
-        else parse_invoice(
-            io.BytesIO(invoices.data),
-            fmt="json" if invoices.name.lower().endswith(".json") else "csv",
-            source_file=invoices.name,
-        )
-    )
+    """Parse, normalise, quarantine multi-rate invoices, run pi.* detectors and reconcile.
+
+    `invoices` is one Source, a sequence of them (read in file-name order) or None. The format
+    of every file is found from its content, never from its extension (REQ-RF-20).
+    """
+    files = invoice_files(invoices)
+    inv_lists, inv_q, inv_read = _read_invoice_files(files)
     sup_list, sup_q = (
         ([], [])
         if suppliers is None
@@ -192,9 +294,10 @@ def run_pipeline(
     pay_list, pay_q = (
         ([], [])
         if payments is None
-        else parse_csv(io.BytesIO(payments.data), source_file=payments.name)
+        else read_bank_statement(io.BytesIO(payments.data), source_file=payments.name)
     )
-    invoices_df, inv_n = normalise(inv_list, kind="invoice")
+    payments_kind = "empty" if payments is None else sniff_format(payments.data)
+    invoices_df, inv_n = normalise(*inv_lists, kind="invoice")
     suppliers_df, sup_n = normalise(sup_list, kind="supplier")
     payments_df, pay_n = normalise(pay_list, kind="transaction")
     clean, multi_rate = quarantine_multi_rate(invoices_df)
@@ -208,7 +311,19 @@ def run_pipeline(
         + _tag("suppliers", sup_q + sup_n)
         + _tag("payments", pay_q + pay_n)
     )
-    return Pipeline(clean, suppliers_df, payments_df, quarantine, as_of_used, results, rec)
+    notes = _format_notes(inv_read, payments, payments_kind)
+    if any(kind == "facturae" for _, kind in inv_read):
+        notes.append(SIGNATURE_NOTE)
+    if payments_kind == "norma43" and _carries_no_iban(payments_df):
+        notes.append(NO_PAYMENT_IBAN_NOTE)
+    return Pipeline(
+        clean, suppliers_df, payments_df, quarantine, as_of_used, results, rec, tuple(notes)
+    )
+
+
+def _carries_no_iban(payments: pd.DataFrame) -> bool:
+    """True when the frame has movements and none of them carries an IBAN."""
+    return not payments.empty and all(as_text(value) is None for value in payments["iban"])
 
 
 # --- View-model helpers for app.py (no Streamlit, no clock) ---------------------------------
@@ -221,7 +336,7 @@ def apply_demo(state: MutableMapping[str, Any], demo: DemoInputs) -> None:
     the same script run raises StreamlitWidgetAlreadyInstantiatedError.
     """
     state["sources"] = {
-        "invoices": demo.invoices,
+        "invoices": tuple(demo.invoices),
         "suppliers": demo.suppliers,
         "payments": demo.payments,
     }
@@ -232,20 +347,34 @@ def apply_demo(state: MutableMapping[str, Any], demo: DemoInputs) -> None:
     state["selected_alert"] = NO_FLASHLIGHT
 
 
+def _hash_source(digest: Any, source: Source) -> None:
+    """Add a file's name and content hash to a running digest."""
+    digest.update(source.name.encode("utf-8") + b"\x00")
+    digest.update(hashlib.sha256(source.data).hexdigest().encode("ascii") + b"\x01")
+
+
 def pipeline_key(
-    invoices: Source | None,
+    invoices: InvoiceInput,
     suppliers: Source | None,
     payments: Source | None,
     as_of: date | None,
 ) -> str:
-    """Return the cache key of a pipeline run: SHA-256 of the three inputs and the as_of value."""
+    """Return the cache key of a pipeline run (REQ-RF-21).
+
+    SHA-256 of the number of invoice files, then each invoice file's name and content hash in
+    file-name order, then the supplier and payments files and the as_of value. The selection
+    order of the invoice files does not change the key.
+    """
     digest = hashlib.sha256()
-    for source in (invoices, suppliers, payments):
+    files = invoice_files(invoices)
+    digest.update(f"{len(files)}\x02".encode("ascii"))
+    for source in files:
+        _hash_source(digest, source)
+    for source in (suppliers, payments):
         if source is None:
             digest.update(b"-\x01")
         else:
-            digest.update(source.name.encode("utf-8") + b"\x00")
-            digest.update(hashlib.sha256(source.data).hexdigest().encode("ascii") + b"\x01")
+            _hash_source(digest, source)
     digest.update(b"none" if as_of is None else as_of.isoformat().encode("ascii"))
     return digest.hexdigest()
 

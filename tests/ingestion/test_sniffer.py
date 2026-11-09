@@ -16,6 +16,7 @@ from ledger_kit.ingestion import sniffer
 from ledger_kit.ingestion.sniffer import (
     FORMAT_KINDS,
     SNIFF_BYTES,
+    format_label,
     read_bank_statement,
     read_invoices,
     sniff_format,
@@ -235,6 +236,18 @@ def test_unsupported_message_builds_the_documented_text() -> None:
     message = unsupported_message("m.pdf", "unknown", "CSV or Norma 43")
 
     assert message == "m.pdf: the format is not recognised; this box accepts CSV or Norma 43."
+
+
+def test_format_label_names_the_four_readable_kinds_only() -> None:
+    """The pages name a detected format with these labels; empty and unknown have none."""
+    assert [format_label(k) for k in ("csv", "json", "norma43", "facturae")] == [
+        "CSV",
+        "JSON",
+        "Norma 43",
+        "Facturae XML",
+    ]
+    assert format_label("empty") is None and format_label("unknown") is None
+    assert format_label(sniffer.sniff_format(fixture_a_bytes())) == "Norma 43"
 
 
 def _forbid_readers(monkeypatch: pytest.MonkeyPatch) -> None:

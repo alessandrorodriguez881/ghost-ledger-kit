@@ -17,6 +17,7 @@ from apps.zombie_subscriptions.settings import (
     load_config,
     parse_aliases_text,
     parse_dates_text,
+    statement_caption,
     to_date,
 )
 
@@ -47,6 +48,7 @@ def test_load_config_reads_aliases_and_demo() -> None:
     assert config["aliases"]["streaming"] == ["STREAMFLIX INTL", "STREAMFLIXCOM", "STREAMFLIX"]
     demo = config["demo"]
     assert demo["csv_path"] == "data/samples/zombie_demo_statement.csv"
+    assert demo["n43_path"] == "data/samples/zombie_demo_statement.n43"
     assert demo["aliases"] == {"streaming": ["STREAMFLIX INTL", "STREAMFLIXCOM"]}
     assert set(demo["last_used_dates"]) == {"BEATSTREAM", "PHOTOBOX", "STASHCRATE"}
     assert set(demo["cancellation_dates"]) == {"GYMPLUS"}
@@ -76,19 +78,56 @@ def test_demo_dates_converted_with_fromisoformat(tmp_path: Path) -> None:
     assert inputs.cancellation_dates == {"B": date(2026, 7, 31)}
 
 
-def test_demo_inputs_reads_csv_bytes_and_name(tmp_path: Path) -> None:
-    """demo_inputs returns the CSV bytes, its file name and the alias table."""
+def test_demo_inputs_reads_statement_bytes_and_name(tmp_path: Path) -> None:
+    """demo_inputs returns the statement bytes, its file name and the alias table."""
     path = _write_config(
         tmp_path,
         '[demo]\ncsv_path = "demo.csv"\n[demo.aliases]\nstreaming = ["A", "B"]\n',
     )
     inputs = demo_inputs(load_config(path), tmp_path)
     assert isinstance(inputs, DemoInputs)
-    assert inputs.csv_bytes == DEMO_CSV_TEXT.encode("utf-8")
-    assert inputs.csv_name == "demo.csv"
+    assert inputs.statement_bytes == DEMO_CSV_TEXT.encode("utf-8")
+    assert inputs.statement_name == "demo.csv"
     assert inputs.aliases == {"streaming": ["A", "B"]}
     assert inputs.last_used_dates == {}
     assert inputs.cancellation_dates == {}
+
+
+def test_demo_inputs_real_reads_the_n43_path_and_keeps_the_user_inputs(tmp_path: Path) -> None:
+    """`real` reads n43_path; aliases and dates are the same for both formats (REQ-RF-25)."""
+    (tmp_path / "demo.n43").write_bytes(b"11 not read here")
+    path = _write_config(
+        tmp_path,
+        '[demo]\ncsv_path = "demo.csv"\nn43_path = "demo.n43"\n'
+        '[demo.aliases]\nstreaming = ["A", "B"]\n[demo.last_used_dates]\nA = "2026-07-15"\n',
+    )
+    config = load_config(path)
+
+    csv, real = demo_inputs(config, tmp_path), demo_inputs(config, tmp_path, "real")
+
+    assert (real.statement_name, real.statement_bytes) == ("demo.n43", b"11 not read here")
+    assert csv.statement_name == "demo.csv"
+    assert (csv.aliases, csv.last_used_dates, csv.cancellation_dates) == (
+        real.aliases,
+        real.last_used_dates,
+        real.cancellation_dates,
+    )
+    with pytest.raises(ValueError, match="unknown demo format"):
+        demo_inputs(config, tmp_path, "pdf")  # type: ignore[arg-type]
+
+
+def test_statement_caption_names_the_detected_format() -> None:
+    """The line under the title says which format was read; unknown kinds are not named."""
+    assert statement_caption("a.n43", "norma43", 3, 1) == (
+        "a.n43 (Norma 43): 3 debit rows analysed, 1 quarantined"
+    )
+    assert statement_caption("a.csv", "csv", 0, 0) == (
+        "a.csv (CSV): 0 debit rows analysed, 0 quarantined"
+    )
+    assert statement_caption("a.xml", "facturae", 0, 1).startswith("a.xml (Facturae XML): ")
+    assert statement_caption("a.pdf", "unknown", 0, 1) == (
+        "a.pdf: 0 debit rows analysed, 1 quarantined"
+    )
 
 
 def test_to_date_accepts_strings_and_dates() -> None:

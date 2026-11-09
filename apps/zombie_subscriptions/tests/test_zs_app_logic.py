@@ -138,7 +138,7 @@ def test_load_demo_callback_prefills_widget_keys() -> None:
 
     assert set(state) == {"aliases_text", "last_used_text", "cancel_text", "source", "demo_loaded"}
     assert state["demo_loaded"] is True
-    assert state["source"] == ("demo", demo.csv_bytes, demo.csv_name)
+    assert state["source"] == ("demo", demo.statement_bytes, demo.statement_name)
     assert parse_aliases_text(str(state["aliases_text"])) == demo.aliases
     assert parse_dates_text(str(state["last_used_text"])) == demo.last_used_dates
     assert parse_dates_text(str(state["cancel_text"])) == demo.cancellation_dates

@@ -57,6 +57,7 @@ TEST_MODULES = (
     "app_logic",
     "structure_steering",
     "demo_e2e",
+    "real_formats",
 )
 # conftest.py and pi_checkers.py are in the spec; pi_builders.py and pi_strategies.py hold the
 # builders and strategies that conftest.py re-exports.
@@ -105,7 +106,7 @@ def test_phantom_block_lists_exactly_the_spec_files() -> None:
     listed = {path for path in _tree_files() if path.startswith(PHANTOM)}
 
     assert listed == EXPECTED_PHANTOM_FILES
-    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 7 + 6 + 4 + 23
+    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 7 + 6 + 4 + 24
 
 
 def test_phantom_block_has_no_requirements_txt() -> None:
