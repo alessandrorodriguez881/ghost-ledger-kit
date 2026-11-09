@@ -1,12 +1,19 @@
 """Hypothesis strategies shared by the phantom-invoices tests (synthetic data only)."""
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from hypothesis import strategies as st
 
+from apps.phantom_invoices.tests.pi_builders import (
+    make_invoices,
+    make_payments,
+    make_suppliers,
+    master_iban,
+)
 from apps.phantom_invoices.tests.pi_checkers import iban_check_digits
 
 # Cells that look like text but mean "nothing here", plus symbol-only invoice numbers.
@@ -17,6 +24,21 @@ _UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _ALNUM = _UPPER + "0123456789"
 # What a messy file may put between the characters of an IBAN.
 _SEPARATORS = ["", "", "", " ", "\u00a0", "\t"]
+# Separators between the parts of an invoice number such as F-2026-0042.
+_NUMBER_SEPARATORS = ["-", "", "/", " "]
+# Counters that start just below a power of ten, so a rollover such as 0099 -> 0100 is common.
+_ROLLOVER_STARTS = [8, 98, 998, 9998]
+
+# (invoices, suppliers, payments) as drawn by reconciliation_inputs.
+Frames = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+_RECON_BASE_DATE = date(2026, 1, 1)
+_RECON_DAYS = 120  # invoices and payments fall within this many days of the base date
+_RECON_MAX_ROWS = 6
+_RECON_SUPPLIERS = [1, 2, 3]  # fictional supplier numbers of the master
+# A small set of amounts forces collisions; the 0.01 and 0.02 steps probe the match tolerance.
+_RECON_AMOUNTS = ["121.00", "121.01", "121.02", "242.00", "60.50", "60.51"]
+_RECON_CURRENCIES = ["EUR", "EUR", "EUR", "USD"]
+_RECON_FLOWS = ["debit", "debit", "debit", "credit"]
 
 
 def dirty_cell() -> st.SearchStrategy[Any]:
@@ -73,3 +95,55 @@ def spaced_cased(draw: st.DrawFn, iban: str) -> str:
         pieces.append(char.lower() if draw(st.booleans()) else char)
     pieces.append(draw(st.sampled_from(_SEPARATORS)))
     return "".join(pieces)
+
+
+@st.composite
+def consecutive_numbers(draw: st.DrawFn, min_size: int = 2, max_size: int = 6) -> list[str]:
+    """Draw consecutive invoice numbers of one supplier (prefix, year, zero padding, rollover)."""
+    prefix = draw(st.text(alphabet=_UPPER, min_size=1, max_size=4))
+    year = draw(st.integers(min_value=2000, max_value=2099))
+    width = draw(st.integers(min_value=1, max_value=6))
+    separator = draw(st.sampled_from(_NUMBER_SEPARATORS))
+    plain_start = st.integers(min_value=0, max_value=10_000)
+    rollover_start = st.sampled_from(_ROLLOVER_STARTS)
+    start = draw(st.one_of(plain_start, rollover_start))
+    count = draw(st.integers(min_value=min_size, max_value=max_size))
+    tail = f"{separator}{year}{separator}"
+    return [f"{prefix}{tail}{start + step:0{width}d}" for step in range(count)]
+
+
+@st.composite
+def reconciliation_inputs(draw: st.DrawFn) -> Frames:
+    """Draw (invoices, suppliers, payments) built to force collisions in the matching.
+
+    Few suppliers, totals and payment amounts from a small set, dates within 120 days, payment
+    counterparties from the master or unknown, an IBAN from the master or none.
+    """
+    day = st.integers(min_value=0, max_value=_RECON_DAYS)
+    invoice_specs: list[dict[str, Any]] = []
+    for _ in range(draw(st.integers(min_value=0, max_value=_RECON_MAX_ROWS))):
+        spec = {
+            "supplier": draw(st.sampled_from(_RECON_SUPPLIERS)),
+            "issue_date": _RECON_BASE_DATE + timedelta(days=draw(day)),
+            "total": Decimal(draw(st.sampled_from(_RECON_AMOUNTS))),
+            "currency": draw(st.sampled_from(_RECON_CURRENCIES)),
+        }
+        invoice_specs.append(spec)
+    payment_specs: list[dict[str, Any]] = []
+    for _ in range(draw(st.integers(min_value=0, max_value=_RECON_MAX_ROWS))):
+        known = draw(st.sampled_from([*_RECON_SUPPLIERS, None]))
+        iban_of = draw(st.sampled_from([*_RECON_SUPPLIERS, None]))
+        spec = {
+            "supplier": known or 1,
+            "date": _RECON_BASE_DATE + timedelta(days=draw(day)),
+            "amount": Decimal(draw(st.sampled_from(_RECON_AMOUNTS))),
+            "currency": draw(st.sampled_from(_RECON_CURRENCIES)),
+            "flow": draw(st.sampled_from(_RECON_FLOWS)),
+        }
+        if known is None:
+            spec["counterparty"] = "Comercio Local Ficticio"
+        if iban_of is not None:
+            spec["iban"] = master_iban(iban_of)
+        payment_specs.append(spec)
+    suppliers = make_suppliers([{"supplier": k} for k in _RECON_SUPPLIERS])
+    return make_invoices(invoice_specs), suppliers, make_payments(payment_specs)

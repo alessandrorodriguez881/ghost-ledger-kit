@@ -44,7 +44,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_app_imports_no_private_ledger_kit_name` — an `ast` scan of every `.py` under `apps/phantom_invoices/` finds no `from ledger_kit... import _x` and no attribute access `ledger_kit....._x` on a name starting with an underscore (DN-9).
   - `test_no_clock_calls_in_package` — `ast` scan: no call to `today`, `now`, `utcnow` or `time.time` (REQ-PI-65, §16.4 part 1). Passes trivially now and guards every later task.
 - [x] Create empty `apps/__init__.py` (skip if it exists), `apps/phantom_invoices/__init__.py`, `apps/phantom_invoices/detectors/__init__.py` (empty for now; Task P14 fills it), `apps/phantom_invoices/tests/` (no `__init__.py`).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -62,7 +62,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_cr_lc_3g_mask_iban_and_row_columns` — `mask_iban("ES88 2100 0418 5602 0005 1332") == "****1332"`; `explain_with_meta` accepts `row_columns=`.
   - `test_fill_fallback_is_public` — `from ledger_kit.explainer import fill_fallback` works and fills `{total:money}`; `ledger_kit.explainer` has no `_fill_fallback` attribute (DN-9).
 - [x] No implementation: this task only fails if a ledger-core task is missing. If it fails, finish the named ledger-core task; never patch `ledger_kit/` from this spec.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_ledger_core_contract.py -q` passes.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_ledger_core_contract.py -q` passes.
 
 ---
 
@@ -76,7 +76,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_is_missing_every_kind` — `None`, `NaN`, `pd.NA`, `pd.NaT`, `Decimal("NaN")`, `""`, `" "`, `"\u00a0"`, `"-"`, `"–"`, `"—"`, `"--"`; `test_as_decimal_rejects_float_int_and_string`; `test_as_text_keeps_value_unstripped`; `test_as_date_rejects_string`; `test_as_bool_false_for_everything_else`; `test_n1_empty_for_symbols_only` (`"/ /"` → `""`); `test_equal_n1_does_not_imply_equal_n2` (`F0-05` / `F005`); `test_n2_all_zero_run_becomes_zero`.
   - **Tier 3** (`max_examples=200`): `test_dirty_cells_never_raise_helpers` — every helper and every key function on `dirty_cell()` values (text, `None`, `NaN`, floats, `Decimal` incl. NaN/inf, ints, dates) never raises; `test_n1_idempotent_and_alnum_only`; `test_n2_never_longer_than_n1`.
 - [x] Implement in `detectors/utils.py`: `ZERO`, `DASH_CHARS`, `is_missing`, `as_text`, `as_decimal`, `as_date`, `as_bool`, `n1_key`, `n2_key`, `tax_key`, `name_key`, `iban_key` exactly as §4.1–§4.3.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_keys.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_keys.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -89,7 +89,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_is_valid_iban_matches_problem_none`; `test_lowercase_after_iban_key_is_valid`; `test_empty_key_is_format_problem`; `test_other_country_valid_iban_accepted` (national digits and per-country lengths are not validated, OD-PI-15); `test_constants_values` (`IBAN_MOD97_MODULUS == 97`, `IBAN_MOD97_REMAINDER == 1`).
   - **Tier 3** (`max_examples=200`): `test_iban_problem_never_raises_on_any_text`; `test_valid_iban_stays_valid_when_spaced_and_recased` (uses `iban_key`).
 - [x] Implement in `detectors/utils.py`: `IBAN_FORMAT_RE`, `IBAN_MOD97_MODULUS`, `IBAN_MOD97_REMAINDER`, `iban_problem`, `is_valid_iban`. Create `tests/pi_checkers.py`.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_iban.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_iban.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -103,7 +103,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - **Tier 2**: `test_load_rows_empty_non_frame_and_missing_column` — `pd.DataFrame()`, `None`, a frame without `source_ref` → `[]`; `test_load_rows_drops_row_without_source_ref`; `test_load_rows_keeps_first_of_duplicate_source_ref`; `test_load_rows_missing_date_sorts_last`; `test_load_rows_conflicting_duplicates_are_shuffle_invariant` (DN-5); `test_source_ref_key_non_integer_row` → `(ref, -1)`; `test_resolve_as_of_none_without_any_date`; `test_resolve_as_of_ignores_unusable_dates`; `test_resolve_as_of_never_calls_the_clock` — `monkeypatch` makes `date.today` and `datetime.now` raise.
   - **Tier 3** (`max_examples=200`): `test_load_rows_shuffle_invariant`; `test_load_rows_one_row_per_source_ref`; `test_sort_refs_is_sorted_and_distinct`.
 - [x] Implement in `detectors/utils.py`: `source_ref_key`, `sort_refs`, `_tiebreak`, `load_rows`, `_column`, `resolve_as_of`, `text_or_ref`, `supplier_label`, `finish`.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_order.py -q` passes; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_order.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -111,12 +111,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-09, REQ-PI-25, DN-12, §4.4
 
-- [ ] Write `tests/test_pi_utils_master.py`:
+- [x] Write `tests/test_pi_utils_master.py`:
   - **Tier 1**: `test_build_master_indexes_by_tax_name_and_iban`; `test_attribute_payment_by_name`; `test_attribute_payment_by_iban_when_name_unknown`; `test_attribute_payment_name_first_even_if_iban_differs` (OD-PI-09: a payment to a known supplier sent to another account is still attributed).
   - **Tier 2**: `test_duplicate_tax_key_first_in_source_ref_order_wins`; `test_master_row_with_empty_tax_key_is_not_a_supplier` (DN-12); `test_name_hit_on_two_suppliers_falls_through_to_iban`; `test_iban_hit_on_two_suppliers_is_unattributed`; `test_unknown_name_and_unknown_iban_returns_none`; `test_build_master_empty_none_and_non_frame`; `test_attribute_payment_missing_cells`.
   - **Tier 3** (`max_examples=200`): `test_attribution_independent_of_master_row_order_when_unambiguous`; `test_attribute_payment_never_raises_on_dirty_cells`.
-- [ ] Implement in `detectors/utils.py`: `Master`, `build_master`, `attribute_payment`.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_master.py -q` passes; `ruff check` clean.
+- [x] Implement in `detectors/utils.py`: `Master`, `build_master`, `attribute_payment`.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_master.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -124,12 +124,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-15, OD-PI-08, §6
 
-- [ ] Write `tests/test_pi_prepare.py`:
+- [x] Write `tests/test_pi_prepare.py`:
   - **Tier 1**: `test_multi_rate_group_removed_and_recorded` — two rows, same supplier and `N1`, rates 21 and 10 → both removed, two records with `reason == "multi_rate_invoice_out_of_scope"` and the keys `source_file`, `source_row`, `reason`, `raw`, in natural `source_ref` order; `test_clean_invoices_untouched`.
   - **Tier 2**: `test_missing_rate_not_counted_as_different_rate`; `test_rate_21_and_21_00_are_one_rate`; `test_same_number_other_supplier_not_grouped`; `test_empty_frame_and_non_frame_return_unchanged`; `test_input_frame_not_mutated`; `test_clean_frame_has_fresh_range_index`; `test_raw_values_are_strings_and_missing_is_empty`.
   - **Tier 3** (`max_examples=200`): `test_quarantine_partitions_rows` — clean + quarantined row counts equal the input, source_refs disjoint.
-- [ ] Implement `apps/phantom_invoices/prepare.py` (`MULTI_RATE_REASON`, `quarantine_multi_rate`).
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_prepare.py -q` passes; `ruff check` clean.
+- [x] Implement `apps/phantom_invoices/prepare.py` (`MULTI_RATE_REASON`, `quarantine_multi_rate`).
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_prepare.py -q` passes; `ruff check` clean.
 
 ---
 
@@ -137,11 +137,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-58, REQ-PI-70 (checker half), Finance Rule 5, §15.3
 
-- [ ] Write `tests/test_pi_identifiers.py`. It loads `scripts/generate_samples.py` by path with `importlib.util.spec_from_file_location` (`scripts/` is not a package) in a module-level helper:
+- [x] Write `tests/test_pi_identifiers.py`. It loads `scripts/generate_samples.py` by path with `importlib.util.spec_from_file_location` (`scripts/` is not a package) in a module-level helper:
   - **Tier 1**: `test_correct_national_dc_example` — `correct_national_dc("2100", "0418", "0200051332") == "45"`; `test_wrong_national_dc_example` — `"56"`; `test_make_iban_reproduces_documented_example` — `format_iban(make_iban("2100", "0418", "0200051332")) == "ES88 2100 0418 5602 0005 1332"`; `test_make_cif_and_make_nif_examples` (control character always wrong for `k = 1…25`; the checkers of `pi_checkers.py` confirm).
   - **Tier 2**: `test_every_generated_iban_is_mod97_valid_with_wrong_national_digits` for `k = 1…25` and `k = 101…110`; `test_tax_ids_distinct_for_k_1_to_25`; `test_make_nif_skips_multiples_of_23` (`k = 12` → number 1013) and never yields `00000000T`; `test_wrong_dc_never_equals_correct_dc` for 200 random bank/branch/account triples.
   - **Tier 3** (`max_examples=200`): `test_make_iban_valid_checksum_for_any_digits`; `test_make_iban_national_digits_never_correct`.
-- [ ] Implement in `scripts/generate_samples.py` (extend the ledger-core Task 13 file; keep its existing modes untouched): `SPANISH_DC_WEIGHTS`, `_dc_digit`, `correct_national_dc`, `wrong_national_dc`, `iban_check_digits`, `make_iban`, `format_iban`, `NIF_LETTERS`, `cif_control_digit`, `make_cif`, `make_nif`, exactly as §15.3. Money is not computed here.
+- [x] Implement in `scripts/generate_samples.py` (extend the ledger-core Task 13 file; keep its existing modes untouched): `SPANISH_DC_WEIGHTS`, `_dc_digit`, `correct_national_dc`, `wrong_national_dc`, `iban_check_digits`, `make_iban`, `format_iban`, `NIF_LETTERS`, `cif_control_digit`, `make_cif`, `make_nif`, exactly as §15.3. Money is not computed here.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_identifiers.py -q` passes; existing ledger-core sample tests still pass (`pytest tests -q`); `ruff check` clean.
 
 ---
@@ -150,14 +150,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-62, §16.1, §16.3
 
-- [ ] Write `tests/test_pi_fixtures.py` first (each fixture has the right shape):
+- [x] Write `tests/test_pi_fixtures.py` first (each fixture has the right shape):
   - `test_fixture_columns_match_canonical_columns` — invoice fixtures have `INVOICE_COLUMNS`, supplier fixtures `SUPPLIER_COLUMNS`, payment fixtures `CANONICAL_COLUMNS` (from `ledger_kit.ingestion.normaliser`).
   - `test_make_invoices_derives_vat_and_total_with_money_helpers` — defaults EUR, rate 21, `vat_amount = percent_of`, `total = net_total`, `source_ref == "inv.csv:{i}"`.
   - `test_fixture_identifiers_follow_finance_rule_5` — every IBAN is mod-97 valid with wrong national digits, every tax id has a wrong control character (via `pi_checkers`), emails only `@example.com`.
   - `test_clean_ledger_10_raises_no_alert_from_any_detector` — skipped via `pytest.importorskip` markers until Tasks P10–P13 exist; the final form runs `run_pi_detectors` (Task P14 re-enables it).
   - `test_single_row_and_empty_ledger_shapes`; `test_ctx_returns_mapping_proxy`.
-- [ ] Implement `tests/conftest.py`: `make_invoices`, `make_suppliers`, `make_payments`, `ctx`, `make_test_iban` (loaded by path from `scripts/generate_samples.py`), strategies `dirty_cell`, `dirty_frame`, `valid_iban`, `spaced_cased`, `consecutive_numbers`, `reconciliation_inputs`, and the fixtures `empty_ledger`, `single_row_ledger`, `clean_ledger_10`, `suppliers_master`, `payments_for_clean`, `ledger_with_duplicate_invoice` (P1), `ledger_with_near_duplicate` (P3), `ledger_with_iban_change` (P5), `ledger_with_vat_error` (P7), `ledger_with_unpaid_invoice`, `ledger_with_double_payment` (P9). Dates are fixed literals.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_fixtures.py -q` passes; `ruff check` clean.
+- [x] Implement `tests/conftest.py`: `make_invoices`, `make_suppliers`, `make_payments`, `ctx`, `make_test_iban` (loaded by path from `scripts/generate_samples.py`), strategies `dirty_cell`, `dirty_frame`, `valid_iban`, `spaced_cased`, `consecutive_numbers`, `reconciliation_inputs`, and the fixtures `empty_ledger`, `single_row_ledger`, `clean_ledger_10`, `suppliers_master`, `payments_for_clean`, `ledger_with_duplicate_invoice` (P1), `ledger_with_near_duplicate` (P3), `ledger_with_iban_change` (P5), `ledger_with_vat_error` (P7), `ledger_with_unpaid_invoice`, `ledger_with_double_payment` (P9). Dates are fixed literals.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_fixtures.py -q` passes; `ruff check` clean.
 
 ---
 

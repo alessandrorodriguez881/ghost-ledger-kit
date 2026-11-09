@@ -1750,13 +1750,16 @@ def make_cif(k: int) -> str:
     return f"B{body}{(cif_control_digit(body) + 1) % 10}"          # always wrong
 
 def make_nif(k: int) -> str:
-    n = 1000 + k
-    while n % 23 == 0:                                              # their correct letter is 'T'
+    n, remaining = 1000, k
+    while remaining > 0:                      # k-th number above 1000 that is no multiple of 23
         n += 1
+        if n % 23 != 0:                       # their correct letter is 'T'
+            remaining -= 1
     return f"{n:08d}{NIF_LETTERS[(n % 23 + 1) % 23]}"             # the letter after the correct one
 ```
 
-(`k = 12` would give `1012 = 23 × 44`; the loop moves it to `1013`.) `00000000T` is never produced.
+(`make_nif(k)` is the k-th number above 1000 that is not a multiple of 23, so every `k` gets a
+distinct number: `1012 = 23 × 44` is skipped, `k = 12` gives `1013` and `k = 13` gives `1014`.) `00000000T` is never produced.
 Companies use `make_cif(k)`, persons `make_nif(k)`. No e-mail address or phone number appears in
 any file.
 

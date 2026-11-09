@@ -144,10 +144,13 @@ def make_cif(k: int) -> str:
 
 
 def make_nif(k: int) -> str:
-    """Fictional NIF number k with the letter after the correct one."""
-    n = 1000 + k
-    while n % 23 == 0:  # their correct letter is 'T'
+    """Fictional NIF number k (k-th number above 1000 that is no multiple of 23), wrong letter."""
+    n = 1000
+    remaining = k
+    while remaining > 0:  # multiples of 23 are skipped: their correct letter is 'T'
         n += 1
+        if n % 23 != 0:
+            remaining -= 1
     return f"{n:08d}{NIF_LETTERS[(n % 23 + 1) % 23]}"
 
 

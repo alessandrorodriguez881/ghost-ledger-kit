@@ -10,7 +10,7 @@ import re
 
 # Spanish national control-digit weights (Cuenta Corriente Cliente).
 _DC_WEIGHTS = (1, 2, 4, 8, 5, 10, 9, 7, 3, 6)
-_NIF_LETTERS = "TRWAGMYFPDBXNJZSQVHLCKE"
+_NIF_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE"
 _CIF_LETTERS = "JABCDEFGHI"
 # First CIF letters whose control must be a digit / a letter; every other letter accepts both.
 _CIF_DIGIT_ONLY = "ABEH"

@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -233,3 +234,63 @@ def finish(alerts: list[Alert]) -> list[Alert]:
         alerts,
         key=lambda a: (source_ref_key(a.source_refs[0]), str(a.data.get("variant", "")), a.id),
     )
+
+
+# --- Supplier master and payment attribution (REQ-PI-09, REQ-PI-25) ---
+
+
+@dataclass(frozen=True)
+class Master:
+    """The supplier master, one row per tax_key (the first in source_ref order)."""
+
+    by_tax: Mapping[str, dict]  # tax_key -> master row (insertion order = source_ref order)
+    by_name: Mapping[str, tuple[dict, ...]]  # name_key -> master rows (distinct suppliers)
+    by_iban: Mapping[str, tuple[dict, ...]]  # iban_key of the master IBAN -> master rows
+
+
+def build_master(suppliers: Any) -> Master:
+    """Index the supplier master; rows with an empty tax_key are not suppliers (DN-12).
+
+    For a repeated tax_key the first row in source_ref order wins and later ones are ignored.
+    A frame that is not a DataFrame, is empty or lacks source_ref gives an empty master.
+    """
+    by_tax: dict[str, dict] = {}
+    for row in load_rows(suppliers, None):
+        tax = tax_key(as_text(row.get("tax_id")) or "")
+        if tax and tax not in by_tax:
+            by_tax[tax] = row
+    names: dict[str, list[dict]] = {}
+    ibans: dict[str, list[dict]] = {}
+    for row in by_tax.values():
+        name = name_key(as_text(row.get("supplier_name")) or "")
+        if name:
+            names.setdefault(name, []).append(row)
+        iban = as_text(row.get("iban"))
+        if iban is not None:
+            ibans.setdefault(iban_key(iban), []).append(row)
+    return Master(
+        by_tax,
+        {key: tuple(rows) for key, rows in names.items()},
+        {key: tuple(rows) for key, rows in ibans.items()},
+    )
+
+
+def attribute_payment(payment: Mapping[str, Any], master: Master) -> dict | None:
+    """Return the master row of the supplier a payment belongs to, or None (REQ-PI-25).
+
+    Name first (exactly one master supplier with the same name_key), then IBAN (exactly one
+    supplier whose master IBAN has the same iban_key). Zero or several hits fall through; no hit
+    at all means the payment is not a supplier payment. Name goes first so that a payment
+    addressed to a known supplier but sent to another account is still attributed (OD-PI-09).
+    """
+    name = name_key(as_text(payment.get("counterparty")) or "")
+    if name:
+        hits = master.by_name.get(name, ())
+        if len(hits) == 1:
+            return hits[0]
+    iban = as_text(payment.get("iban"))
+    if iban is not None:
+        hits = master.by_iban.get(iban_key(iban), ())
+        if len(hits) == 1:
+            return hits[0]
+    return None
