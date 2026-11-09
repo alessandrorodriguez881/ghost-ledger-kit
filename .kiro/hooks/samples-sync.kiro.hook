@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "samples-sync",
+  "description": "When the sample generator or sample data changes, regenerate both demos, run their tests and summarise the diff.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["scripts/generate_samples.py", "data/samples/**"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "scripts/generate_samples.py or a file under data/samples/ was edited. Keep the committed demo data in sync with the generator and REPORT what you did and any gap. Do not edit application code, and do not hand-edit CSVs to make tests pass.\n\nSteps:\n1. Run: python scripts/generate_samples.py --mode zombie-demo --seed 42\n2. Run: python scripts/generate_samples.py --mode phantom-demo --seed 42\n   The demo CSVs are byte-compared (.gitattributes forbids line-ending conversion), so check that no CRLF warning appears for data/samples/phantom_demo/.\n3. Run the demo data and end-to-end tests of both apps: pytest apps/zombie_subscriptions/tests/test_zs_demo_generator.py apps/zombie_subscriptions/tests/test_zs_demo_e2e.py apps/phantom_invoices/tests/test_pi_demo_generator.py apps/phantom_invoices/tests/test_pi_demo_data.py apps/phantom_invoices/tests/test_pi_demo_e2e.py\n4. Show a short diff summary: git diff --stat for data/samples/ (files and changed line counts per CSV, or 'no change'), then the alert counts. The phantom demo must give 9 alerts: 3 critical and 6 warning; report the actual counts and flag any deviation. Report the zombie demo alert count and severity split as the tests show it, without guessing a target number.\n5. If a test fails, report the failing test, the cause you found and the likely fix location (generator, config.toml, or the detector's own file); do not silently change working code.\n\nEnd with a short list: regenerated files, tests run and their result, alert counts, gaps."
+  }
+}

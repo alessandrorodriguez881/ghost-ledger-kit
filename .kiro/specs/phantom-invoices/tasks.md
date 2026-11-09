@@ -349,7 +349,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_selected_alert_reset_when_not_in_options`.
   - **`AppTest`** (`streamlit.testing.v1.AppTest.from_file("apps/phantom_invoices/app.py")`): `test_app_starts_without_exception`; `test_load_demo_click_shows_all_four_detector_labels_without_widget_error` — click **Load demo data**, `at.exception` is empty (no `StreamlitWidgetAlreadyInstantiatedError`), the severity metrics read 3 and 6, labels of all four detectors are present; `test_hallucination_toggle_shows_warning_badge_with_99999_99` (REQ-PI-47); `test_selecting_an_alert_lights_only_its_source_refs`.
 - [x] Implement `apps/phantom_invoices/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `on_click`; sidebar uploaders (invoices `.csv`/`.json`, suppliers, payments), `use_as_of` checkbox and `as_of_date` input (seeded with `setdefault`), `hallucinate` toggle; SHA-256-keyed `pipeline_cache`; theme CSS via `st.markdown(..., unsafe_allow_html=True)`; severity metrics; haunted ledger via `render_ledger_html`; `st.radio(key="selected_alert")` flashlight; alert cards with `LABELS`, explanation (cached by `(alert.id, client_mode)`), `guard_badge`, `source_refs`, captions and the verbatim `verification_message`; cited master/payment tables; quarantine expander with the multi-rate limitation note; the `as_of` line. Pure view-model helpers go to `settings.py`/`explain_support.py` so the logic tests need no Streamlit runtime.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_app_logic.py -q` passes; manual smoke test recorded in the PR: `streamlit run apps/phantom_invoices/app.py` starts; **Load demo data** shows the 9 alerts; `ruff check` clean.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_app_logic.py -q` passes; manual smoke test recorded in the PR: `streamlit run apps/phantom_invoices/app.py` starts; **Load demo data** shows the 9 alerts; `ruff check` clean.
 
 ---
 
@@ -365,7 +365,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - Add, if absent: `scripts/generate_samples.py`, `.gitattributes`, `data/samples/phantom_demo/{suppliers,invoices,payments}.csv`, and the root `requirements.txt`.
   - Leave the `zombie_subscriptions/` block untouched (its own task, Z22, rewrites it).
 - [x] Add a one-line note under "Package boundaries": the phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
-- [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_structure_steering.py -q` passes (the `test_pi_demo_e2e.py` entry is created by Task P24, so this check treats that single path as pending until then); no other section of the file changed.
+- [x] Verify: `pytest apps/phantom_invoices/tests/test_pi_structure_steering.py -q` passes (the `test_pi_demo_e2e.py` entry is created by Task P24, so this check treats that single path as pending until then); no other section of the file changed.
 
 ---
 
@@ -385,12 +385,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_hallucinating_stub_rejected_for_every_alert` — `rejected_numbers == ("99999.99",)` for all 9.
   - `test_result_identical_under_two_clocks` — `freeze_time("2020-01-01")` and `freeze_time("2031-12-31")` give equal alert lists (REQ-PI-65, §16.4 part 2).
   - `test_pipeline_result_independent_of_row_order` — the three files with shuffled data rows give the same 9 alerts.
-- [ ] Fix `config.toml` / generator output until the test passes (the only legitimate fixes are in the demo data and `config.toml`; a failing detector is fixed in its own task's file with its test).
-- [ ] Final checks:
+- [x] Fix `config.toml` / generator output until the test passes (the only legitimate fixes are in the demo data and `config.toml`; a failing detector is fixed in its own task's file with its test).
+- [x] Final checks:
   - `pytest apps/phantom_invoices/ --cov=apps/phantom_invoices --cov-fail-under=80`, then the full `pytest` to confirm ledger-core and zombie-subscriptions are unaffected.
   - Every acceptance example has a named test: `test_pi_acceptance_p01…p12` (P12 as p12a and p12b) and the two `REQ-PI-21a` tests.
   - All three tiers exist for each of the four detectors and for `reconcile`; all properties of REQ-PI-64 are present with `@settings(max_examples=200)`; every threshold constant is tested on both sides of its boundary (REQ-PI-66: 6/7, 179/180, 0.01/0.02 twice, 15/16, 60/61, 0.01/0.02).
   - No test or module reads the clock; `apps/phantom_invoices/requirements.txt` does not exist; no private `ledger_kit` name is imported by the app (`test_pi_scaffold.py`).
   - `ruff check .` and `ruff format --check .` pass with zero warnings.
   - The git working tree shows no CRLF warning for `data/samples/phantom_demo/` (DN-10).
-- [ ] Fix any coverage gaps or lint issues found.
+- [x] Fix any coverage gaps or lint issues found.
