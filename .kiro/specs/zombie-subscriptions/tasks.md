@@ -313,8 +313,8 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_alerts_grouped_critical_warning_info`.
 - [x] Write `tests/test_zs_app.py` with `streamlit.testing.v1.AppTest` (`default_timeout=60`, detector registry snapshot/restore, `OPENAI_API_KEY` removed): the app starts without exception; after clicking **Load demo data** the 3 demo tombstones and the alerts of all five detectors render without exception; the hallucination toggle gives the fallback text with the ⚠️ badge naming `99999.99`; the zs detectors stay registered.
 - [x] Implement `apps/zombie_subscriptions/app.py`: path bootstrap; `load_demo` callback defined before the widgets and attached with `st.button("Load demo data", on_click=load_demo)`; sidebar text areas keyed `aliases_text`, `last_used_text`, `cancel_text`; hallucination toggle; file uploader; ingestion cache by sha256; debit filter; `run_all`; `compute_zombie_cost`; explanation cache keyed `(alert.id, client_mode)`; Halloween graveyard CSS via `st.markdown(..., unsafe_allow_html=True)`; tombstone cards (name, "Died on", "Cost since then", "Yearly cost", collapsible `source_refs`); alert list by severity with guard badge and collapsible source rows; quarantine section. Put pure view-model code in `settings.py`/helpers so the tests above need no Streamlit.
-- [ ] Verify (manual smoke test, recorded in the PR): `streamlit run apps/zombie_subscriptions/app.py` starts; clicking **Load demo data** shows ≥ 3 tombstones and all five alert types without `StreamlitWidgetAlreadyInstantiatedError`; the hallucination toggle shows the ⚠️ badge with `99999.99`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify (manual smoke test, recorded in the PR): `streamlit run apps/zombie_subscriptions/app.py` starts; clicking **Load demo data** shows ≥ 3 tombstones and all five alert types without `StreamlitWidgetAlreadyInstantiatedError`; the hallucination toggle shows the ⚠️ badge with `99999.99`.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -337,9 +337,9 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-45, REQ-ZS-47, REQ-ZS-48, REQ-ZS-49, REQ-ZS-50, REQ-ZS-51
 
-- [ ] Run `pytest apps/zombie_subscriptions/ --cov=apps/zombie_subscriptions --cov-fail-under=80`, then the full `pytest` to confirm ledger-core is unaffected.
+- [x] Run `pytest apps/zombie_subscriptions/ --cov=apps/zombie_subscriptions --cov-fail-under=80`, then the full `pytest` to confirm ledger-core is unaffected.
 - [x] Confirm every acceptance example has a named test: E1, E2, E3, E4, E5, E6, E7, E7b (`test_zs_acceptance_e*`), plus the downgrade test.
 - [x] Confirm all three tiers exist for each of the five detectors and for `compute_zombie_cost`, and that all mandatory properties of REQ-ZS-48 are present with `@settings(max_examples=200)`.
 - [x] Confirm no test or module reads the clock (`date.today()`, `datetime.now()`), no fixture or sample contains a real brand or person name outside Finance Rule 5 placeholders, and `apps/zombie_subscriptions/requirements.txt` does not exist.
-- [ ] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
-- [ ] Fix any coverage gaps or lint issues found.
+- [x] Confirm `ruff check .` and `ruff format --check .` pass with zero warnings.
+- [x] Fix any coverage gaps or lint issues found.

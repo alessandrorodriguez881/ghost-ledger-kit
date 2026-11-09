@@ -37,13 +37,13 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-53 (no app-level `requirements.txt`), REQ-PI-14 (package layout), DN-9, §1
 
-- [ ] Write `apps/phantom_invoices/tests/test_pi_scaffold.py`:
+- [x] Write `apps/phantom_invoices/tests/test_pi_scaffold.py`:
   - `test_app_package_importable` — `import apps.phantom_invoices` and `apps.phantom_invoices.detectors` succeed under plain `pytest`.
   - `test_no_app_level_requirements_txt` — `apps/phantom_invoices/requirements.txt` does not exist; root `requirements.txt` exists.
   - `test_app_does_not_import_other_app` — no module under the app imports `apps.zombie_subscriptions`; `ledger_kit` imports nothing from `apps`.
   - `test_app_imports_no_private_ledger_kit_name` — an `ast` scan of every `.py` under `apps/phantom_invoices/` finds no `from ledger_kit... import _x` and no attribute access `ledger_kit....._x` on a name starting with an underscore (DN-9).
   - `test_no_clock_calls_in_package` — `ast` scan: no call to `today`, `now`, `utcnow` or `time.time` (REQ-PI-65, §16.4 part 1). Passes trivially now and guards every later task.
-- [ ] Create empty `apps/__init__.py` (skip if it exists), `apps/phantom_invoices/__init__.py`, `apps/phantom_invoices/detectors/__init__.py` (empty for now; Task P14 fills it), `apps/phantom_invoices/tests/` (no `__init__.py`).
+- [x] Create empty `apps/__init__.py` (skip if it exists), `apps/phantom_invoices/__init__.py`, `apps/phantom_invoices/detectors/__init__.py` (empty for now; Task P14 fills it), `apps/phantom_invoices/tests/` (no `__init__.py`).
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_scaffold.py -q` passes; `ruff check` clean.
 
 ---
@@ -52,7 +52,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-01, REQ-PI-02, REQ-PI-14, requirements §14 (CR-LC-3 a–g), DN-9
 
-- [ ] Write `apps/phantom_invoices/tests/test_pi_ledger_core_contract.py`, one test per CR-LC-3 item, so a missing ledger-core piece fails here with a clear name instead of deep inside a detector:
+- [x] Write `apps/phantom_invoices/tests/test_pi_ledger_core_contract.py`, one test per CR-LC-3 item, so a missing ledger-core piece fails here with a clear name instead of deep inside a detector:
   - `test_cr_lc_3a_invoice_model_and_reader` — `Invoice`, `parse_invoice`, `normalise(kind="invoice")` return `INVOICE_COLUMNS`.
   - `test_cr_lc_3b_supplier_model_and_reader` — `Supplier`, `parse_suppliers`, `normalise(kind="supplier")` return `SUPPLIER_COLUMNS`.
   - `test_cr_lc_3c_parse_csv_reads_iban_verbatim`.
@@ -61,7 +61,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `test_cr_lc_3f_empty_ledger_context_detector_runs` — a local detector that reads `context["payments"]` alerts for `pd.DataFrame()` through `run_all`.
   - `test_cr_lc_3g_mask_iban_and_row_columns` — `mask_iban("ES88 2100 0418 5602 0005 1332") == "****1332"`; `explain_with_meta` accepts `row_columns=`.
   - `test_fill_fallback_is_public` — `from ledger_kit.explainer import fill_fallback` works and fills `{total:money}`; `ledger_kit.explainer` has no `_fill_fallback` attribute (DN-9).
-- [ ] No implementation: this task only fails if a ledger-core task is missing. If it fails, finish the named ledger-core task; never patch `ledger_kit/` from this spec.
+- [x] No implementation: this task only fails if a ledger-core task is missing. If it fails, finish the named ledger-core task; never patch `ledger_kit/` from this spec.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_ledger_core_contract.py -q` passes.
 
 ---
@@ -70,12 +70,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-06, REQ-PI-07, REQ-PI-08, §4.1–§4.3
 
-- [ ] Write `tests/test_pi_utils_keys.py`:
+- [x] Write `tests/test_pi_utils_keys.py`:
   - **Tier 1**: `test_n1_n2_table_of_req_pi_07` — the six rows of the REQ-PI-07 table (`F-2026-0042`, `F2026-042`, `f-2026-0042`, `ALQ-2026-01`, `ALQ-2026-02`, `F-000`); `test_tax_key_and_name_key_examples` (`b-00000001` → `B00000001`; `Suministros García, S.L.` → `SUMINISTROSGARCIASL`); `test_iban_key_removes_all_whitespace_and_keeps_hyphens`.
   - **Tier 1**: `test_as_text_as_decimal_as_date_as_bool_typical` — a `Decimal`, a `date`, a `pd.Timestamp` (→ date), the bool `True` / `np.True_`.
   - **Tier 2**: `test_is_missing_every_kind` — `None`, `NaN`, `pd.NA`, `pd.NaT`, `Decimal("NaN")`, `""`, `" "`, `"\u00a0"`, `"-"`, `"–"`, `"—"`, `"--"`; `test_as_decimal_rejects_float_int_and_string`; `test_as_text_keeps_value_unstripped`; `test_as_date_rejects_string`; `test_as_bool_false_for_everything_else`; `test_n1_empty_for_symbols_only` (`"/ /"` → `""`); `test_equal_n1_does_not_imply_equal_n2` (`F0-05` / `F005`); `test_n2_all_zero_run_becomes_zero`.
   - **Tier 3** (`max_examples=200`): `test_dirty_cells_never_raise_helpers` — every helper and every key function on `dirty_cell()` values (text, `None`, `NaN`, floats, `Decimal` incl. NaN/inf, ints, dates) never raises; `test_n1_idempotent_and_alnum_only`; `test_n2_never_longer_than_n1`.
-- [ ] Implement in `detectors/utils.py`: `ZERO`, `DASH_CHARS`, `is_missing`, `as_text`, `as_decimal`, `as_date`, `as_bool`, `n1_key`, `n2_key`, `tax_key`, `name_key`, `iban_key` exactly as §4.1–§4.3.
+- [x] Implement in `detectors/utils.py`: `ZERO`, `DASH_CHARS`, `is_missing`, `as_text`, `as_decimal`, `as_date`, `as_bool`, `n1_key`, `n2_key`, `tax_key`, `name_key`, `iban_key` exactly as §4.1–§4.3.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_keys.py -q` passes; `ruff check` clean.
 
 ---
@@ -84,11 +84,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-23, OD-PI-15, §4.5
 
-- [ ] Write `tests/test_pi_utils_iban.py` using test-local checkers in `tests/pi_checkers.py` (mod-97, Spanish national check digits, NIF letter, CIF control character; the app and `ledger_kit` never validate tax ids). First fixture IBANs are literals:
+- [x] Write `tests/test_pi_utils_iban.py` using test-local checkers in `tests/pi_checkers.py` (mod-97, Spanish national check digits, NIF letter, CIF control character; the app and `ledger_kit` never validate tax ids). First fixture IBANs are literals:
   - **Tier 1**: `test_documented_iban_is_valid` — `iban_problem(iban_key("ES88 2100 0418 5602 0005 1332")) is None`; `test_checkers_agree_with_documented_example` — mod-97 remainder is 1 and the correct national digits are `45` while the IBAN carries `56` (REQ-PI-58); `test_format_problem_for_hyphens_dots_and_short_values`; `test_checksum_problem_for_valid_shape_bad_digits` (change `88` to `89`).
   - **Tier 2**: `test_is_valid_iban_matches_problem_none`; `test_lowercase_after_iban_key_is_valid`; `test_empty_key_is_format_problem`; `test_other_country_valid_iban_accepted` (national digits and per-country lengths are not validated, OD-PI-15); `test_constants_values` (`IBAN_MOD97_MODULUS == 97`, `IBAN_MOD97_REMAINDER == 1`).
   - **Tier 3** (`max_examples=200`): `test_iban_problem_never_raises_on_any_text`; `test_valid_iban_stays_valid_when_spaced_and_recased` (uses `iban_key`).
-- [ ] Implement in `detectors/utils.py`: `IBAN_FORMAT_RE`, `IBAN_MOD97_MODULUS`, `IBAN_MOD97_REMAINDER`, `iban_problem`, `is_valid_iban`. Create `tests/pi_checkers.py`.
+- [x] Implement in `detectors/utils.py`: `IBAN_FORMAT_RE`, `IBAN_MOD97_MODULUS`, `IBAN_MOD97_REMAINDER`, `iban_problem`, `is_valid_iban`. Create `tests/pi_checkers.py`.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_iban.py -q` passes; `ruff check` clean.
 
 ---
@@ -97,12 +97,12 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
 
 **Covers**: REQ-PI-10, REQ-PI-11, REQ-PI-12, REQ-PI-13, REQ-PI-65, DN-5, DN-7, §5
 
-- [ ] Write `tests/test_pi_utils_order.py`:
+- [x] Write `tests/test_pi_utils_order.py`:
   - **Tier 1**: `test_source_ref_key_natural_order` — `f.csv:9` < `f.csv:10`, and plain text order would reverse them; `test_sort_refs_dedupes`; `test_load_rows_sorted_by_date_then_ref`; `test_resolve_as_of_explicit_wins`; `test_resolve_as_of_latest_over_invoices_and_all_payments` (credits included); `test_text_or_ref_and_supplier_label_fallbacks` (name → tax id as written → source_ref).
   - **Tier 1**: `test_finish_orders_by_first_ref_variant_id`.
   - **Tier 2**: `test_load_rows_empty_non_frame_and_missing_column` — `pd.DataFrame()`, `None`, a frame without `source_ref` → `[]`; `test_load_rows_drops_row_without_source_ref`; `test_load_rows_keeps_first_of_duplicate_source_ref`; `test_load_rows_missing_date_sorts_last`; `test_load_rows_conflicting_duplicates_are_shuffle_invariant` (DN-5); `test_source_ref_key_non_integer_row` → `(ref, -1)`; `test_resolve_as_of_none_without_any_date`; `test_resolve_as_of_ignores_unusable_dates`; `test_resolve_as_of_never_calls_the_clock` — `monkeypatch` makes `date.today` and `datetime.now` raise.
   - **Tier 3** (`max_examples=200`): `test_load_rows_shuffle_invariant`; `test_load_rows_one_row_per_source_ref`; `test_sort_refs_is_sorted_and_distinct`.
-- [ ] Implement in `detectors/utils.py`: `source_ref_key`, `sort_refs`, `_tiebreak`, `load_rows`, `_column`, `resolve_as_of`, `text_or_ref`, `supplier_label`, `finish`.
+- [x] Implement in `detectors/utils.py`: `source_ref_key`, `sort_refs`, `_tiebreak`, `load_rows`, `_column`, `resolve_as_of`, `text_or_ref`, `supplier_label`, `finish`.
 - [ ] Verify: `pytest apps/phantom_invoices/tests/test_pi_utils_order.py -q` passes; `ruff check` clean.
 
 ---
