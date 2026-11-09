@@ -64,7 +64,7 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
 
 **Covers**: REQ-RF-12, REQ-RF-13, REQ-RF-14, REQ-RF-15, REQ-RF-16, REQ-RF-19, §5.1 to §5.4
 
-- [ ] `tests/ingestion/test_facturae_reader.py`, builder `facturae_doc(**overrides)` in `n43_builders.py`
+- [x] `tests/ingestion/test_facturae_reader.py`, builder `facturae_doc(**overrides)` in `n43_builders.py`
   or a sibling: Example A gives the expected `Invoice`; qualified and unqualified children, any prefix,
   versions 3.2 / 3.2.1 / 3.2.2; series + number; `Individual` names; the rounding table of REQ-RF-14
   and the canonical rate table (`21.00`, `21.00000000`, `5.20`, `0.00`, `10`, `1E+1`); due-date and
@@ -72,34 +72,36 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
   withholding (including two `04` taxes summed); several invoices give `file:1`, `file:2`; a
   `ds:Signature` child changes nothing; no `float` anywhere (the test passes `0.1` + `0.2` style text
   and checks exact `Decimal`s).
-- [ ] Implement `parse_facturae` for valid files, importing `defusedxml` as in §5.1. Extend
+  (Builder: the sibling `tests/ingestion/facturae_builders.py`.)
+- [x] Implement `parse_facturae` for valid files, importing `defusedxml` as in §5.1. Extend
   `tests/test_showcase_requirements.py` so `defusedxml` is among the checked runtime imports.
+  (Written together with RF5: the quarantine paths and the size cap are in place.)
 
 ## Task RF5 — Facturae reader: quarantine and security
 
 **Covers**: REQ-RF-12, REQ-RF-16, REQ-RF-17, REQ-RF-18, REQ-RF-31, §5.1, §5.2, §6
 
-- [ ] `tests/ingestion/test_facturae_reader.py`: every invoice-level reason of REQ-RF-17 (including
+- [x] `tests/ingestion/test_facturae_reader.py`: every invoice-level reason of REQ-RF-17 (including
   `multiple_vat_rates`, `missing_vat_tax`, `unsupported_tax_type:03`, `conflicting_iban`,
   `negative_amount` before rounding, `missing_field:vat_amount` when `TaxAmount` is absent), a file of
   three invoices whose middle one is bad, every file-level reason of REQ-RF-12, empty file.
-- [ ] `tests/ingestion/test_facturae_security.py`: the billion-laughs document (nine nested entities),
+- [x] `tests/ingestion/test_facturae_security.py`: the billion-laughs document (nine nested entities),
   an external DTD `SYSTEM "http://127.0.0.1/x.dtd"`, an entity-only DTD, a `file:///` external entity,
   a malformed document, a document over `MAX_FACTURAE_BYTES`; each returns `([], [record])` with the
   reason of REQ-RF-18 and does not expand or fetch anything (the test patches nothing and relies on the
   result being immediate); a source-text test that `facturae_reader.py` imports XML only from
   `defusedxml`.
-- [ ] Implement the quarantine paths and the size cap.
+- [x] Implement the quarantine paths and the size cap.
 
 ## Task RF6 — Sniffer and routers
 
 **Covers**: REQ-RF-01, REQ-RF-02, REQ-RF-31, §3
 
-- [ ] `tests/ingestion/test_sniffer.py`: every example of REQ-RF-01 (BOM, leading blank lines, prefix and
+- [x] `tests/ingestion/test_sniffer.py`: every example of REQ-RF-01 (BOM, leading blank lines, prefix and
   unprefixed root, `11,` CSV line, PDF, empty), arbitrary bytes never raise (Hypothesis); routers: a
   Facturae in `read_bank_statement`, a PDF in `read_invoices`, a JSON named `.txt`, a Norma 43 named
   `.csv`, `str` content, the exact `raw` messages, an empty file.
-- [ ] Implement `sniffer.py`.
+- [x] Implement `sniffer.py`.
 
 ## Task RF7 — Generator, samples, git attributes
 

@@ -86,7 +86,7 @@ def test_every_third_party_import_is_pinned_in_the_root_requirements() -> None:
             if top and top not in sys.stdlib_module_names and top not in FIRST_PARTY:
                 third_party.setdefault(top, set()).add(path.relative_to(REPO_ROOT).as_posix())
 
-    assert {"streamlit", "pandas", "pydantic", "numpy"} <= set(third_party)
+    assert {"streamlit", "pandas", "pydantic", "numpy", "defusedxml"} <= set(third_party)
     missing = {
         top: sorted(files)
         for top, files in third_party.items()
