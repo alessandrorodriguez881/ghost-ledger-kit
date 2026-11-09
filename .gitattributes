@@ -1,2 +1,6 @@
 # demo CSVs are byte-compared with the generator output; no autocrlf on Windows (DN-10)
 data/samples/phantom_demo/*.csv -text
+# Norma 43 (CRLF, ISO-8859-1) and Facturae demo files are byte-compared too (REQ-RF-27)
+data/samples/*.n43 -text
+data/samples/phantom_demo/*.n43 -text
+data/samples/phantom_demo/facturae/*.xml -text

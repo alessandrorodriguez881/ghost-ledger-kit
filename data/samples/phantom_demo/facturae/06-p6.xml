@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fe:Facturae xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:fe="http://www.facturae.gob.es/formato/Versiones/Facturaev3_2_2.xml">
+  <FileHeader>
+    <SchemaVersion>3.2.2</SchemaVersion>
+    <Modality>I</Modality>
+    <InvoiceIssuerType>EM</InvoiceIssuerType>
+    <Batch>
+      <BatchIdentifier>B00000068MO-2026-031</BatchIdentifier>
+      <InvoicesCount>1</InvoicesCount>
+      <TotalInvoicesAmount>
+        <TotalAmount>121.00</TotalAmount>
+      </TotalInvoicesAmount>
+      <TotalOutstandingAmount>
+        <TotalAmount>121.00</TotalAmount>
+      </TotalOutstandingAmount>
+      <TotalExecutableAmount>
+        <TotalAmount>121.00</TotalAmount>
+      </TotalExecutableAmount>
+      <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>
+    </Batch>
+  </FileHeader>
+  <Parties>
+    <SellerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>R</ResidenceTypeCode>
+        <TaxIdentificationNumber>B00000068</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>Material de Oficina Sierra Clara, S.L.</CorporateName>
+        <AddressInSpain>
+          <Address>Calle Ficticia 1</Address>
+          <PostCode>00000</PostCode>
+          <Town>Ciudad Ficticia</Town>
+          <Province>Provincia Ficticia</Province>
+          <CountryCode>ESP</CountryCode>
+        </AddressInSpain>
+      </LegalEntity>
+    </SellerParty>
+    <BuyerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>R</ResidenceTypeCode>
+        <TaxIdentificationNumber>B00009002</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>Compradora Ficticia Demo, S.L.</CorporateName>
+        <AddressInSpain>
+          <Address>Calle Ficticia 2</Address>
+          <PostCode>00000</PostCode>
+          <Town>Ciudad Ficticia</Town>
+          <Province>Provincia Ficticia</Province>
+          <CountryCode>ESP</CountryCode>
+        </AddressInSpain>
+      </LegalEntity>
+    </BuyerParty>
+  </Parties>
+  <Invoices>
+    <Invoice>
+      <InvoiceHeader>
+        <InvoiceNumber>MO-2026-031</InvoiceNumber>
+        <InvoiceDocumentType>FC</InvoiceDocumentType>
+        <InvoiceClass>OO</InvoiceClass>
+      </InvoiceHeader>
+      <InvoiceIssueData>
+        <IssueDate>2026-06-10</IssueDate>
+        <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>
+        <TaxCurrencyCode>EUR</TaxCurrencyCode>
+        <LanguageName>es</LanguageName>
+      </InvoiceIssueData>
+      <TaxesOutputs>
+        <Tax>
+          <TaxTypeCode>01</TaxTypeCode>
+          <TaxRate>21.00</TaxRate>
+          <TaxableBase>
+            <TotalAmount>100.00</TotalAmount>
+          </TaxableBase>
+          <TaxAmount>
+            <TotalAmount>21.00</TotalAmount>
+          </TaxAmount>
+        </Tax>
+      </TaxesOutputs>
+      <InvoiceTotals>
+        <TotalGrossAmount>100.00</TotalGrossAmount>
+        <TotalGrossAmountBeforeTaxes>100.00</TotalGrossAmountBeforeTaxes>
+        <TotalTaxOutputs>21.00</TotalTaxOutputs>
+        <TotalTaxesWithheld>0.00</TotalTaxesWithheld>
+        <InvoiceTotal>121.00</InvoiceTotal>
+        <TotalOutstandingAmount>121.00</TotalOutstandingAmount>
+        <TotalExecutableAmount>121.00</TotalExecutableAmount>
+      </InvoiceTotals>
+      <Items>
+        <InvoiceLine>
+          <ItemDescription>Synthetic demo goods and services</ItemDescription>
+          <Quantity>1.00</Quantity>
+          <UnitPriceWithoutTax>100.00</UnitPriceWithoutTax>
+          <TotalCost>100.00</TotalCost>
+          <GrossAmount>100.00</GrossAmount>
+          <TaxesOutputs>
+            <Tax>
+              <TaxTypeCode>01</TaxTypeCode>
+              <TaxRate>21.00</TaxRate>
+              <TaxableBase>
+                <TotalAmount>100.00</TotalAmount>
+              </TaxableBase>
+              <TaxAmount>
+                <TotalAmount>21.00</TotalAmount>
+              </TaxAmount>
+            </Tax>
+          </TaxesOutputs>
+        </InvoiceLine>
+      </Items>
+      <PaymentDetails>
+        <Installment>
+          <InstallmentDueDate>2026-07-10</InstallmentDueDate>
+          <InstallmentAmount>121.00</InstallmentAmount>
+          <PaymentMeans>04</PaymentMeans>
+          <AccountToBeCredited>
+            <IBAN>ES16 0049 1500 1500 4592 5926</IBAN>
+          </AccountToBeCredited>
+        </Installment>
+      </PaymentDetails>
+    </Invoice>
+  </Invoices>
+</fe:Facturae>

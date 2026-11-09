@@ -398,7 +398,11 @@ def render_norma43(rows, *, account=("9999", "0001", "0000000001"), mode=1,
 
 Zombie demo: `build_zombie_demo_n43(seed)` with `mode=3` and `sepa_descriptions={"Monthly subscription"}`.
 Phantom: `build_phantom_payments_n43(seed)` with `mode=1` and account `("9999", "0001", "0000000002")`.
-Opening balance 50.000,00 keeps every closing balance creditor in both demos (a test asserts it).
+Opening balance 50.000,00 keeps the zombie closing balance creditor; the phantom file opens with
+100.000,00 because its 45 clean payments depend on the seed and can total up to 98.009,55 (the
+closing balance stays creditor for any seed). A test asserts both for ten seeds. `render_norma43` is
+`render_norma43_lines` (the 80-character records, used by the property tests to build other layouts)
+joined and encoded.
 
 ### 8.3 Facturae writer
 
@@ -427,9 +431,17 @@ def render_facturae(supplier, invoices, *, buyer=BUYER) -> bytes    # UTF-8, LF
   `Installment` requires `InstallmentDueDate` (DN-RF-20). Those rows are clean-supplier rows, which
   already appear without an IBAN elsewhere in the series (style `""`) and raise no alert.
 - Amounts are written as the strings the rows hold (`"400.00"`). The tax rate is the row's rate text
-  with `.00` appended when it has no decimal point (`21` → `21.00`, `5.2` stays `5.2`); totals are the
-  row's `total`. The only sums are the three `Batch` totals, computed with `sum_amounts` from the
-  invoices' totals; the writer does no other arithmetic.
+  padded to the two decimals the schema's `DoubleTwoDecimalType` accepts (`21` → `21.00`, `5.2` →
+  `5.20`; the reader's canonical form turns both back into `21` and `5.2`); an amount or rate with more
+  decimals raises `ValueError`. Totals are the row's `total`. The sums are computed with `sum_amounts`
+  and written with two decimals: the three `Batch` totals, and for an invoice with several rows (the
+  MULTI_RATE case) the gross, tax and invoice totals; the writer does no other arithmetic.
+- Mandatory schema elements are always written: `FileHeader/Batch` with its six children, a
+  `TaxIdentification` (person type, residence `R`, number) and an `AddressInSpain` (fictional street,
+  post code `00000`, town, province, `ESP`) for both parties, `InvoiceDocumentType`/`InvoiceClass`,
+  `TaxCurrencyCode`/`LanguageName`, every required `InvoiceTotals` child, and per `InvoiceLine` the
+  description, quantity `1.00`, unit price, total cost, gross amount and a `TaxesOutputs/Tax`.
+  `TaxesWithheld` of the line is optional and not written.
 - File names `<kk>-<case>.xml` (REQ-RF-26); `kk` is `k:02d`.
 
 ### 8.4 Wiring
@@ -473,12 +485,15 @@ requirements.
 
 ### 9.1 Hypothesis (max_examples = 200)
 
-Strategies in `rf_strategies.py`: `texts` (Latin-1 printable, no leading/trailing/double blanks, 1-76
-characters, not starting with `IBAN `), `amounts` (0.00 to 999 999 999 999.99, two places), `days`
+Strategies in `rf_strategies.py`: `texts` (ASCII punctuation, letters, digits and the Latin-1 letters
+U+00C0..U+00FF, no leading/trailing/double blanks, not starting with `IBAN `; U+0080..U+00BF are left
+out because those Latin-1 bytes are UTF-8 continuation bytes and a Latin-1 file could then be read as
+UTF-8, DN-RF-02), `amounts` (0.00 to 99 999 999 999.99, two places; a file has at most eight rows so
+the sums fit the 14-digit totals of a record 33), `days`
 (2000-01-01 to 2099-12-31), `rows` (day, amount, flow, counterparty, description, optional iban),
-`invoices` (rates from {0, 4, 5.2, 10, 21}, amounts from the same, `total` kept consistent by the
-writer's inputs), and a `layout` strategy choosing CRLF/LF/CR, trailing spaces kept or removed, UTF-8 or
-Latin-1.
+`invoices` (rates from {0, 4, 5.2, 10, 21}, VAT, surcharge, withholding and `total` computed with the
+money helpers so each record is consistent), and a `layout` strategy choosing CRLF/LF/CR, trailing
+spaces kept or removed, a final line ending or not, and Latin-1, UTF-8 or UTF-8 with BOM.
 
 1. **Round trip N43.** `parse_norma43(render(rows))` returns the rows' fields (ids ignored; random
    `uuid4` ids are expected) and no quarantine; also under every `layout`.

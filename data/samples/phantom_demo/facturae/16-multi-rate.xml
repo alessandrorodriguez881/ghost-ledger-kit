@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fe:Facturae xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:fe="http://www.facturae.gob.es/formato/Versiones/Facturaev3_2_2.xml">
+  <FileHeader>
+    <SchemaVersion>3.2.2</SchemaVersion>
+    <Modality>I</Modality>
+    <InvoiceIssuerType>EM</InvoiceIssuerType>
+    <Batch>
+      <BatchIdentifier>B00000167OB-2026-008</BatchIdentifier>
+      <InvoicesCount>1</InvoicesCount>
+      <TotalInvoicesAmount>
+        <TotalAmount>1188.00</TotalAmount>
+      </TotalInvoicesAmount>
+      <TotalOutstandingAmount>
+        <TotalAmount>1188.00</TotalAmount>
+      </TotalOutstandingAmount>
+      <TotalExecutableAmount>
+        <TotalAmount>1188.00</TotalAmount>
+      </TotalExecutableAmount>
+      <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>
+    </Batch>
+  </FileHeader>
+  <Parties>
+    <SellerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>R</ResidenceTypeCode>
+        <TaxIdentificationNumber>B00000167</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>Obras y Reformas Atlántico, S.L.</CorporateName>
+        <AddressInSpain>
+          <Address>Calle Ficticia 1</Address>
+          <PostCode>00000</PostCode>
+          <Town>Ciudad Ficticia</Town>
+          <Province>Provincia Ficticia</Province>
+          <CountryCode>ESP</CountryCode>
+        </AddressInSpain>
+      </LegalEntity>
+    </SellerParty>
+    <BuyerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>R</ResidenceTypeCode>
+        <TaxIdentificationNumber>B00009002</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>Compradora Ficticia Demo, S.L.</CorporateName>
+        <AddressInSpain>
+          <Address>Calle Ficticia 2</Address>
+          <PostCode>00000</PostCode>
+          <Town>Ciudad Ficticia</Town>
+          <Province>Provincia Ficticia</Province>
+          <CountryCode>ESP</CountryCode>
+        </AddressInSpain>
+      </LegalEntity>
+    </BuyerParty>
+  </Parties>
+  <Invoices>
+    <Invoice>
+      <InvoiceHeader>
+        <InvoiceNumber>OB-2026-008</InvoiceNumber>
+        <InvoiceDocumentType>FC</InvoiceDocumentType>
+        <InvoiceClass>OO</InvoiceClass>
+      </InvoiceHeader>
+      <InvoiceIssueData>
+        <IssueDate>2026-09-30</IssueDate>
+        <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>
+        <TaxCurrencyCode>EUR</TaxCurrencyCode>
+        <LanguageName>es</LanguageName>
+      </InvoiceIssueData>
+      <TaxesOutputs>
+        <Tax>
+          <TaxTypeCode>01</TaxTypeCode>
+          <TaxRate>21.00</TaxRate>
+          <TaxableBase>
+            <TotalAmount>800.00</TotalAmount>
+          </TaxableBase>
+          <TaxAmount>
+            <TotalAmount>168.00</TotalAmount>
+          </TaxAmount>
+        </Tax>
+        <Tax>
+          <TaxTypeCode>01</TaxTypeCode>
+          <TaxRate>10.00</TaxRate>
+          <TaxableBase>
+            <TotalAmount>200.00</TotalAmount>
+          </TaxableBase>
+          <TaxAmount>
+            <TotalAmount>20.00</TotalAmount>
+          </TaxAmount>
+        </Tax>
+      </TaxesOutputs>
+      <InvoiceTotals>
+        <TotalGrossAmount>1000.00</TotalGrossAmount>
+        <TotalGrossAmountBeforeTaxes>1000.00</TotalGrossAmountBeforeTaxes>
+        <TotalTaxOutputs>188.00</TotalTaxOutputs>
+        <TotalTaxesWithheld>0.00</TotalTaxesWithheld>
+        <InvoiceTotal>1188.00</InvoiceTotal>
+        <TotalOutstandingAmount>1188.00</TotalOutstandingAmount>
+        <TotalExecutableAmount>1188.00</TotalExecutableAmount>
+      </InvoiceTotals>
+      <Items>
+        <InvoiceLine>
+          <ItemDescription>Synthetic demo goods and services</ItemDescription>
+          <Quantity>1.00</Quantity>
+          <UnitPriceWithoutTax>800.00</UnitPriceWithoutTax>
+          <TotalCost>800.00</TotalCost>
+          <GrossAmount>800.00</GrossAmount>
+          <TaxesOutputs>
+            <Tax>
+              <TaxTypeCode>01</TaxTypeCode>
+              <TaxRate>21.00</TaxRate>
+              <TaxableBase>
+                <TotalAmount>800.00</TotalAmount>
+              </TaxableBase>
+              <TaxAmount>
+                <TotalAmount>168.00</TotalAmount>
+              </TaxAmount>
+            </Tax>
+          </TaxesOutputs>
+        </InvoiceLine>
+        <InvoiceLine>
+          <ItemDescription>Synthetic demo goods and services</ItemDescription>
+          <Quantity>1.00</Quantity>
+          <UnitPriceWithoutTax>200.00</UnitPriceWithoutTax>
+          <TotalCost>200.00</TotalCost>
+          <GrossAmount>200.00</GrossAmount>
+          <TaxesOutputs>
+            <Tax>
+              <TaxTypeCode>01</TaxTypeCode>
+              <TaxRate>10.00</TaxRate>
+              <TaxableBase>
+                <TotalAmount>200.00</TotalAmount>
+              </TaxableBase>
+              <TaxAmount>
+                <TotalAmount>20.00</TotalAmount>
+              </TaxAmount>
+            </Tax>
+          </TaxesOutputs>
+        </InvoiceLine>
+      </Items>
+      <PaymentDetails>
+        <Installment>
+          <InstallmentDueDate>2026-10-30</InstallmentDueDate>
+          <InstallmentAmount>1188.00</InstallmentAmount>
+          <PaymentMeans>04</PaymentMeans>
+          <AccountToBeCredited>
+            <IBAN>ES07 0081 7000 9401 2246 9136</IBAN>
+          </AccountToBeCredited>
+        </Installment>
+      </PaymentDetails>
+    </Invoice>
+  </Invoices>
+</fe:Facturae>

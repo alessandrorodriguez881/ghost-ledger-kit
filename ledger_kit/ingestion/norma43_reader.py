@@ -691,7 +691,7 @@ def parse_norma43(
     *,
     source_file: str | None = None,
 ) -> IngestionResult[Transaction]:
-    """Parse a Norma 43 statement; returns (transactions, quarantined), never raises on bad input."""
+    """Parse a Norma 43 statement into (transactions, quarantined); never raises on bad input."""
     content, default_name = _read_source(source)
     file_name = source_file or default_name
     text = _decode(content)

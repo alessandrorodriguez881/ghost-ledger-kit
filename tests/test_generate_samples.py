@@ -320,17 +320,20 @@ def test_main_bank_mode_writes_output_file(tmp_path):
 
 
 def test_phantom_demo_mode_is_implemented_by_the_phantom_invoices_spec(capsys, tmp_path):
-    """phantom-demo is no longer a stub: it writes the three demo files (Task P18)."""
+    """phantom-demo is no longer a stub: it writes the demo files (Task P18, real formats RF7)."""
     assert gen.main(["--mode", "phantom-demo", "--out-dir", str(tmp_path)]) == 0
-    written = sorted(p.name for p in (tmp_path / "phantom_demo").iterdir())
-    assert written == ["invoices.csv", "payments.csv", "suppliers.csv"]
+    demo = tmp_path / "phantom_demo"
+    written = sorted(p.name for p in demo.iterdir())
+    assert written == ["facturae", "invoices.csv", "payments.csv", "payments.n43", "suppliers.csv"]
+    assert len(list((demo / "facturae").iterdir())) == 25
     assert "phantom_demo" in capsys.readouterr().out
 
 
 def test_zombie_demo_mode_is_implemented_by_the_zombie_subscriptions_spec(capsys, tmp_path):
-    """zombie-demo is no longer a stub: it writes the demo statement (Task Z19)."""
+    """zombie-demo is no longer a stub: it writes the demo statement (Task Z19, RF7)."""
     assert gen.main(["--mode", "zombie-demo", "--out-dir", str(tmp_path)]) == 0
-    assert [p.name for p in tmp_path.iterdir()] == ["zombie_demo_statement.csv"]
+    written = sorted(p.name for p in tmp_path.iterdir())
+    assert written == ["zombie_demo_statement.csv", "zombie_demo_statement.n43"]
     assert "zombie_demo_statement.csv" in capsys.readouterr().out
 
 

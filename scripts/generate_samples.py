@@ -17,6 +17,12 @@ Modes (``--mode``):
   amounts, dates and payment delays of the nine clean suppliers, so the same seed always gives
   the same bytes.
 
+Both demo modes also write the real-format twins of the same rows (real-formats design section 8):
+a Norma 43 statement (``zombie_demo_statement.n43``, ``phantom_demo/payments.n43``; ISO-8859-1,
+CRLF, 80-character records) and one Facturae 3.2.2 file per phantom supplier
+(``phantom_demo/facturae/<kk>-<case>.xml``; UTF-8, LF). They are rendered from the very rows of
+the CSV files, so the CSV bytes do not change.
+
 All data is synthetic: fictional names, IBANs with a valid ISO 13616 mod-97 checksum but wrong
 Spanish national check digits, tax ids with a wrong control character, no e-mail or phone.
 Money is never computed here: amounts are written as strings, VAT and totals come from
@@ -30,19 +36,29 @@ import csv
 import io
 import json
 import random
+import re
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import NamedTuple
+from xml.sax.saxutils import escape
 
 # `python scripts/generate_samples.py` puts only scripts/ on sys.path: add the repository root.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from ledger_kit.utils.money import format_as_european, net_total, percent_of  # noqa: E402
+from ledger_kit.utils.money import (  # noqa: E402
+    balance_after,
+    format_as_european,
+    implied_digits,
+    net_total,
+    percent_of,
+    round_to_cents,
+    sum_amounts,
+)
 
 DEFAULT_SEED: int = 42
 DEFAULT_OUT_DIR: Path = REPO_ROOT / "data" / "samples"
@@ -785,12 +801,15 @@ def _invoice_record(
     vat: str = "",
     surcharge_rate: str = "",
     withholding: str = "",
+    withholding_rate: str = "",
     due: str | None = None,
 ) -> dict[str, str]:
     """One invoice row as column -> text; VAT, surcharge and total come from the money helpers.
 
     `vat` overrides the computed VAT (the wrong amount of P7), `withholding` is written as given,
-    `due=None` means issue + 30 days and `due=""` leaves the cell empty.
+    `due=None` means issue + 30 days and `due=""` leaves the cell empty. The two rates are kept
+    under extra keys (`surcharge_rate`, `withholding_rate`) that the CSV writer ignores: the
+    Facturae writer needs a rate next to each amount and must not invert an amount into a rate.
     """
     base_amount = Decimal(base)
     vat_amount = Decimal(vat) if vat else percent_of(base_amount, Decimal(rate))
@@ -813,6 +832,8 @@ def _invoice_record(
         "total": str(total),
         "currency": "EUR",
         "iban": _iban_cell(supplier, iban),
+        "surcharge_rate": surcharge_rate,
+        "withholding_rate": withholding_rate,
     }
 
 
@@ -842,8 +863,16 @@ def _planted_invoices() -> list[dict[str, str]]:
         _plant("P6", "MO-2026-031", date(2026, 6, 10), "100.00", "21"),
         # P7: VAT amount 12.10 instead of 21.00
         _plant("P7", "IR-2026-044", date(2026, 10, 13), "100.00", "21", vat="12.10"),
-        # P8: withholding 150.00
-        _plant("P8", "AG-2026-007", date(2026, 7, 1), "1000.00", "21", withholding="150.00"),
+        # P8: withholding 150.00 (15 %)
+        _plant(
+            "P8",
+            "AG-2026-007",
+            date(2026, 7, 1),
+            "1000.00",
+            "21",
+            withholding="150.00",
+            withholding_rate="15",
+        ),
         # P9: paid twice
         _plant("P9", "R-2026-009", date(2026, 7, 14), "500.00", "21"),
         # P10: same total on four dates 6, 7 and 8 days apart
@@ -956,20 +985,37 @@ def _clean_rows(rng: random.Random) -> tuple[list[dict[str, str]], list[BankRow]
     return invoices, payments
 
 
-def build_phantom_demo(seed: int = DEFAULT_SEED) -> dict[str, str]:
-    """{"suppliers.csv": text, "invoices.csv": text, "payments.csv": text} for `seed`."""
+class PhantomDemoRows(NamedTuple):
+    """The rows behind every phantom-demo file: invoice records and the sorted payments."""
+
+    invoices: list[dict[str, str]]
+    payments: list[BankRow]
+
+
+def build_phantom_demo_rows(seed: int = DEFAULT_SEED) -> PhantomDemoRows:
+    """The invoice records and sorted payments of the phantom demo for `seed`."""
     rng = random.Random(seed)
     clean_invoices, clean_payments = _clean_rows(rng)
     invoices = [*_planted_invoices(), *clean_invoices]
     payments = [*_planted_payments(), *_unrelated_payments(), *clean_payments]
     payments.sort(key=lambda r: (r.day, r.counterparty, Decimal(r.amount)))
+    return PhantomDemoRows(invoices, payments)
+
+
+def render_phantom_demo_csv(rows: PhantomDemoRows) -> dict[str, str]:
+    """{"suppliers.csv": text, "invoices.csv": text, "payments.csv": text} for the given rows."""
     supplier_rows = [[s.name, s.tax_id, format_iban(s.iban)] for s in PHANTOM_SUPPLIERS]
-    invoice_rows = [[r[column] for column in INVOICE_COLUMNS] for r in invoices]
+    invoice_rows = [[r[column] for column in INVOICE_COLUMNS] for r in rows.invoices]
     return {
         "suppliers.csv": _csv_text(SUPPLIER_COLUMNS, supplier_rows),
         "invoices.csv": _csv_text(INVOICE_COLUMNS, invoice_rows),
-        "payments.csv": render_bank_csv(payments, "plain"),
+        "payments.csv": render_bank_csv(rows.payments, "plain"),
     }
+
+
+def build_phantom_demo(seed: int = DEFAULT_SEED) -> dict[str, str]:
+    """{"suppliers.csv": text, "invoices.csv": text, "payments.csv": text} for `seed`."""
+    return render_phantom_demo_csv(build_phantom_demo_rows(seed))
 
 
 def write_phantom_demo(out_dir: Path, seed: int = DEFAULT_SEED) -> None:
@@ -979,23 +1025,582 @@ def write_phantom_demo(out_dir: Path, seed: int = DEFAULT_SEED) -> None:
         (out_dir / name).write_bytes(text.encode("utf-8"))
 
 
+# --- real formats: Norma 43 writer (real-formats design section 8.2) -----------------------------
+ZOMBIE_DEMO_N43_FILE = "zombie_demo_statement.n43"
+PHANTOM_PAYMENTS_N43_FILE = "payments.n43"
+PHANTOM_FACTURAE_DIR = "facturae"
+
+N43_RECORD_LENGTH = 80
+N43_ENCODING = "iso-8859-1"  # the character set of the standard; other characters raise
+N43_EOL = "\r\n"
+N43_DEMO_ACCOUNT: tuple[str, str, str] = ("9999", "0001", "0000000001")  # bank, branch, account
+N43_PHANTOM_ACCOUNT: tuple[str, str, str] = ("9999", "0001", "0000000002")
+N43_HOLDER = "TITULAR FICTICIO DEMO"
+N43_CURRENCY = "978"  # EUR (AEB Annex 2)
+N43_OPENING_BALANCE = Decimal("50000.00")  # creditor; keeps the zombie closing balance creditor
+# The phantom payments debit less than 98.000,00 more than they credit for any seed (45 clean
+# payments of at most 2.177,99 plus the fixed ones), so this keeps its closing balance creditor.
+N43_PHANTOM_OPENING_BALANCE = Decimal("100000.00")
+N43_END_NINES = "9" * 18
+N43_FIRST_YEAR = 2000  # dates are YYMMDD with the year 2000 + YY
+N43_LAST_YEAR = 2099
+N43_OWN_CONCEPT = "000"
+N43_DOCUMENT = "0000000000"
+N43_REFERENCE = "000000000000"
+N43_INFORMATION_MODES: tuple[int, ...] = (1, 2, 3)
+N43_SEPA_MODE = 3  # SEPA direct debits are only read in information mode 3
+N43_SEPA_SCHEME = "CORE"
+N43_SEPA_CONCEPT = "03"  # direct debits and bills
+N43_SEPA_CREDITOR_PREFIX = "ES00ZZZ"  # check digits 00: never a real creditor identifier
+N43_SEPA_CIF_BASE = 500  # creditor n uses make_cif(500 + n)
+N43_SEPA_MANDATE_PREFIX = "MND"
+N43_IBAN_PREFIX = "IBAN "  # a free record 23 starting with this carries the counterparty IBAN
+N43_TRANSFER_PREFIX = "Transfer"
+N43_TRANSFER_CONCEPT = "04"
+N43_FALLBACK_CONCEPT = "99"
+# Common concept (Annex 2) by exact description; other descriptions starting "Transfer" are 04.
+N43_CONCEPT_BY_DESCRIPTION: dict[str, str] = {
+    ZOMBIE_SUBSCRIPTION: "03",
+    "Payroll": "15",
+    PHANTOM_DEBIT_NOTE: "04",
+    "Receipt": "04",
+    "Card purchase": "12",
+}
+
+
+def n43_common_concept(description: str) -> str:
+    """Common concept of a row: the table first, then 04 for any 'Transfer...', else 99."""
+    if description in N43_CONCEPT_BY_DESCRIPTION:
+        return N43_CONCEPT_BY_DESCRIPTION[description]
+    if description.startswith(N43_TRANSFER_PREFIX):
+        return N43_TRANSFER_CONCEPT
+    return N43_FALLBACK_CONCEPT
+
+
+def _n43_date(day: date) -> str:
+    """YYMMDD of a day; a year outside 2000-2099 cannot be written."""
+    if not N43_FIRST_YEAR <= day.year <= N43_LAST_YEAR:
+        raise ValueError(f"year {day.year} cannot be written as YY")
+    return f"{day.year % 100:02d}{day.month:02d}{day.day:02d}"
+
+
+def _n43_record(code: str, *fields: tuple[int, int, str]) -> str:
+    """An 80-character record: `code` at 1-2 and each (start, end, text) at its 1-based span."""
+    chars = [" "] * N43_RECORD_LENGTH
+    chars[0:2] = list(code)
+    for start, end, text in fields:
+        width = end - start + 1
+        if len(text) > width:
+            raise ValueError(f"{text!r} does not fit positions {start}-{end}")
+        if not text.isprintable():
+            raise ValueError(f"{text!r} holds a control or non-printable character")
+        text.encode(N43_ENCODING)  # raises UnicodeEncodeError (a ValueError) beyond Latin-1
+        chars[start - 1 : end] = list(text.ljust(width))
+    return "".join(chars)
+
+
+def _n43_sepa_identifiers(number: int) -> tuple[str, str]:
+    """Creditor identifier and mandate of the SEPA counterparty `number` (1-based)."""
+    creditor_id = f"{N43_SEPA_CREDITOR_PREFIX}{make_cif(N43_SEPA_CIF_BASE + number)}"
+    return creditor_id, f"{N43_SEPA_MANDATE_PREFIX}{number:04d}"
+
+
+def _n43_complements(row: BankRow, sepa: tuple[str, str] | None) -> list[str]:
+    """The record-23 lines of a row: SEPA direct debit, or free counterparty/description/IBAN."""
+    if sepa is not None:
+        creditor_id, mandate = sepa
+        return [
+            _n43_record("23", (3, 4, "01"), (5, 8, N43_SEPA_SCHEME), (9, 78, row.counterparty)),
+            _n43_record("23", (3, 4, "02"), (5, 39, creditor_id), (40, 74, mandate)),
+            _n43_record("23", (3, 4, "03"), (13, 80, row.description)),
+        ]
+    if not row.counterparty or not row.description:
+        raise ValueError("counterparty and description must not be empty")
+    texts = [row.counterparty, row.description]
+    if row.iban:
+        texts.append(N43_IBAN_PREFIX + row.iban)
+    return [
+        _n43_record("23", (3, 4, f"{number:02d}"), (5, 80, text))
+        for number, text in enumerate(texts, start=1)
+    ]
+
+
+def render_norma43_lines(
+    rows: Sequence[BankRow],
+    *,
+    account: tuple[str, str, str] = N43_DEMO_ACCOUNT,
+    mode: int = 1,
+    sepa_descriptions: Collection[str] = frozenset(),
+    opening: Decimal = N43_OPENING_BALANCE,
+) -> list[str]:
+    """The 80-character records of a one-account file: 11, a 22 and its 23s per row, 33, 88."""
+    if not rows:
+        raise ValueError("a Norma 43 file needs at least one row")
+    if mode not in N43_INFORMATION_MODES:
+        raise ValueError(f"unknown information mode {mode!r}")
+    if sepa_descriptions and mode != N43_SEPA_MODE:
+        raise ValueError("SEPA direct debits need information mode 3")
+    bank, branch, number = account
+    days = [row.day for row in rows]
+    header = _n43_record(
+        "11",
+        (3, 6, bank),
+        (7, 10, branch),
+        (11, 20, number),
+        (21, 26, _n43_date(min(days))),
+        (27, 32, _n43_date(max(days))),
+        (33, 33, "2"),
+        (34, 47, implied_digits(opening)),
+        (48, 50, N43_CURRENCY),
+        (51, 51, str(mode)),
+        (52, 77, N43_HOLDER),
+    )
+    lines = [header]
+    debits: list[Decimal] = []
+    credits: list[Decimal] = []
+    sepa_numbers: dict[str, int] = {}
+    for row in rows:
+        is_debit = row.amount.startswith("-")
+        magnitude = Decimal(row.amount.removeprefix("-"))
+        (debits if is_debit else credits).append(magnitude)
+        concept = n43_common_concept(row.description)
+        sepa: tuple[str, str] | None = None
+        if row.description in sepa_descriptions:
+            creditor_number = sepa_numbers.setdefault(row.counterparty, len(sepa_numbers) + 1)
+            sepa = _n43_sepa_identifiers(creditor_number)
+            concept = N43_SEPA_CONCEPT
+        day = _n43_date(row.day)
+        movement = _n43_record(
+            "22",
+            (7, 10, branch),
+            (11, 16, day),
+            (17, 22, day),
+            (23, 24, concept),
+            (25, 27, N43_OWN_CONCEPT),
+            (28, 28, "1" if is_debit else "2"),
+            (29, 42, implied_digits(magnitude)),
+            (43, 52, N43_DOCUMENT),
+            (53, 64, N43_REFERENCE),
+        )
+        lines.append(movement)
+        lines.extend(_n43_complements(row, sepa))
+
+    debit_total = sum_amounts(debits)
+    credit_total = sum_amounts(credits)
+    closing = balance_after(opening, credit_total, debit_total)
+    trailer = _n43_record(
+        "33",
+        (3, 6, bank),
+        (7, 10, branch),
+        (11, 20, number),
+        (21, 25, f"{len(debits):05d}"),
+        (26, 39, implied_digits(debit_total)),
+        (40, 44, f"{len(credits):05d}"),
+        (45, 58, implied_digits(credit_total)),
+        (59, 59, "2" if closing >= 0 else "1"),
+        (60, 73, implied_digits(abs(closing))),
+        (74, 76, N43_CURRENCY),
+    )
+    lines.append(trailer)
+    lines.append(_n43_record("88", (3, 20, N43_END_NINES), (21, 26, f"{len(lines):06d}")))
+    return lines
+
+
+def render_norma43(
+    rows: Sequence[BankRow],
+    *,
+    account: tuple[str, str, str] = N43_DEMO_ACCOUNT,
+    mode: int = 1,
+    sepa_descriptions: Collection[str] = frozenset(),
+    opening: Decimal = N43_OPENING_BALANCE,
+) -> bytes:
+    """A one-account Norma 43 file: ISO-8859-1, CRLF after every record, rows in order."""
+    lines = render_norma43_lines(
+        rows, account=account, mode=mode, sepa_descriptions=sepa_descriptions, opening=opening
+    )
+    return (N43_EOL.join(lines) + N43_EOL).encode(N43_ENCODING)
+
+
+def build_zombie_demo_n43(seed: int = DEFAULT_SEED) -> bytes:
+    """The zombie demo statement as Norma 43: mode 3, 'Monthly subscription' as SEPA debits."""
+    return render_norma43(
+        build_zombie_demo_rows(seed),
+        mode=N43_SEPA_MODE,
+        sepa_descriptions=frozenset({ZOMBIE_SUBSCRIPTION}),
+    )
+
+
+def build_phantom_payments_n43(seed: int = DEFAULT_SEED) -> bytes:
+    """The phantom demo payments as Norma 43: mode 1, the IBAN in a free record 23."""
+    return render_norma43(
+        build_phantom_demo_rows(seed).payments,
+        account=N43_PHANTOM_ACCOUNT,
+        opening=N43_PHANTOM_OPENING_BALANCE,
+    )
+
+
+# --- real formats: Facturae 3.2.2 writer (real-formats design section 8.3) ----------------------
+FACTURAE_NAMESPACE = "http://www.facturae.gob.es/formato/Versiones/Facturaev3_2_2.xml"
+DSIG_NAMESPACE = "http://www.w3.org/2000/09/xmldsig#"
+FACTURAE_VERSION = "3.2.2"
+FACTURAE_ISSUER_TYPE = "EM"  # the issuer itself (emisor) sends the file
+FACTURAE_DOCUMENT_TYPE = "FC"  # complete invoice
+FACTURAE_INVOICE_CLASS = "OO"  # original
+FACTURAE_LANGUAGE = "es"
+FACTURAE_VAT_CODE = "01"  # IVA
+FACTURAE_IRPF_CODE = "04"  # IRPF (withholding)
+FACTURAE_PAYMENT_MEANS = "04"  # transfer
+FACTURAE_PERSON_CODE = "F"  # natural person; companies use "J"
+FACTURAE_COMPANY_CODE = "J"
+FACTURAE_RESIDENCE_CODE = "R"  # resident in Spain
+FACTURAE_QUANTITY = "1.00"
+FACTURAE_LINE_DESCRIPTION = "Synthetic demo goods and services"
+# One fictional address for every party: post code 00000 and a made-up town exist nowhere.
+FACTURAE_POST_CODE = "00000"
+FACTURAE_TOWN = "Ciudad Ficticia"
+FACTURAE_PROVINCE = "Provincia Ficticia"
+FACTURAE_COUNTRY = "ESP"
+FACTURAE_SELLER_STREET = "Calle Ficticia 1"
+FACTURAE_BUYER_STREET = "Calle Ficticia 2"
+FACTURAE_BUYER_CIF_NUMBER = 900
+FACTURAE_INDENT = "  "
+
+_AMOUNT_TEXT = re.compile(r"\d+\.\d{2}")
+_RATE_TEXT = re.compile(r"\d+(\.\d{1,2})?")
+_CURRENCY_TEXT = re.compile(r"[A-Z]{3}")
+
+
+class FacturaeParty(NamedTuple):
+    """A seller or buyer: a company (CorporateName) or a person (Name + FirstSurname)."""
+
+    name: str
+    tax_id: str
+    person: bool
+
+
+FACTURAE_BUYER = FacturaeParty(
+    "Compradora Ficticia Demo, S.L.", make_cif(FACTURAE_BUYER_CIF_NUMBER), False
+)
+
+Xml = list[str]  # the lines of an element, relative indentation only
+
+
+def _el(name: str, text: str) -> Xml:
+    """A leaf element on one line; the text is XML-escaped."""
+    return [f"<{name}>{escape(text)}</{name}>"]
+
+
+def _wrap(name: str, *children: Xml) -> Xml:
+    """An element holding `children`, each line indented one level."""
+    lines = [f"<{name}>"]
+    for child in children:
+        lines.extend(f"{FACTURAE_INDENT}{line}" for line in child)
+    lines.append(f"</{name}>")
+    return lines
+
+
+def _amount_el(name: str, text: str) -> Xml:
+    """An `AmountType` element: ``<name><TotalAmount>text</TotalAmount></name>``."""
+    return _wrap(name, _el("TotalAmount", text))
+
+
+def _amount_text(value: str) -> str:
+    """`value` when it is a non-negative amount with exactly two decimals, else ValueError."""
+    if _AMOUNT_TEXT.fullmatch(value) is None:
+        raise ValueError(f"not an amount with two decimals: {value!r}")
+    return value
+
+
+def _rate_text(value: str) -> str:
+    """A rate with exactly two decimals ('21' -> '21.00', '5.2' -> '5.20'), else ValueError."""
+    if _RATE_TEXT.fullmatch(value) is None:
+        raise ValueError(f"not a rate with at most two decimals: {value!r}")
+    whole, _, fraction = value.partition(".")
+    return f"{whole}.{fraction.ljust(2, '0')}"
+
+
+def _two_places(value: Decimal) -> str:
+    """A sum written with exactly two decimals (round-half-up, plain notation)."""
+    return format(round_to_cents(value), "f")
+
+
+def _sum_of(group: Sequence[Mapping[str, str]], key: str) -> Decimal:
+    """Exact sum of the amounts under `key` of the records that have one."""
+    return sum_amounts(Decimal(_amount_text(record[key])) for record in group if record.get(key))
+
+
+def _invoice_key(record: Mapping[str, str]) -> tuple[str, str]:
+    """The (number, issue date) pair that identifies an invoice in a file."""
+    return record["invoice_number"], record["issue_date"]
+
+
+def facturae_invoice_groups(
+    records: Sequence[Mapping[str, str]],
+) -> list[list[Mapping[str, str]]]:
+    """Group records into invoices: same number and issue date, all rates different, share one.
+
+    A repeated invoice (same number, date and rate) stays a separate invoice, like a duplicate.
+    """
+    groups: list[list[Mapping[str, str]]] = []
+    for record in records:
+        key = _invoice_key(record)
+        for group in groups:
+            rates = {item["vat_rate"] for item in group}
+            if _invoice_key(group[0]) == key and record["vat_rate"] not in rates:
+                group.append(record)
+                break
+        else:
+            groups.append([record])
+    return groups
+
+
+def facturae_file_name(supplier: PhantomSupplier) -> str:
+    """`<kk>-<case>.xml`: the two-digit position, the case lower-cased with '_' as '-'."""
+    return f"{supplier.k:02d}-{supplier.case.lower().replace('_', '-')}.xml"
+
+
+def _facturae_address(street: str) -> Xml:
+    """AddressInSpain in schema order: Address, PostCode, Town, Province, CountryCode."""
+    return _wrap(
+        "AddressInSpain",
+        _el("Address", street),
+        _el("PostCode", FACTURAE_POST_CODE),
+        _el("Town", FACTURAE_TOWN),
+        _el("Province", FACTURAE_PROVINCE),
+        _el("CountryCode", FACTURAE_COUNTRY),
+    )
+
+
+def _facturae_party(tag: str, party: FacturaeParty, street: str) -> Xml:
+    """SellerParty or BuyerParty: TaxIdentification, then LegalEntity or Individual."""
+    person_code = FACTURAE_PERSON_CODE if party.person else FACTURAE_COMPANY_CODE
+    identification = _wrap(
+        "TaxIdentification",
+        _el("PersonTypeCode", person_code),
+        _el("ResidenceTypeCode", FACTURAE_RESIDENCE_CODE),
+        _el("TaxIdentificationNumber", party.tax_id),
+    )
+    address = _facturae_address(street)
+    if party.person:
+        name, _, surname = party.name.partition(" ")
+        if not name or not surname.strip():
+            raise ValueError(f"a person needs a name and a surname: {party.name!r}")
+        identity = _wrap("Individual", _el("Name", name), _el("FirstSurname", surname), address)
+    else:
+        identity = _wrap("LegalEntity", _el("CorporateName", party.name), address)
+    return _wrap(tag, identification, identity)
+
+
+def _facturae_tax(record: Mapping[str, str]) -> Xml:
+    """One TaxesOutputs/Tax: type, rate, base, amount and, when present, the surcharge."""
+    children = [
+        _el("TaxTypeCode", FACTURAE_VAT_CODE),
+        _el("TaxRate", _rate_text(record["vat_rate"])),
+        _amount_el("TaxableBase", _amount_text(record["base_amount"])),
+        _amount_el("TaxAmount", _amount_text(record["vat_amount"])),
+    ]
+    if record.get("surcharge_amount"):
+        rate = record.get("surcharge_rate", "")
+        if not rate:
+            raise ValueError("a surcharge amount needs its surcharge rate")
+        surcharge = _amount_text(record["surcharge_amount"])
+        children.append(_el("EquivalenceSurcharge", _rate_text(rate)))
+        children.append(_amount_el("EquivalenceSurchargeAmount", surcharge))
+    return _wrap("Tax", *children)
+
+
+def _facturae_withheld(record: Mapping[str, str]) -> Xml:
+    """One TaxesWithheld/Tax (IRPF): type, rate, base and amount."""
+    rate = record.get("withholding_rate", "")
+    if not rate:
+        raise ValueError("a withholding amount needs its withholding rate")
+    return _wrap(
+        "Tax",
+        _el("TaxTypeCode", FACTURAE_IRPF_CODE),
+        _el("TaxRate", _rate_text(rate)),
+        _amount_el("TaxableBase", _amount_text(record["base_amount"])),
+        _amount_el("TaxAmount", _amount_text(record["withholding_amount"])),
+    )
+
+
+def _facturae_line(record: Mapping[str, str]) -> Xml:
+    """One InvoiceLine for one tax entry: a single unit priced at the taxable base."""
+    base = _amount_text(record["base_amount"])
+    return _wrap(
+        "InvoiceLine",
+        _el("ItemDescription", FACTURAE_LINE_DESCRIPTION),
+        _el("Quantity", FACTURAE_QUANTITY),
+        _el("UnitPriceWithoutTax", base),
+        _el("TotalCost", base),
+        _el("GrossAmount", base),
+        _wrap("TaxesOutputs", _facturae_tax(record)),
+    )
+
+
+def _facturae_payment(first: Mapping[str, str], total: str) -> Xml:
+    """PaymentDetails with one transfer installment; the IBAN is written as the row holds it."""
+    date.fromisoformat(first["due_date"])
+    children = [
+        _el("InstallmentDueDate", first["due_date"]),
+        _el("InstallmentAmount", total),
+        _el("PaymentMeans", FACTURAE_PAYMENT_MEANS),
+    ]
+    if first.get("iban"):
+        children.append(_wrap("AccountToBeCredited", _el("IBAN", first["iban"])))
+    return _wrap("PaymentDetails", _wrap("Installment", *children))
+
+
+def _facturae_invoice(group: Sequence[Mapping[str, str]]) -> Xml:
+    """One Invoice in schema order; an invoice with several rates has one Tax per rate."""
+    first = group[0]
+    date.fromisoformat(first["issue_date"])
+    if _CURRENCY_TEXT.fullmatch(first["currency"]) is None:
+        raise ValueError(f"not a currency code: {first['currency']!r}")
+    gross = _two_places(_sum_of(group, "base_amount"))
+    tax_sum = sum_amounts([_sum_of(group, "vat_amount"), _sum_of(group, "surcharge_amount")])
+    withheld_total = _two_places(_sum_of(group, "withholding_amount"))
+    total = _two_places(_sum_of(group, "total"))
+    withheld = [record for record in group if record.get("withholding_amount")]
+
+    header = _wrap(
+        "InvoiceHeader",
+        _el("InvoiceNumber", first["invoice_number"]),
+        _el("InvoiceDocumentType", FACTURAE_DOCUMENT_TYPE),
+        _el("InvoiceClass", FACTURAE_INVOICE_CLASS),
+    )
+    issue_data = _wrap(
+        "InvoiceIssueData",
+        _el("IssueDate", first["issue_date"]),
+        _el("InvoiceCurrencyCode", first["currency"]),
+        _el("TaxCurrencyCode", first["currency"]),
+        _el("LanguageName", FACTURAE_LANGUAGE),
+    )
+    totals = _wrap(
+        "InvoiceTotals",
+        _el("TotalGrossAmount", gross),
+        _el("TotalGrossAmountBeforeTaxes", gross),
+        _el("TotalTaxOutputs", _two_places(tax_sum)),
+        _el("TotalTaxesWithheld", withheld_total),
+        _el("InvoiceTotal", total),
+        _el("TotalOutstandingAmount", total),
+        _el("TotalExecutableAmount", total),
+    )
+    children = [header, issue_data, _wrap("TaxesOutputs", *map(_facturae_tax, group))]
+    if withheld:
+        children.append(_wrap("TaxesWithheld", *map(_facturae_withheld, withheld)))
+    children.append(totals)
+    children.append(_wrap("Items", *map(_facturae_line, group)))
+    if first.get("due_date"):
+        children.append(_facturae_payment(first, total))
+    return _wrap("Invoice", *children)
+
+
+def render_facturae(
+    supplier: FacturaeParty,
+    records: Sequence[Mapping[str, str]],
+    *,
+    buyer: FacturaeParty = FACTURAE_BUYER,
+) -> bytes:
+    """A Facturae 3.2.2 file (UTF-8, LF) with every invoice of `records` for one supplier.
+
+    Modality is I for one invoice and L for a batch of several. The Batch totals are the sums of
+    the invoice totals, computed with `sum_amounts`. The element order follows the official
+    schema; children are unqualified, as in real files. Nothing is parsed or validated here.
+    """
+    groups = facturae_invoice_groups(records)
+    if not groups:
+        raise ValueError("a Facturae file needs at least one invoice")
+    currencies = {record["currency"] for record in records}
+    if len(currencies) != 1:
+        raise ValueError("a Facturae batch has one currency")
+    currency = next(iter(currencies))
+    batch_total = _two_places(sum_amounts(_sum_of(group, "total") for group in groups))
+    batch = _wrap(
+        "Batch",
+        _el("BatchIdentifier", supplier.tax_id + groups[0][0]["invoice_number"]),
+        _el("InvoicesCount", str(len(groups))),
+        _amount_el("TotalInvoicesAmount", batch_total),
+        _amount_el("TotalOutstandingAmount", batch_total),
+        _amount_el("TotalExecutableAmount", batch_total),
+        _el("InvoiceCurrencyCode", currency),
+    )
+    header = _wrap(
+        "FileHeader",
+        _el("SchemaVersion", FACTURAE_VERSION),
+        _el("Modality", "I" if len(groups) == 1 else "L"),
+        _el("InvoiceIssuerType", FACTURAE_ISSUER_TYPE),
+        batch,
+    )
+    parties = _wrap(
+        "Parties",
+        _facturae_party("SellerParty", supplier, FACTURAE_SELLER_STREET),
+        _facturae_party("BuyerParty", buyer, FACTURAE_BUYER_STREET),
+    )
+    invoices = _wrap("Invoices", *map(_facturae_invoice, groups))
+    root = _wrap("Facturae", header, parties, invoices)
+    root[0] = f'<fe:Facturae xmlns:ds="{DSIG_NAMESPACE}" xmlns:fe="{FACTURAE_NAMESPACE}">'
+    root[-1] = "</fe:Facturae>"
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', *root]
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def build_phantom_facturae(seed: int = DEFAULT_SEED) -> dict[str, bytes]:
+    """{file name: bytes}: one Facturae file per phantom supplier."""
+    invoices = build_phantom_demo_rows(seed).invoices
+    files: dict[str, bytes] = {}
+    for supplier in PHANTOM_SUPPLIERS:
+        records = [row for row in invoices if row["supplier_tax_id"] == supplier.tax_id]
+        party = FacturaeParty(supplier.name, supplier.tax_id, PHANTOM_PLAN[supplier.k - 1].person)
+        files[facturae_file_name(supplier)] = render_facturae(party, records)
+    return files
+
+
+# --- real formats: wiring (real-formats design section 8.4) -------------------------------------
+def build_zombie_demo_real(seed: int = DEFAULT_SEED) -> dict[str, bytes]:
+    """{file name: bytes} of the zombie demo's real-format files (relative to data/samples)."""
+    return {ZOMBIE_DEMO_N43_FILE: build_zombie_demo_n43(seed)}
+
+
+def build_phantom_demo_real(seed: int = DEFAULT_SEED) -> dict[str, bytes]:
+    """{path relative to phantom_demo: bytes} of the phantom demo's real-format files."""
+    files = {PHANTOM_PAYMENTS_N43_FILE: build_phantom_payments_n43(seed)}
+    for name, data in build_phantom_facturae(seed).items():
+        files[f"{PHANTOM_FACTURAE_DIR}/{name}"] = data
+    return files
+
+
+def write_real_files(out_dir: Path, files: Mapping[str, bytes]) -> list[Path]:
+    """Write `files` (relative path -> bytes) under `out_dir`; return the written paths."""
+    written: list[Path] = []
+    for relative, data in files.items():
+        path = out_dir / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        written.append(path)
+    return written
+
+
 # --- demo modes owned by the app specs ----------------------------------------------------------
 def run_zombie_demo(args: argparse.Namespace) -> int:
-    """Write data/samples/zombie_demo_statement.csv (or into --out-dir) for --seed."""
+    """Write the zombie demo statement as CSV and as Norma 43 (or into --out-dir) for --seed."""
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / ZOMBIE_DEMO_FILE
     path.write_bytes(build_zombie_demo_csv(args.seed).encode("utf-8"))
     print(f"wrote {path}")
+    for written in write_real_files(out_dir, build_zombie_demo_real(args.seed)):
+        print(f"wrote {written}")
     return 0
 
 
 def run_phantom_demo(args: argparse.Namespace) -> int:
-    """Write the three phantom-demo CSV files into <out-dir>/phantom_demo for --seed."""
+    """Write the phantom-demo CSV, Norma 43 and Facturae files into <out-dir>/phantom_demo."""
     out_dir = Path(args.out_dir) / PHANTOM_DEMO_DIR
     write_phantom_demo(out_dir, args.seed)
     for name in PHANTOM_FILES:
         print(f"wrote {out_dir / name}")
+    for written in write_real_files(out_dir, build_phantom_demo_real(args.seed)):
+        print(f"wrote {written}")
     return 0
 
 

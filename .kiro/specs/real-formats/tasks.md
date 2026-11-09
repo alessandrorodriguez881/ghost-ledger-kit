@@ -107,7 +107,7 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
 
 **Covers**: REQ-RF-26, REQ-RF-27, REQ-RF-28, §8
 
-- [ ] `tests/test_generate_real_formats.py`: the existing CSV byte tests stay green untouched; the three
+- [x] `tests/test_generate_real_formats.py`: the existing CSV byte tests stay green untouched; the three
   builders are deterministic for a seed and differ for another; `.n43` bytes decode as Latin-1, every
   line has 80 characters and ends in CRLF; counts and totals of `33` equal the rows; the closing
   balance is creditor; the zombie file is mode 3 and its `Monthly subscription` rows are SEPA with
@@ -116,7 +116,12 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
   and IBANs come from the generator's own functions); the committed files equal the generator output
   byte for byte, compared without `\r\n` normalisation. Extend `test_pi_gitattributes.py` with the
   three lines and `git check-attr text` for one file of each kind.
-- [ ] Refactor `build_phantom_demo` into rows + renderers (§8.1), add `render_norma43`,
+  (The committed-files tests, `test_committed_real_format_files_equal_the_generator_output_byte_for_byte`
+  and `test_the_committed_facturae_folder_holds_exactly_the_generated_files`, fail until the user has
+  run the generator. `tests/test_generate_samples.py` and `test_pi_gitattributes.py` had two
+  assertions that pinned the old output folder / the only `phantom_demo` line; they now allow the new
+  files and lines.)
+- [x] Refactor `build_phantom_demo` into rows + renderers (§8.1), add `render_norma43`,
   `render_facturae` (`Modality` `I` for one invoice, `L` for a batch of several; Batch totals via
   `sum_amounts`; tests for both), the `build_*_real` functions and their wiring in the `zombie-demo` and
   `phantom-demo` modes; add the `.gitattributes` lines.
@@ -127,11 +132,12 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
 
 **Covers**: REQ-RF-31, §9.1
 
-- [ ] `tests/ingestion/rf_strategies.py` and `tests/ingestion/test_real_formats_roundtrip.py`: properties
+- [x] `tests/ingestion/rf_strategies.py` and `tests/ingestion/test_real_formats_roundtrip.py`: properties
   1 to 6 of §9.1 (round trip N43 under every layout, round trip Facturae, no invention including the
   zombie detectors over an N43 ledger with `loaded_source_refs`, tamper detection, never raises,
   idempotency).
 - [ ] Fix whatever the properties find in the readers or the writers. No new feature code is expected.
+  (Open: the properties have not been run yet; the user's `pytest` run decides.)
 
 ## Task RF9 — Phantom Invoices: uploaders, demo format, equivalence
 
