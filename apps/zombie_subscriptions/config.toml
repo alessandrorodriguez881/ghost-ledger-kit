@@ -1,0 +1,25 @@
+# zombie-subscriptions configuration: aliases and demo inputs only.
+# Detection rules live in detectors/utils.py as named constants (REQ-ZS-42), never here.
+# All names are fictional brands (Finance Rule 5).
+
+# Canonical service name -> normalised counterparty keys (REQ-ZS-43).
+[aliases]
+streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM", "STREAMFLIX"]
+music = ["BEATSTREAM", "BEATSTREAM PREMIUM"]
+
+# Inputs filled in by the "Load demo data" button (REQ-ZS-44). Every alias member and every
+# key below must equal a normalised counterparty key of the demo CSV (checked by
+# tests/test_zs_demo_e2e.py). Dates are converted with date.fromisoformat.
+[demo]
+csv_path = "data/samples/zombie_demo_statement.csv"
+
+[demo.aliases]
+streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]
+
+[demo.last_used_dates]
+"BEATSTREAM" = "2026-07-15"
+"PHOTOBOX" = "2026-06-20"
+"STASHCRATE" = "2026-08-10"
+
+[demo.cancellation_dates]
+"GYMPLUS" = "2026-07-31"

@@ -32,8 +32,36 @@ from the generator. Files are UTF-8 without BOM, with LF line endings.
 python scripts/generate_samples.py --mode bank --seed 42 --rows 50 --dialect european --output statement.csv
 ```
 
-`--mode zombie-demo` and `--mode phantom-demo` belong to the zombie-subscriptions and
-phantom-invoices specs; they print a "not implemented" message until those specs add them.
+`--mode zombie-demo` writes the demo statement of the zombie-subscriptions app (see below).
+`--mode phantom-demo` belongs to the phantom-invoices spec; it prints a "not implemented" message
+until that spec adds it.
+
+## Zombie-subscriptions demo statement
+
+```
+python scripts/generate_samples.py --mode zombie-demo --seed 42
+```
+
+writes `zombie_demo_statement.csv`: 335 rows (debits and payroll credits), plain dialect,
+2026-05-01 to 2026-10-31. It is committed and byte-identical to the generator output for seed 42
+(`apps/zombie_subscriptions/tests/test_zs_demo_generator.py` fails if it is stale). Everything is
+synthetic; every merchant is a fictional brand and person names (`Ana García`, `Luigi Rossi`,
+`Sophie Dupont`, `Marta Ferreira`) appear only on transfer rows.
+
+| Content | Counterparty (raw text) |
+|---|---|
+| Price step 12.99 → 15.99 (5 + 1 monthly charges) | `STREAMFLEX INTL 4412` |
+| Price step 9.99 → 12.99 (3 + 3 monthly charges) | `CLOUDVAULT` |
+| Two parallel series, different amounts | `GLOWBILL` |
+| Two parallel series, same amount | `MUSICBOX` |
+| One service, two spellings (aliased to `streaming`) | `STREAMFLIX INTL 7731`, `STREAMFLIXCOM` |
+| 0.49 trial, then monthly 14.99 fourteen days later | `SECUREPASS` |
+| Monthly 8.99, three charges after the 2026-07-31 cancellation | `GYMPLUS` |
+| Zombie candidates with a last-used date | `BEATSTREAM P2A3B4C5`, `PHOTOBOX`, `STASHCRATE` |
+| Weekly shopping built so that no series forms (9 merchants) | `FRESHCO`, `SUPERMART`, … |
+| Twelve single purchases, four transfers, six payroll credits | various |
+
+`--seed` only changes the dates and amounts of the twelve single purchases.
 
 ## How the identifiers are made safe
 

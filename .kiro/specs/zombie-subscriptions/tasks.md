@@ -209,7 +209,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_empty_ledger_returns_empty_list`; `test_single_row_returns_list`; `test_charge_on_cancellation_date_is_not_after` (strictly after); `test_unknown_service_in_cancellation_dates_ignored`; `test_date_map_keys_must_be_normalised_by_caller`; `test_duplicate_source_ref_handled`.
   - **Tier 3** (`max_examples=200`): `test_source_refs_subset_of_input`; `test_total_equals_sum_of_cited_rows`; `test_row_order_invariant`.
 - [x] Implement `detectors/charges_after_cancellation.py` (`@register("zs.charges_after_cancellation")`) using `group_by_canonical` and `service_yearly_cost` (series found per key, rows aggregated per service).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -223,7 +223,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - **Tier 2**: `test_empty_ledger_returns_zero_cost_entries` — a service in `last_used_dates` with no rows yields `cost_since_last_used == Decimal("0.00")`, `source_refs == []`, `yearly_cost == Decimal("0.00")` (REQ-ZS-30); `test_last_used_dates_none_returns_empty_list`; `test_last_used_after_all_charges_is_zero_cost_not_omitted`; `test_single_row_ledger`; `test_duplicate_source_ref_handled`; `test_no_system_clock_read` (monkeypatch `datetime`/`date.today` to raise).
   - **Tier 3** (`max_examples=200`): `test_cost_equals_sum_of_cited_row_amounts`; `test_source_refs_subset_of_input`; `test_row_order_invariant`.
 - [x] Implement `ZombieCostResult` and `compute_zombie_cost` in `detectors/utils.py`.
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -238,7 +238,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
   - `test_e7b_run_all_produces_no_alerts_of_any_kind` — acceptance E7b through `run_all(ledger_with_weekly_shopping, namespace="zs", context={"aliases": None, "cancellation_dates": None})`.
   - `test_run_all_on_acceptance_fixtures_expected_detectors_fire`.
 - [x] Implement `detectors/__init__.py` (`auto_discover("apps.zombie_subscriptions.detectors")` and the `run_zs_detectors` convenience wrapper).
-- [ ] Verify: tests pass, `ruff check` clean.
+- [x] Verify: tests pass, `ruff check` clean.
 
 ---
 
@@ -246,11 +246,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-07, REQ-ZS-40, REQ-ZS-42, REQ-ZS-43, REQ-ZS-44, §7, §10.1
 
-- [ ] Write `tests/test_zs_settings.py`:
+- [x] Write `tests/test_zs_settings.py`:
   - **Tier 1**: `test_load_config_reads_aliases_and_demo`; `test_demo_dates_converted_with_fromisoformat` (strings become `datetime.date`; real TOML dates are accepted too); `test_parse_aliases_text_roundtrip`; `test_parse_dates_text_roundtrip`; `test_parse_dates_text_rejects_bad_date_with_clear_error` (the app shows a message, never crashes).
   - **Tier 2**: `test_parse_empty_text_returns_empty_dict`; `test_parse_ignores_blank_lines_and_whitespace`; `test_config_contains_no_threshold_constants` (REQ-ZS-42); `test_demo_section_has_at_least_3_last_used_and_1_cancellation`.
   - **Tier 3**: `test_format_then_parse_is_identity` for generated alias maps and date maps.
-- [ ] Create `apps/zombie_subscriptions/config.toml` (`[aliases]` with fictional services, `[demo]` as in design §10.1; no thresholds). Implement `settings.py` (`load_config`, `demo_inputs`, `to_date`, `parse_*_text`, `format_*_text`).
+- [x] Create `apps/zombie_subscriptions/config.toml` (`[aliases]` with fictional services, `[demo]` as in design §10.1; no thresholds). Implement `settings.py` (`load_config`, `demo_inputs`, `to_date`, `parse_*_text`, `format_*_text`).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -259,11 +259,11 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-31, REQ-ZS-32, REQ-ZS-33, REQ-ZS-34, REQ-ZS-37a, §9
 
-- [ ] Write `tests/test_zs_explain_support.py`:
+- [x] Write `tests/test_zs_explain_support.py`:
   - **Tier 1**: `test_templates_cover_every_registered_zs_detector`; `test_every_template_fills_from_its_alert_data` — for one alert per detector (from the fixtures), `ledger_kit.explainer.explain_with_meta(..., client=None)` with no API key returns `source == "fallback"`, no unfilled `{placeholder}`, amounts in European format (`191,88 EUR`), and a cited `source_ref`.
   - **Tier 1**: `test_hallucinating_stub_is_rejected_by_number_guard` — `explain_with_meta(alert, rows, fallback_template=..., client=HallucinatingStubClient())` → `source == "fallback"` and `"99999.99"` in `rejected_numbers`; `test_stub_shape_matches_mock_client` (`chat` and `completions` are properties, `create` returns `choices[0].message.content`).
   - **Tier 2**: `test_stub_ignores_extra_kwargs`; `test_injected_number_not_in_any_fixture_alert`.
-- [ ] Implement `explain_support.py` (`TEMPLATES`, `HallucinatingStubClient`).
+- [x] Implement `explain_support.py` (`TEMPLATES`, `HallucinatingStubClient`).
 - [ ] Verify: tests pass, `ruff check` clean.
 
 ---
@@ -272,13 +272,14 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-38, REQ-ZS-44, Finance Rules 5 and 6, §10
 
-- [ ] Write `tests/test_zs_demo_generator.py`:
+- [x] Write `tests/test_zs_demo_generator.py`:
   - `test_generator_is_deterministic` — two runs with `--seed 42` give identical bytes.
   - `test_demo_csv_parses_with_zero_quarantine` — `parse_csv` of the file: no quarantine, 300–400 rows, dates within 2026-05-01…2026-10-31, plain dialect.
   - `test_demo_counterparties_are_fictional` — no counterparty contains `SPOTIFY`, `ADOBE`, `DROPBOX`, `NETFLIX`, or other real-brand deny-list entries; person names appear only on salary/transfer rows.
   - `test_demo_contains_all_planted_patterns` — each key of design §10 exists with its pattern (E1–E5 shapes, free-trial pair 14 days apart, `GYMPLUS` rows after 2026-07-31, zombie candidates).
   - `test_demo_noise_merchants_follow_e7b_construction_and_produce_no_series`.
-- [ ] Implement the `zombie-demo` mode in `scripts/generate_samples.py` (extend the file from ledger-core Task 13 if present, otherwise create it with just this mode), `random.seed(42)`. Generate `data/samples/zombie_demo_statement.csv`; add its provenance to `data/samples/README.md`.
+- [x] Implement the `zombie-demo` mode in `scripts/generate_samples.py` (replaces the stub entry in `MODE_HANDLERS`; `random.Random(42)` drives only the one-off shops) and add its provenance to `data/samples/README.md`.
+- [ ] Generate and commit `data/samples/zombie_demo_statement.csv`: `python scripts/generate_samples.py --mode zombie-demo --seed 42`.
 - [ ] Verify: tests pass, `ruff check` clean; `.gitignore` still allows `data/samples/`.
 
 ---
@@ -287,7 +288,7 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`.
 
 **Covers**: REQ-ZS-38, REQ-ZS-44, REQ-ZS-52, REQ-ZS-49
 
-- [ ] Write `tests/test_zs_demo_e2e.py` (the test goes first and fails until the config and data line up):
+- [x] Write `tests/test_zs_demo_e2e.py` (the test goes first and fails until the config and data line up):
   - `test_demo_config_keys_match_csv_normalised_keys` — every alias member and every key of `last_used_dates` and `cancellation_dates` in `[demo]` equals a normalised key in the demo CSV (`normalise_counterparty` of each `counterparty`); the alias name itself (`streaming`) is not required to be in the CSV. This catches `GYM PLUS` vs `GYMPLUS` and typos like `NETLIXINTL`.
   - `test_demo_dates_parse_with_fromisoformat`.
   - `test_demo_triggers_all_five_detectors` — ingest the CSV with `parse_csv` and `normalise`, filter to debit, `run_all(namespace="zs", context=<demo context, normalised>)`: at least one alert from each of the five detectors.

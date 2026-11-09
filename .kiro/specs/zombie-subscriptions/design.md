@@ -1106,7 +1106,7 @@ names apply to salary/transfer counterparties only.
 | E5 (alias duplicate) | `STREAMFLIX INTL 7731` + `STREAMFLIXCOM` | `STREAMFLIX INTL`, `STREAMFLIXCOM` | Monthly, aliased to `streaming` |
 | Free trial | `SECUREPASS` | `SECUREPASS` | 0.49 debit 14 days before first monthly 14.99 |
 | Post-cancellation | `GYMPLUS` | `GYMPLUS` | monthly 8.99; 3 charges after the cancellation date |
-| Zombie candidates | `BEATSTREAM`, `PHOTOBOX`, `STASHBOX` | same | Monthly; have `last_used_date` entries |
+| Zombie candidates | `BEATSTREAM`, `PHOTOBOX`, `STASHCRATE` | same | Monthly; have `last_used_date` entries |
 | Noise | `FRESHCO` and other fictional merchants | — | Salary credit, weekly groceries built like E7b (no series can form), transfers, one-off shops |
 
 Total: ~320 rows over 6 months (2026-05-01 to 2026-10-31), plain dialect. The generator uses
@@ -1128,7 +1128,7 @@ streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM"]
 [demo.last_used_dates]
 "BEATSTREAM" = "2026-07-15"
 "PHOTOBOX"   = "2026-06-20"
-"STASHBOX"   = "2026-08-10"
+"STASHCRATE" = "2026-08-10"
 
 [demo.cancellation_dates]
 "GYMPLUS" = "2026-07-31"

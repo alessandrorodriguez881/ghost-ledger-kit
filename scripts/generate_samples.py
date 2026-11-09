@@ -7,9 +7,13 @@ Modes (``--mode``):
   committed files are byte-identical to ``build_core_samples()`` (checked by a test).
 * ``bank``: a random bank statement from ``--seed``, ``--rows`` and ``--dialect``; printed to
   stdout or written to ``--output``. Same arguments always give the same text.
-* ``zombie-demo`` / ``phantom-demo``: reserved for the zombie-subscriptions and phantom-invoices
-  specs. They are stubs here (see ``run_zombie_demo`` / ``run_phantom_demo``); each spec replaces
-  its handler in ``MODE_HANDLERS`` and leaves the other modes untouched.
+* ``zombie-demo``: the demo statement of the zombie-subscriptions app
+  (``data/samples/zombie_demo_statement.csv``, ~335 rows over 2026-05-01..2026-10-31). The
+  planted subscriptions are fixed tables; ``--seed`` only drives the dates and amounts of the
+  one-off shops, so the same seed always gives the same bytes.
+* ``phantom-demo``: reserved for the phantom-invoices spec. It is a stub here (see
+  ``run_phantom_demo``); that spec replaces its handler in ``MODE_HANDLERS`` and leaves the other
+  modes untouched.
 
 All data is synthetic: fictional names, IBANs with a valid ISO 13616 mod-97 checksum but wrong
 Spanish national check digits, tax ids with a wrong control character, no e-mail or phone.
@@ -432,13 +436,225 @@ def write_core_samples(out_dir: Path = DEFAULT_OUT_DIR) -> list[Path]:
     return written
 
 
-# --- demo modes owned by the app specs (stubs) --------------------------------------------------
-def run_zombie_demo(args: argparse.Namespace) -> int:
-    """Stub for zombie-subscriptions (data/samples/zombie_demo_statement.csv, ~300-400 rows)."""
-    raise NotImplementedError(
-        "--mode zombie-demo is specified in .kiro/specs/zombie-subscriptions (design section 10); "
-        "implement it there and register it in MODE_HANDLERS."
+# --- zombie-subscriptions demo (design section 10) ----------------------------------------------
+ZOMBIE_DEMO_FILE = "zombie_demo_statement.csv"
+ZOMBIE_DEMO_START: date = date(2026, 5, 1)
+ZOMBIE_DEMO_END: date = date(2026, 10, 31)
+ZOMBIE_MONTH_DAYS = 30  # planted subscriptions are charged every 30 days
+ZOMBIE_SUBSCRIPTION = "Monthly subscription"
+ZOMBIE_SALARY_COUNTERPARTY = "Luminar Estudio S.L."
+ZOMBIE_SALARY_AMOUNT = "2450.00"
+
+# E7b weekly shopping (zombie-subscriptions design section 4.8): 26 weekly charges whose amount is
+# round_to_cents(base x 1.11^k) with k = (5 i + shift) mod 13. The 13 levels are more than 10%
+# apart and each occurs exactly twice, 91 days apart, so no recurring series can form. The levels
+# are written out (money arithmetic stays in ledger_kit.utils.money); a test recomputes them.
+E7B_WEEKS = 26
+E7B_LEVEL_COUNT = 13
+E7B_LEVEL_STEP = 5
+E7B_LEVELS: dict[str, tuple[str, ...]] = {
+    "40.00": (
+        "40.00",
+        "44.40",
+        "49.28",
+        "54.71",
+        "60.72",
+        "67.40",
+        "74.82",
+        "83.05",
+        "92.18",
+        "102.32",
+        "113.58",
+        "126.07",
+        "139.94",
+    ),
+    "5.00": (
+        "5.00",
+        "5.55",
+        "6.16",
+        "6.84",
+        "7.59",
+        "8.43",
+        "9.35",
+        "10.38",
+        "11.52",
+        "12.79",
+        "14.20",
+        "15.76",
+        "17.49",
+    ),
+}
+
+
+class WeeklyMerchant(NamedTuple):
+    """A fictional merchant paid every week with E7b-shaped amounts."""
+
+    name: str
+    description: str
+    base: str  # key of E7B_LEVELS
+    shift: int  # offset into the level table
+    start: date  # date of the first of the E7B_WEEKS charges
+
+
+ZOMBIE_WEEKLY_MERCHANTS: tuple[WeeklyMerchant, ...] = (
+    WeeklyMerchant("FRESHCO", "Groceries", "40.00", 0, date(2026, 5, 4)),
+    WeeklyMerchant("SUPERMART", "Groceries", "40.00", 3, date(2026, 5, 5)),
+    WeeklyMerchant("FUELSTOP", "Fuel", "40.00", 7, date(2026, 5, 6)),
+    WeeklyMerchant("HARDWAREHUB", "Home supplies", "40.00", 11, date(2026, 5, 7)),
+    WeeklyMerchant("GARDENPOINT", "Garden supplies", "40.00", 5, date(2026, 5, 6)),
+    WeeklyMerchant("PHARMAPOINT", "Pharmacy", "5.00", 9, date(2026, 5, 8)),
+    WeeklyMerchant("CAFELUNA", "Coffee", "5.00", 4, date(2026, 5, 9)),
+    WeeklyMerchant("BAKERYONE", "Bakery", "5.00", 0, date(2026, 5, 3)),
+    WeeklyMerchant("BOOKNOOK", "Stationery", "5.00", 2, date(2026, 5, 4)),
+)
+
+# Shops visited once in the six months (one row each, so no series can form).
+ZOMBIE_ONE_OFF_MERCHANTS: tuple[tuple[str, str], ...] = (
+    ("TOYBARN", "Toys"),
+    ("TALLER NORTE", "Car repair"),
+    ("OPTICA ESTRELLA", "Glasses"),
+    ("LIBRERIA LUNA", "Books"),
+    ("FLORISTERIA SOL", "Flowers"),
+    ("CERRAJERIA RAPIDA", "Locksmith"),
+    ("PAPELERIA CENTRAL", "Stationery"),
+    ("TINTORERIA AZUL", "Dry cleaning"),
+    ("MUEBLES VALDEMAR", "Furniture"),
+    ("ELECTRO PUNTO", "Appliances"),
+    ("CLINICA DENTAL ALBA", "Dentist"),
+    ("VETERINARIA PATAS", "Vet"),
+)
+
+# Person names (Finance Rule 5) appear only on transfer rows.
+ZOMBIE_TRANSFERS: tuple[BankRow, ...] = (
+    BankRow(date(2026, 6, 14), "-29.90", "Luigi Rossi", "Transfer sent: shared dinner", ""),
+    BankRow(date(2026, 7, 22), "-120.00", "Ana García", "Transfer sent", ""),
+    BankRow(date(2026, 8, 19), "-60.00", "Marta Ferreira", "Transfer sent", ""),
+    BankRow(date(2026, 9, 3), "-75.00", "Sophie Dupont", "Transfer sent", ""),
+)
+ZOMBIE_PERSON_COUNTERPARTIES: tuple[str, ...] = tuple(r.counterparty for r in ZOMBIE_TRANSFERS)
+
+ONE_OFF_MIN_CENTS = 500
+ONE_OFF_MAX_CENTS = 9000
+
+
+def _monthly_rows(
+    counterparty: str, start: date, amounts: Sequence[str], description: str = ZOMBIE_SUBSCRIPTION
+) -> list[BankRow]:
+    """Debit rows 30 days apart starting at `start`, one per amount."""
+    return [
+        BankRow(
+            start + timedelta(days=ZOMBIE_MONTH_DAYS * i),
+            f"-{amount}",
+            counterparty,
+            description,
+            "",
+        )
+        for i, amount in enumerate(amounts)
+    ]
+
+
+def build_zombie_planted_rows() -> list[BankRow]:
+    """The planted subscription patterns E1-E5, free trial, cancellation and zombies."""
+    rows: list[BankRow] = []
+    # E1: price step 12.99 -> 15.99 on the sixth charge.
+    rows += _monthly_rows("STREAMFLEX INTL 4412", date(2026, 5, 7), ["12.99"] * 5 + ["15.99"])
+    # E2: price step 9.99 -> 12.99 after three charges.
+    rows += _monthly_rows("CLOUDVAULT", date(2026, 5, 12), ["9.99"] * 3 + ["12.99"] * 3)
+    # E3: two parallel series with different amounts (no duplicate alert).
+    rows += _monthly_rows("GLOWBILL", date(2026, 5, 9), ["2.99"] * 6)
+    rows += _monthly_rows("GLOWBILL", date(2026, 5, 23), ["0.99"] * 6)
+    # E4: two parallel series with the same amount (duplicate alert).
+    rows += _monthly_rows("MUSICBOX", date(2026, 5, 8), ["10.99"] * 6)
+    rows += _monthly_rows("MUSICBOX", date(2026, 5, 22), ["10.99"] * 6)
+    # E5: one service under two counterparty spellings, aliased to "streaming" in config.toml.
+    rows += _monthly_rows("STREAMFLIX INTL 7731", date(2026, 5, 10), ["14.99"] * 6)
+    rows += _monthly_rows("STREAMFLIXCOM", date(2026, 5, 20), ["14.99"] * 6)
+    # Free trial: 0.49 fourteen days before the first of six 14.99 charges.
+    rows.append(BankRow(date(2026, 5, 8), "-0.49", "SECUREPASS", "Trial activation", ""))
+    rows += _monthly_rows("SECUREPASS", date(2026, 5, 22), ["14.99"] * 6)
+    # Charges after cancellation: cancelled 2026-07-31, still charged on Aug 9, Sep 8, Oct 8.
+    rows += _monthly_rows("GYMPLUS", date(2026, 5, 11), ["8.99"] * 6)
+    # Zombie candidates: monthly charges, each with a last-used date in config.toml.
+    rows += _monthly_rows("BEATSTREAM P2A3B4C5", date(2026, 5, 14), ["9.99"] * 6)
+    rows += _monthly_rows("PHOTOBOX", date(2026, 5, 16), ["4.99"] * 6)
+    rows += _monthly_rows("STASHCRATE", date(2026, 5, 18), ["2.99"] * 6)
+    return rows
+
+
+def build_zombie_weekly_rows() -> list[BankRow]:
+    """Weekly shopping with E7b-shaped amounts for every merchant of ZOMBIE_WEEKLY_MERCHANTS."""
+    rows: list[BankRow] = []
+    for merchant in ZOMBIE_WEEKLY_MERCHANTS:
+        levels = E7B_LEVELS[merchant.base]
+        for week in range(E7B_WEEKS):
+            level = levels[(E7B_LEVEL_STEP * week + merchant.shift) % E7B_LEVEL_COUNT]
+            day = merchant.start + timedelta(days=7 * week)
+            rows.append(BankRow(day, f"-{level}", merchant.name, merchant.description, ""))
+    return rows
+
+
+def build_zombie_salary_rows() -> list[BankRow]:
+    """One payroll credit on the 28th of each month of the demo window."""
+    return [
+        BankRow(
+            date(2026, month, 28),
+            ZOMBIE_SALARY_AMOUNT,
+            ZOMBIE_SALARY_COUNTERPARTY,
+            "Payroll",
+            "",
+        )
+        for month in range(5, 11)
+    ]
+
+
+def build_zombie_one_off_rows(seed: int) -> list[BankRow]:
+    """One purchase per ZOMBIE_ONE_OFF_MERCHANTS entry; the date and amount come from `seed`."""
+    rng = random.Random(seed)
+    span_days = (ZOMBIE_DEMO_END - ZOMBIE_DEMO_START).days
+    rows: list[BankRow] = []
+    for name, description in ZOMBIE_ONE_OFF_MERCHANTS:
+        day = ZOMBIE_DEMO_START + timedelta(days=rng.randint(0, span_days))
+        cents = rng.randint(ONE_OFF_MIN_CENTS, ONE_OFF_MAX_CENTS)
+        rows.append(BankRow(day, f"-{cents // 100}.{cents % 100:02d}", name, description, ""))
+    return rows
+
+
+def zombie_noise_counterparties() -> tuple[str, ...]:
+    """Counterparties of the demo that are not subscriptions (shopping, shops, people, payroll)."""
+    return (
+        *(m.name for m in ZOMBIE_WEEKLY_MERCHANTS),
+        *(name for name, _ in ZOMBIE_ONE_OFF_MERCHANTS),
+        *ZOMBIE_PERSON_COUNTERPARTIES,
+        ZOMBIE_SALARY_COUNTERPARTY,
     )
+
+
+def build_zombie_demo_rows(seed: int = DEFAULT_SEED) -> list[BankRow]:
+    """All demo rows in date order (stable: rows of one day keep their construction order)."""
+    rows = [
+        *build_zombie_planted_rows(),
+        *build_zombie_weekly_rows(),
+        *build_zombie_salary_rows(),
+        *ZOMBIE_TRANSFERS,
+        *build_zombie_one_off_rows(seed),
+    ]
+    return sorted(rows, key=lambda r: r.day)
+
+
+def build_zombie_demo_csv(seed: int = DEFAULT_SEED) -> str:
+    """The zombie demo statement as plain-dialect CSV text."""
+    return render_bank_csv(build_zombie_demo_rows(seed), "plain")
+
+
+# --- demo modes owned by the app specs ----------------------------------------------------------
+def run_zombie_demo(args: argparse.Namespace) -> int:
+    """Write data/samples/zombie_demo_statement.csv (or into --out-dir) for --seed."""
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / ZOMBIE_DEMO_FILE
+    path.write_bytes(build_zombie_demo_csv(args.seed).encode("utf-8"))
+    print(f"wrote {path}")
+    return 0
 
 
 def run_phantom_demo(args: argparse.Namespace) -> int:
@@ -479,11 +695,17 @@ def build_parser() -> argparse.ArgumentParser:
     """Command-line parser."""
     parser = argparse.ArgumentParser(description="Generate synthetic sample data.")
     parser.add_argument("--mode", choices=sorted(MODE_HANDLERS), default="samples")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="random seed (bank mode)")
+    parser.add_argument(
+        "--seed", type=int, default=DEFAULT_SEED, help="random seed (bank and zombie-demo modes)"
+    )
     parser.add_argument("--rows", type=int, default=10, help="number of rows (bank mode)")
     parser.add_argument("--dialect", choices=("plain", "european"), default="plain")
     parser.add_argument("--output", help="bank mode: file to write instead of stdout")
-    parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR), help="samples mode: directory")
+    parser.add_argument(
+        "--out-dir",
+        default=str(DEFAULT_OUT_DIR),
+        help="samples and zombie-demo modes: directory",
+    )
     return parser
 
 

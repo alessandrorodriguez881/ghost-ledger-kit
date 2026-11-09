@@ -576,7 +576,7 @@ acceptance example.
   [demo.last_used_dates]
   "BEATSTREAM" = "2026-07-15"
   "PHOTOBOX" = "2026-06-20"
-  "STASHBOX" = "2026-08-10"
+  "STASHCRATE" = "2026-08-10"
 
   [demo.cancellation_dates]
   "GYMPLUS" = "2026-07-31"
