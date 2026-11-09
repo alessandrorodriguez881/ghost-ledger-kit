@@ -5,10 +5,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Any
 
 import pandas as pd
 
-from ledger_kit.utils.money import round_to_cents
+from ledger_kit.public_data import month_key
+from ledger_kit.utils.money import percent_change, round_percent, round_to_cents
 
 # --- Constants (design §2); every threshold that influences an alert lives here ----------------
 
@@ -210,6 +212,7 @@ class Series:
     nominal_days: int
     current_amount: Decimal  # rounded median of the charges since the last price step
     price_steps: list[tuple[Decimal, Decimal]]  # [(old, new), ...] rounded medians, any direction
+    step_index: int | None = None  # index in `rows` of the first charge of the new price level
 
 
 def is_level(amounts: list[Decimal]) -> bool:
@@ -234,6 +237,7 @@ def _make_series(
     interval: dict,
     current_amount: Decimal,
     price_steps: list[tuple[Decimal, Decimal]],
+    step_index: int | None = None,
 ) -> Series:
     """Build a Series for `run` (assumed date-sorted) and an interval descriptor."""
     return Series(
@@ -242,6 +246,7 @@ def _make_series(
         nominal_days=interval["nominal"],
         current_amount=current_amount,
         price_steps=price_steps,
+        step_index=step_index,
     )
 
 
@@ -259,7 +264,7 @@ def _segment_by_price(run: list[dict], interval: dict) -> Series | None:
         return None
 
     # Branch 2 - exactly one split where both sides are price levels (either direction).
-    splits: list[tuple[Decimal, Decimal]] = []
+    splits: list[tuple[Decimal, Decimal, int]] = []
     for p in range(1, n):
         pre, post = amounts[:p], amounts[p:]
         if not (is_level(pre) and is_level(post)):
@@ -273,10 +278,10 @@ def _segment_by_price(run: list[dict], interval: dict) -> Series | None:
         plausible_step = abs(b - a) <= MAX_EDGE_STEP_RATIO * a
         edge_ok = (final_single or first_single) and plausible_step
         if both_sides_big or edge_ok:
-            splits.append((a, b))
+            splits.append((a, b, p))
     if len(splits) == 1:
-        a, b = splits[0]
-        return _make_series(run, interval, b, [(a, b)])
+        a, b, p = splits[0]
+        return _make_series(run, interval, b, [(a, b)], step_index=p)
 
     # Branch 3 - variable bill: no step, every amount within AMOUNT_MATCH_RATIO of the median.
     if _within_match_ratio(amounts):
@@ -435,6 +440,48 @@ def find_series(rows_for_key: list[dict]) -> list[Series]:
             claimed.update(r["source_ref"] for r in run)
 
     return sorted(found, key=lambda s: (date_key(s.rows[0]), s.interval_type))
+
+
+# --- CPI context of a price step (public-cpi design §5.2) ---------------------------------------
+
+
+def cpi_context_fields(series: Series, old: Decimal, new: Decimal, cpi: Any) -> dict[str, str]:
+    """Return the CPI keys of REQ-CPI-11, or {} when REQ-CPI-13 says they cannot be stated.
+
+    `old` and `new` are the rounded medians of the step (the values the detector compares).
+    The span runs from the first charge of the old price (`rows[0]`) to the first charge of the
+    new price (`rows[step_index]`); both are cited rows of the alert. Decoration only: this
+    never decides whether an alert fires.
+    """
+    lookup = getattr(cpi, "lookup", None)
+    code = getattr(cpi, "series_code", None)
+    base_year = getattr(cpi, "base_year", None)
+    if not callable(lookup) or code is None or base_year is None or series.step_index is None:
+        return {}
+    price_start = month_key(series.rows[0]["date"])
+    price_end = month_key(series.rows[series.step_index]["date"])
+    if price_start == price_end:
+        return {}  # a zero-length span says nothing
+    start, end = lookup(price_start), lookup(price_end)
+    if start is None or end is None or start.used == end.used:
+        return {}  # out of range, or a fallback collapsed the span
+    try:
+        price_change = round_percent(percent_change(old, new))
+        cpi_change = round_percent(percent_change(start.value, end.value))
+    except ValueError:
+        return {}
+    return {
+        "price_start_month": price_start,
+        "price_end_month": price_end,
+        "price_change_percent": str(price_change),
+        "cpi_series": str(code),
+        "cpi_base_year": str(base_year),
+        "cpi_start_month": start.used,
+        "cpi_end_month": end.used,
+        "cpi_start_index": str(start.value),
+        "cpi_end_index": str(end.value),
+        "cpi_change_percent": str(cpi_change),
+    }
 
 
 # --- Active series and service cost (design §3.1, §4.7) ----------------------------------------

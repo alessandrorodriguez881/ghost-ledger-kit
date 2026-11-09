@@ -150,6 +150,20 @@ def test_home_has_no_real_looking_data() -> None:
     assert "ES88" not in text and "@" not in text
 
 
+def test_home_credits_the_ine_once() -> None:
+    """Home carries the INE attribution and the licence in one caption (DN-CPI-20)."""
+    at = _run()
+    attribution = "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"
+    captions = [caption.value for caption in at.caption]
+
+    assert sum(attribution in value for value in captions) == 1
+    [line] = [value for value in captions if attribution in value]
+    assert "CC BY 4.0" in line
+    assert _home_text(at).count(attribution) == 1
+    assert streamlit_app.INE_ATTRIBUTION == attribution
+    assert streamlit_app.INE_LICENCE == "CC BY 4.0"
+
+
 # --- the app pages load their demo data -------------------------------------------------------
 
 

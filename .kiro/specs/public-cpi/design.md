@@ -71,7 +71,7 @@ def format_index(value: Decimal) -> str: ...                     # "104,978"
 SERIES_CODE = "IPC290751"
 API_URL = "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290751"
 FIRST_MONTH = "2017-01"
-FETCH_LAST_PERIODS = 240            # `nult`: more than the 117+ months needed; entries before FIRST_MONTH are dropped
+FIRST_DATE_PARAM = "20170101"       # start of the `date=` range; entries before FIRST_MONTH are still dropped
 FETCH_TIMEOUT_SECONDS = 30
 DEFAULT_OUTPUT = Path("data/public/ine_cpi_ipc290751.json")
 ATTRIBUTION = "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"
@@ -79,7 +79,7 @@ NO_ENDORSEMENT = "The INE does not take part in, sponsor or support this reuse."
 LICENCE = "CC BY 4.0"
 
 class FetchError(Exception): ...                                   # one-line message, becomes "error: ..."
-def build_url(last_periods: int = FETCH_LAST_PERIODS) -> str: ...   # f"{API_URL}?nult={n}&tip=A"
+def build_url(today: date) -> str: ...      # f"{API_URL}?date={FIRST_DATE_PARAM}:{today:%Y%m%d}&tip=A"
 def fetch_json(url, *, opener=urlopen, timeout=FETCH_TIMEOUT_SECONDS) -> dict: ...
 def parse_points(payload: dict) -> list[Point]: ...                 # month, Decimal value, status
 def build_snapshot(payload: dict, *, retrieved_on: date) -> dict: ...
@@ -102,12 +102,11 @@ def main(argv: list[str] | None = None, *, opener=urlopen, today: date | None = 
 - **Decimals** (REQ-CPI-02): `json.loads(body, parse_float=Decimal)`. `Valor` may be a JSON number or a
   string; both go through `Decimal(str(...))`/`Decimal(text)`, never `float`. The value must equal its
   `quantize(Decimal("0.001"))` (padding allowed, rounding not); otherwise `FetchError`.
-- **Month**: `f"{Anyo:04d}-{FK_Periodo:02d}"`, `FK_Periodo` in 1 to 12 only. `Fecha` is read for no purpose
-  (DN-CPI-08).
-- **Status**: taken from the entry, no default. **Unverified** (§9): with `tip=A` the INE API adds friendly
-  names such as `T3_TipoDato` (expected text `Definitivo`); the first real run decides the field name. The
-  script looks for the keys in the tuple `STATUS_KEYS = ("T3_TipoDato", "TipoDato")`, and fails with
-  `error: no status for <month>` if none is present. It never writes `"Definitivo"` on its own.
+- **Month**: `Anyo` and `T3_Periodo` (`M01` to `M12`, regex `^M(0[1-9]|1[0-2])$`) give `f"{Anyo:04d}-{mm}"`.
+  `Fecha` is read for no purpose (DN-CPI-08). The series name is `Nombre.strip()` (the real one has a trailing
+  space).
+- **Status**: `T3_TipoDato` of the entry (confirmed by the reviewer, DN-CPI-16), no default, never written by
+  the script: a missing or empty one fails with `error: no status for <month>`.
 - **Atomic write**: `tempfile.NamedTemporaryFile(dir=path.parent, delete=False)` then `os.replace`; JSON dumped
   with `indent=2, ensure_ascii=False`, `"\n"` newlines, `encoding="utf-8"`, key order as in REQ-CPI-02, final
   newline. A failed run leaves the old file as it was (REQ-CPI-01).
@@ -187,11 +186,13 @@ def load_snapshot(path: Path = DEFAULT_SNAPSHOT_PATH) -> CpiSeries: ...
 ```
 
 - `lookup` algorithm: normalise the input to `(year, month)` (strings by regex `^\d{4}-(0[1-9]|1[0-2])$`;
-  `date`/`datetime` by attribute; anything else `ValueError`). If the key is past `last_month` or before
-  `first_month` return `None`. Otherwise `bisect_right` on the sorted month list gives the latest published month
-  at or before the key. Equal → `is_fallback=False`; else `True`. Because a loaded snapshot is contiguous, a
-  fallback can only occur on a series built by `from_mapping`; it is kept in the contract because the
-  requirement asks for it and because a future refresh could carry a withheld month.
+  `date`/`datetime` by attribute; anything else `ValueError`). If the key is before `first_month`, or more than
+  `CPI_MAX_LAG_MONTHS` (= 1) months after `last_month`, return `None`. A key exactly one month after
+  `last_month` answers `last_month` with `is_fallback=True` (DN-CPI-03). Otherwise `bisect_right` on the sorted
+  month list gives the latest published month at or before the key. Equal → `is_fallback=False`; else `True`.
+  Because a loaded snapshot is contiguous, a gap fallback can only occur on a series built by `from_mapping`;
+  it is kept in the contract because the requirement asks for it and because a future refresh could carry a
+  withheld month.
 - The reader never computes a percent: that is `money.percent_change`, called by the detector support code
   (§5) so all ratio arithmetic stays in `money.py`.
 - Only public names are exported from `ledger_kit/public_data/__init__.py`: `CpiSeries`, `CpiPoint`,
@@ -306,7 +307,7 @@ examples). Two notes, both accepted:
   "4" would pass) and cannot be avoided without removing the months from `data`, which would remove the
   citation. The cost is accepted: the guard is a net against invented *figures of money and percentages*, and
   the same weakness already exists for the digits of `counterparty` and `interval_type`. Recorded as a known
-  limitation in Q4.
+  limitation (DN-CPI-18).
 - The system prompt is unchanged (Finance Rule 1 demands it word for word); its text already allows "structured
   fields of the alert". The explainer sends the whole alert as JSON, so the LLM sees the CPI fields.
 - `loaded_source_refs` ignores non-DataFrame context values, so `context["cpi"]` adds no ref: the property
@@ -331,8 +332,16 @@ PRICE_INCREASE_WITH_CPI_TEMPLATE = (
     "The {counterparty} charge increased from {old_median_amount:money} to {new_amount:money}, "
     "adding {extra_cost_per_year:money} to your yearly cost. " + CPI_SENTENCE + " Source: {source_refs}."
 )
+CPI_SENTENCE_LAG = (
+    "The price rose {price_change_percent:pct} from {price_start_month} to {price_end_month}, while the "
+    "Spanish CPI (INE series {cpi_series}) changed by {cpi_change_percent:pct} from {cpi_start_month} to "
+    "{cpi_end_month}, using the latest published CPI month available."
+)
+PRICE_INCREASE_WITH_CPI_LAG_TEMPLATE = (...same, with CPI_SENTENCE_LAG...)
+def cpi_uses_lag(data: Mapping[str, Any]) -> bool:
+    """True when a CPI month used differs from the price month it answers (lag or gap fallback)."""
 def template_for(alert: Alert) -> str:
-    """Fallback template of an alert: the CPI variant only for a price increase with CPI keys."""
+    """Fallback template of an alert: the CPI variants only for a price increase with CPI keys."""
 ```
 
 `TEMPLATES` is not edited, so `test_templates_cover_every_registered_zs_detector` holds. The app replaces
@@ -345,8 +354,9 @@ because it can fall.
 ```python
 def cpi_source_line(alert: Alert) -> str | None
    # "CPI source: INE series IPC290751 (base 2025 = 100), 2026-01 = 100,000, 2026-04 = 102,000"
+   # with a lag: "..., 2026-05 = 100,000, 2026-09 = 104,978; latest published month used; price months 2026-05 and 2026-10"
 def cpi_sentence_to_add(alert: Alert, explanation: Explanation) -> str | None
-   # fill_fallback(CPI_SENTENCE, alert) unless the explanation text already contains it, or no CPI keys
+   # fill_fallback(CPI_SENTENCE or CPI_SENTENCE_LAG, alert) unless the explanation already contains it, or no CPI keys
 def attribution_lines(cpi: CpiSeries) -> list[str]
    # [attribution, "Licence: CC BY 4.0 · series IPC290751 · retrieved 2026-11-09", no_endorsement]
 ```
@@ -377,15 +387,15 @@ the series name comes from a file). No `unsafe_allow_html` is added.
 - `_explain` uses `template_for(alert)`; the cache key `(alert.id, mode)` stays valid because the id includes
   the CPI keys (a changed snapshot gives different ids, hence no stale explanation).
 - **Phantom Invoices** gets nothing: it shows no CPI figure, so an attribution there would be false
-  (DN-CPI-06). The showcase Home page (`streamlit_app.py`) is not touched either; if the reviewer wants a data
-  credit there, it is one `st.caption` (Q5).
+  (DN-CPI-06). The showcase Home page (`streamlit_app.py`) gets one `st.caption` with the attribution and
+  the licence (DN-CPI-20), because Home presents the Zombie app.
 - **README**: a "Public data" section with the attribution, the licence, the non-endorsement sentence, how the
   snapshot is refreshed (`python scripts/fetch_ine_cpi.py`) and why the apps never call the network.
   `tests/test_readme.py` pins the required headings (`REQUIRED_HEADINGS`); the new section must be added to
   that list or placed under an existing heading, and the test is read before editing (task CPI10).
 - **Streamlit Community Cloud** needs the snapshot in the repository, hence §3.4.
 
-## 9 — Library notes and unverified API points
+## 9 — Library notes and API facts
 
 ### 9.1 context7 (Python 3.12 standard library, `/python/cpython/v3.12.16`)
 
@@ -408,15 +418,13 @@ The snippet does not show `Request(headers=...)`; the design sets `Accept: appli
 naming the project through `urllib.request.Request(url, headers={...})`, which is the documented `Request`
 constructor. Nothing else from the library is needed.
 
-### 9.2 Not verified in this session (web fetch was denied)
+### 9.2 Checked by the reviewer on 9 November 2026 (live INE API and legal notice)
 
-1. **Status field of the API response** (REQ-CPI-02): `T3_TipoDato` with `tip=A` is the author's reading of the
-   INE API conventions, not a checked fact. The script is written so that a wrong guess fails with
-   `error: no status for <month>` instead of writing something invented. Q2.
-2. **Exact wording of the attribution** and the URL of the legal notice (Q1).
-3. **Whether `nult` plus `tip=A` can be combined** in one query; the INE documents both parameters, but the
-   combination was not run. If it fails, the fallback is two requests (one for values, one for metadata) and
-   the status is then read from the field the plain response has. Q3.
+1. **Status field**: `T3_TipoDato` with `tip=A` (DN-CPI-16). The script still fails with
+   `error: no status for <month>` rather than invent one.
+2. **Attribution wording**: the accented text is the one of the INE legal notice (DN-CPI-15).
+3. **One request**: `tip=A` together with `date=20170101:YYYYMMDD` works (DN-CPI-16); `nult` is not used.
+   The script never needs the two-request fallback.
 
 ## 10 — Test plan (testing.md tiers)
 
@@ -448,18 +456,25 @@ No test reads the clock or the network. `freezegun` is not needed: nothing under
 |---|---|---|
 | DN-CPI-01 | CPI figures are named fields of `Alert.data` with series code and month; `source_refs` keeps ledger rows only (§6) | Rule 1 allows attributed computed fields; a pseudo ref would break the UI resolver and the `loaded_source_refs` property, and would blur user data versus INE data |
 | DN-CPI-02 | Compare over the span from the first charge of the old price to the first charge of the new price | It is the interval over which the customer held the old price while the index moved; both endpoints are cited rows; it needs no assumption about "12 months" the data may not cover. A shorter span (last old to first new charge) would compare a 25 % rise with one month of CPI and say nothing |
-| DN-CPI-03 | A month after the last published one gives **no** CPI context (`None`), never the latest value | The request forbids extrapolation; using September for October would compare periods of different length while the sentence claims "from X to Y". Cost: a price step in the newest month gets no sentence until the INE publishes it (visible in the demo for `STREAMFLEX INTL`, REQ-CPI-21). A stale-by-one-month mode would be a two-line change (`CPI_MAX_LAG_MONTHS`) if the reviewer prefers it (Q6) |
+| DN-CPI-03 | A month **one** after the last published one is answered with the last published month (`CPI_MAX_LAG_MONTHS = 1`, `is_fallback=True`); two or more months after give **no** CPI context (`None`) (revised by Q6) | The newest month is often unpublished; answering with the last one invents no value, it only shortens the compared span. The template and the card say that the latest published month was used, and the card always shows both the price months and the CPI months when they differ. Further extrapolation stays forbidden |
 | DN-CPI-04 | Gaps are tolerated by `CpiSeries` (fallback to the earlier month, flagged) but forbidden in the committed snapshot | The request asks for the fallback and for contiguous months; both can hold because they apply to different objects |
 | DN-CPI-05 | One rounding rule: one decimal, half-up, for both percentages; index values never rounded | Matches Finance Rule 3 style, avoids false precision, one rule to document |
-| DN-CPI-06 | Attribution in Zombie page, README and `data/public/README.md`; none in Phantom Invoices | Attribution belongs where the processed data is shown; a credit in an app that does not use it would be misleading |
+| DN-CPI-06 | Attribution in Zombie page, showcase Home page (one caption), README and `data/public/README.md`; none in Phantom Invoices (revised by Q5) | Attribution belongs where the processed data is shown or presented; a credit in an app that does not use it would be misleading |
 | DN-CPI-07 | Alert ids change when CPI keys are added | The id hashes `data`; the CPI is part of what the alert says. No stored id exists to migrate |
-| DN-CPI-08 | Month from `Anyo` and `FK_Periodo`, not from `Fecha` | `Fecha` epoch of a month start depends on the zone (a CET midnight is the previous day in UTC); the two integer fields are unambiguous |
+| DN-CPI-08 | Month from `Anyo` and `T3_Periodo` (`M09`), not from `Fecha` | `Fecha` of a month start carries a zone offset (`+02:00`, `+01:00`); the two fields are unambiguous |
 | DN-CPI-09 | The script duplicates the validator in a few lines instead of importing `ledger_kit` | "Standard library only" and no dependency on the venv; the committed-file test applies the library validator, so drift is caught |
 | DN-CPI-10 | CPI passed through `context["cpi"]`, loaded by the app | Detectors stay pure functions `(ledger, context)`; no I/O or global state in them |
 | DN-CPI-11 | `Series.step_index` added instead of recomputing the split in the detector | One source of truth for where the step is; recomputing would duplicate `_segment_by_price` and could disagree after an extend/merge |
 | DN-CPI-12 | The card shows the sentence itself when the LLM text lacks it | The comparison is deterministic data; it must not depend on the wording of an LLM |
 | DN-CPI-13 | Index values shown with a decimal comma (`100,000`) | Finance Rule 4: `100.000` reads as one hundred thousand in European format |
 | DN-CPI-14 | No "above/below inflation" wording or flag | Finance Rule 8: no conclusion, no advice; also keeps the CPI from becoming a hidden severity input |
+| DN-CPI-15 | Attribution text is the accented Spanish one; the snapshot is INE data that keeps the INE licence (CC BY 4.0 per the notice body; the page footer says CC BY-SA 4.0, a page inconsistency) and is not covered by the repository MIT licence; `data/public/README.md` says so and that the INE does not take part in, sponsor or support the reuse (Q1) | Checked by the reviewer against the INE legal notice on 9 November 2026 |
+| DN-CPI-16 | One request: `tip=A` with `date=20170101:YYYYMMDD`; status from `T3_TipoDato`, month from `Anyo` + `T3_Periodo`, name stripped, parse with `json.loads(parse_float=Decimal)` (Q2, Q3) | Real responses checked by the reviewer: `Valor` is a JSON number, `Nombre` has a trailing space, `nult` is not needed |
+| DN-CPI-17 | Months are stored as `YYYY-MM`; the small guard widening is documented (Q4) | No form keeps the citation and avoids it (§6.3) |
+| DN-CPI-18 | The guard widening of §6.3 is a known limitation, accepted | See DN-CPI-17 |
+| DN-CPI-19 | `CPI_MAX_LAG_MONTHS = 1` (Q6) | See DN-CPI-03; the developer re-runs the script when the INE publishes October |
+| DN-CPI-20 | One attribution caption on the showcase Home page too (Q5) | Home presents the Zombie app |
+| DN-CPI-21 | `Series.step_index` is added; every existing test stays green and no detection condition changes (Q7) | Same reason as DN-CPI-11 |
 
 ## 12 — Risks
 
@@ -467,12 +482,12 @@ No test reads the clock or the network. `freezegun` is not needed: nothing under
    changed `append`; CPI5 runs every existing price-step fixture before and after and asserts equality of the
    old fields.
 2. **Snapshot ignored by git.** Mitigation: the `.gitignore` exception and its test (CPI4).
-3. **API field names wrong on the first real run.** Mitigation: the script fails loudly, writes nothing, and
+3. **API field names wrong at a future refresh.** Mitigation: the script fails loudly, writes nothing, and
    prints which month lacks a status (§9.2).
-4. **The October row appearing mid-judging** changes the demo cards. Mitigation: REQ-CPI-21's
-   expectation is computed from the snapshot.
+4. **The October row appearing mid-judging** changes the `STREAMFLEX INTL` card from the lag variant to the
+   plain sentence. Mitigation: REQ-CPI-21's expectation is computed from the snapshot.
 5. **Guard widening by month digits** (§6.3).
 
 ## 13 — Open questions for the reviewer
 
-Listed in `tasks.md` (end of file) so they travel with the task list.
+None: Q1 to Q7 were answered on 9 November 2026 and are recorded as DN-CPI-15 to DN-CPI-21 (§11).

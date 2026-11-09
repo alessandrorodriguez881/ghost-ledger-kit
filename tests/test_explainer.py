@@ -165,6 +165,35 @@ def test_explain_unknown_placeholder_left_as_is() -> None:
     assert fill_fallback("x {unknown} y", _alert()) == "x {unknown} y"
 
 
+# --- public-cpi CPI7: `pct` and `idx` format specs (REQ-CPI-16) ---
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [("18.0", "18,0 %"), ("-0.3", "-0,3 %"), ("2", "2,0 %"), ("n/a", "n/a"), ("", "")],
+)
+def test_fill_fallback_pct_spec(value: str, text: str) -> None:
+    assert fill_fallback("{x:pct}", _alert({"x": value})) == text
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [("104.978", "104,978"), ("100.000", "100,000"), ("n/a", "n/a")],
+)
+def test_fill_fallback_idx_spec(value: str, text: str) -> None:
+    assert fill_fallback("{x:idx}", _alert({"x": value})) == text
+
+
+def test_fill_fallback_money_unchanged_next_to_pct() -> None:
+    alert = _alert({"a": "1234.5", "b": "30.0", "c": "abc"})
+    filled = fill_fallback("{a:money} {b:pct} {c:money} {b}", alert)
+    assert filled == "1.234,50 EUR 30,0 % abc 30.0"
+
+
+def test_fill_fallback_unknown_key_with_pct_spec_is_kept() -> None:
+    assert fill_fallback("{missing:pct}", _alert()) == "{missing}"
+
+
 def test_fill_fallback_is_public() -> None:
     alert = _alert({"yearly_cost": "155.88", "n": 3})
     assert fill_fallback("{yearly_cost:money} ({n})", alert) == "155,88 EUR (3)"

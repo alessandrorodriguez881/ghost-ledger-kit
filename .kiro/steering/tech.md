@@ -17,6 +17,7 @@
 | Invoice parsing | stdlib `csv` + stdlib `json` + **defusedxml** (exact pin) | CSV and JSON invoice formats (e.g. FATURA annotations) and Facturae 3.2 / 3.2.1 / 3.2.2 XML. Only used in the ingestion layer. No PDF parsing. |
 | XML safety | **defusedxml** (exact pin, `0.7.1`) | `facturae_reader.py` parses untrusted XML only through `defusedxml.ElementTree` with `forbid_dtd=True`; no other module imports an XML parser. |
 | Bank statements | stdlib only | Norma 43 (AEB CSB 43) is fixed-width text read by `norma43_reader.py`; the content sniffer picks CSV or Norma 43. |
+| Public data (INE CPI) | stdlib only (`urllib.request`, `json`, `decimal`) | The INE JSON API is called only by `scripts/fetch_ine_cpi.py`, run by the developer, never at run time, in tests or in CI. It writes `data/public/ine_cpi_ipc290751.json`; `ledger_kit/public_data/ine_cpi.py` reads and validates that file. Index values are `Decimal` built from the JSON text (`parse_float=Decimal`), never `float`. |
 | Typing | **pydantic ≥ 2.0** | `Transaction` and `Alert` models are Pydantic models for validation and serialisation. |
 | Linting / formatting | **ruff** | Single tool for lint + format; config in `pyproject.toml`. |
 

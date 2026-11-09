@@ -23,23 +23,31 @@ requester on 9 November 2026 and are pinned by the snapshot test.
 
 ## Source facts (checked on 9 November 2026 by the requester)
 
-These were not re-verified by the author of this spec: the web fetch was denied in session 9a. The
-two items marked **unverified** are the only places where the implementer must look at the real API
-response before relying on a field name (see design §9 and Q2, Q3).
+The reviewer checked these on 9 November 2026 against the live INE API and the INE legal notice
+(session 9b, decisions DN-CPI-15 to DN-CPI-21 in design §11). The API field names below are the real
+ones.
 
 - Series **IPC290751**, named `Nacional. Índice general. Índice`, table 76125, monthly, index
   **base 2025** (2025 average = 100), classification ECOICOP v2, values with **three decimals**,
   e.g. `2026 M09` = `104.978` and `2026 M08` = `104.638`, status `Definitivo` **(INE)**.
 - The old base-2021 series **IPC251852** stops in December 2025 and **must not be used**.
-- Public JSON API: `https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290751`, parameter `nult`
-  for the last *n* periods; each `Data` entry has `Fecha` (epoch milliseconds), `FK_Periodo` (month
-  1 to 12), `Anyo` and `Valor`. The status field name (`T3_TipoDato` with `tip=A`) is **unverified**.
-- Licence: the INE legal notice applies **CC BY 4.0** to its statistics, requires the attribution
-  *Elaboración propia con datos extraídos del sitio web del INE: www.ine.es* for processed data, and
-  forbids suggesting that the INE takes part in, sponsors or supports the reuse. The requester wrote
-  the sentence without accents; the committed text uses the accented Spanish form (Q1).
+- Public JSON API: `https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290751`. With `tip=A` the
+  payload has `COD`, `Nombre` (with a **trailing space**: `Nacional. Índice general. Índice `),
+  `T3_Unidad`, `T3_Escala` and `Data`; each `Data` entry is `{"Fecha": "2026-09-01T00:00:00.000+02:00",
+  "T3_TipoDato": "Definitivo", "T3_Periodo": "M09", "Anyo": 2026, "Valor": 104.978}`. Without `tip` the
+  entry is `{"Fecha": <epoch ms>, "FK_TipoDato": 1, "FK_Periodo": 9, "Anyo": 2026, "Valor": 104.978,
+  "Secreto": false}`; the script does not use that form. `Valor` is a JSON number. `nult=3&tip=A` works
+  (returned 2026-07, 2026-08, 2026-09) and so does a date range: `date=20170101:20170301&tip=A` returned
+  2017-01 `79.896`, 2017-02 `79.608`, 2017-03 `79.592`. The script makes **one request** with
+  `tip=A&date=20170101:YYYYMMDD` (`YYYYMMDD` is the run day).
+- Licence: the INE legal notice gives the attribution *Elaboración propia con datos extraídos del
+  sitio web del INE: www.ine.es* for processed data (the accented text is right) and its body applies
+  **CC BY 4.0** (the page footer mentions CC BY-SA 4.0, an inconsistency of the page; the body governs).
+  The INE data keeps the INE licence and is **not** covered by the repository MIT licence. The reuse
+  must not suggest that the INE takes part in, sponsors or supports it.
 - As of 9 November 2026 the latest published month is **2026-09**. October 2026 is normally published
-  in mid-November, so the demo is built to behave correctly with or without it (REQ-CPI-21).
+  in mid-November, so the demo is built to behave correctly with or without it (REQ-CPI-21); the
+  developer re-runs the script once the INE publishes October.
 
 ---
 
@@ -47,7 +55,8 @@ response before relying on a field name (see design §9 and Q2, Q3).
 
 - **REQ-CPI-01** The system shall provide `scripts/fetch_ine_cpi.py`, which uses **only the Python
   standard library** (`urllib.request`, `urllib.error`, `json`, `decimal`, `datetime`, `argparse`,
-  `pathlib`), downloads series `IPC290751` from the API of the Source facts for the months from
+  `pathlib`, `os`, `re`, `sys`, `tempfile`, `typing`, `collections.abc`), downloads series `IPC290751` from the API of the Source facts in **one request**
+  (`?date=20170101:YYYYMMDD&tip=A`, `YYYYMMDD` = the run day) for the months from
   **2017-01** to the latest published month, and writes the snapshot of REQ-CPI-02 to
   `data/public/ine_cpi_ipc290751.json`. It shall be run by the developer, who commits the result; no
   app, test or CI step runs it. *When* any step fails (network error, HTTP error, timeout, payload
@@ -56,7 +65,8 @@ response before relying on a field name (see design §9 and Q2, Q3).
   and **leave any existing snapshot untouched** (the file is written to a temporary file in the same
   folder and renamed only after success). On success it prints one line
   `wrote <path>: <n> months, <first_month> to <last_month>` and exits 0.
-  - Fake payload `{"COD": "IPC290751", "Nombre": "Nacional. Índice general. Índice", "Data": [...]}`
+  - Fake payload `{"COD": "IPC290751", "Nombre": "Nacional. Índice general. Índice ", "Data": [...]}`
+    (note the trailing space of the real `Nombre`; the snapshot's `series_name` is stripped)
     with 117 contiguous months from 2017-01 to 2026-09 (synthetic) → snapshot with
     `"first_month": "2017-01"`, `"last_month": "2026-09"`, exit 0.
   - Payload with `"COD": "IPC251852"` → exit 1, stderr
@@ -71,7 +81,7 @@ response before relying on a field name (see design §9 and Q2, Q3).
   | Key | Content |
   |---|---|
   | `series_code` | `"IPC290751"` |
-  | `series_name` | the series name as returned by the API (expected `Nacional. Índice general. Índice`) |
+  | `series_name` | the series name as returned by the API, **stripped** of surrounding whitespace (expected `Nacional. Índice general. Índice`) |
   | `table` | `76125` (integer) |
   | `base_year` | `2025` (integer; the index is 2025 average = 100) |
   | `classification` | `"ECOICOP v2"` |
@@ -86,15 +96,17 @@ response before relying on a field name (see design §9 and Q2, Q3).
 
   Every `value` is a **string** with exactly three decimals, built from the JSON text with `Decimal`
   (`json.loads(..., parse_float=Decimal)`), never through `float`. `status` is copied from the API.
-  `month` comes from `Anyo` and `FK_Periodo` (`Fecha` is not used: the epoch of a month start depends on
-  the time zone). The script keeps every entry it receives from 2017-01 on, including provisional
-  ones, and stores their status as received.
-  - Entry `{"Anyo": 2026, "FK_Periodo": 9, "Valor": 104.978, ...}` with status `Definitivo` →
+  `month` comes from `Anyo` and `T3_Periodo` (`M01` to `M12`; `Fecha` is not used, DN-CPI-08) and
+  `status` from `T3_TipoDato`. A `T3_Periodo` that is not `M01` to `M12` is an error. The script keeps
+  every entry it receives from 2017-01 on, including provisional ones, and stores their status as
+  received.
+  - Entry `{"Anyo": 2026, "T3_Periodo": "M09", "T3_TipoDato": "Definitivo", "Valor": 104.978, ...}` →
     `{"month": "2026-09", "value": "104.978", "status": "Definitivo"}`.
   - `"Valor": 104.9` → `"value": "104.900"` (padding is lossless); `"Valor": 104.9781` → script error
     `error: value for 2026-09 has more than three decimals: 104.9781` (no rounding, no guess).
-  - An entry without a status → `error: no status for 2026-09` (the script never writes a status of
-    its own).
+  - An entry without `T3_TipoDato` (or with an empty one) → `error: no status for 2026-09` (the script
+    never writes a status of its own).
+  - `"T3_Periodo": "M13"` → `error: unexpected period 'M13' in year 2026`.
 
 - **REQ-CPI-03** The snapshot validator (one function in `ledger_kit/public_data/ine_cpi.py`, REQ-CPI-05,
   re-implemented in a few lines in the script, which must not import `ledger_kit`) shall reject:
@@ -134,9 +146,12 @@ response before relying on a field name (see design §9 and Q2, Q3).
   2. the requested month is inside `[first_month, last_month]` but not published (a gap) → the **latest
      published month before it**, `is_fallback=True` (the caller can say which month it used);
   3. the requested month is before `first_month` → `None`;
-  4. the requested month is after `last_month` → `None` (**no extrapolation**: a later month is never
-     answered with an older value; see DN-CPI-03);
-  5. anything that is not a valid month → `ValueError` (`"2026-13"`, `"2026-9"`, `"abc"`, a `datetime`
+  4. the requested month is **exactly one month** after `last_month` (`CPI_MAX_LAG_MONTHS = 1`) → `last_month`,
+     `is_fallback=True` (DN-CPI-03: the newest month is often not published yet; no value is invented, the
+     compared span only gets shorter);
+  5. the requested month is two or more months after `last_month` → `None` (**no further
+     extrapolation**);
+  6. anything that is not a valid month → `ValueError` (`"2026-13"`, `"2026-9"`, `"abc"`, a `datetime`
      with a time part is accepted as its date).
   `value` is the `Decimal` read from the snapshot string, three decimals, never rounded, never
   interpolated, never computed.
@@ -145,12 +160,15 @@ response before relying on a field name (see design §9 and Q2, Q3).
   - `S.lookup("2026-02")` → `CpiPoint("2026-02", "2026-02", Decimal("100.500"), "Definitivo", False)`.
   - `G.lookup("2026-02")` → `CpiPoint("2026-02", "2026-01", Decimal("100.000"), "Definitivo", True)`.
   - `S.lookup(date(2026, 2, 17))` equals `S.lookup("2026-02")`.
-  - `S.lookup("2025-12")` → `None`; `S.lookup("2026-04")` → `None`; `G.lookup("2026-04")` → `None`.
+  - `S.lookup("2025-12")` → `None`; `S.lookup("2026-05")` → `None`; `G.lookup("2026-05")` → `None`.
+  - `S.lookup("2026-04")` → `CpiPoint("2026-04", "2026-03", Decimal("101.000"), "Definitivo", True)`;
+    `G.lookup("2026-04")` → `CpiPoint("2026-04", "2026-03", Decimal("101.000"), "Definitivo", True)`.
   - `S.lookup("2026-13")` → `ValueError`.
 
 - **REQ-CPI-07** *While* the reader answers a lookup it shall never return a month later than the
-  requested month, never return a value that is not in the series, and never raise for a month that is
-  merely out of range. The reader performs no arithmetic other than month comparison.
+  requested month, never return a value that is not in the series, never raise for a valid month that is
+  merely out of range, and never answer a month more than `CPI_MAX_LAG_MONTHS` after `last_month`. The reader
+  performs no arithmetic other than month comparison.
   - Property (Hypothesis): for any series and any requested month, `lookup` is `None` or
     `used <= requested`, `value` equals the series entry of `used`, and `used` is published.
 
@@ -242,7 +260,10 @@ response before relying on a field name (see design §9 and Q2, Q3).
   when `context["cpi"]` is not a `CpiSeries`-like object with `lookup`.
   - Series **C**, rows 2025-12-05 … (price start in 2025-12, before `2026-01`) → no CPI keys, alert
     otherwise unchanged.
-  - Series **C**, rows with a step whose first new row is dated 2026-07 → no CPI keys (after the range).
+  - Series **C**, rows with a step whose first new row is dated 2026-08 → no CPI keys (two months after
+    the last month `2026-06`).
+  - Series **C**, rows with a step whose first new row is dated 2026-07 → CPI keys present, `cpi_end_month`
+    is `2026-06` while `price_end_month` is `2026-07` (one month after the range, DN-CPI-03).
   - Weekly rows 2026-01-05 and 2026-01-12 at `10.00`, 2026-01-19 and 2026-01-26 at `12.00` → the
     price-increase alert has no CPI keys (both months are `2026-01`).
   - Gapped series `G` = {2026-01: 100.000, 2026-03: 101.000} with a step from 2026-02 to 2026-03:
@@ -294,9 +315,15 @@ response before relying on a field name (see design §9 and Q2, Q3).
   contain **one sentence** with the comparison; otherwise the template is today's text. `explain_support`
   shall provide `template_for(alert) -> str` choosing between them (`TEMPLATES` itself is unchanged: its
   keys still equal the registered `zs.*` detectors). The sentence is neutral: it states the two figures
-  and the months and draws no conclusion and gives no advice (Finance Rule 8).
+  and the months and draws no conclusion and gives no advice (Finance Rule 8). *When* a CPI month used
+  differs from the price month it answers (a lag or a gap fallback), the sentence is the **lag variant**,
+  which names the price months and says that the latest published CPI month available was used.
   - Sentence: `The price rose {price_change_percent:pct} while the Spanish CPI (INE series
     {cpi_series}) changed by {cpi_change_percent:pct} from {cpi_start_month} to {cpi_end_month}.`
+  - Lag variant: `The price rose {price_change_percent:pct} from {price_start_month} to
+    {price_end_month}, while the Spanish CPI (INE series {cpi_series}) changed by
+    {cpi_change_percent:pct} from {cpi_start_month} to {cpi_end_month}, using the latest published CPI
+    month available.`
   - Template with CPI for the alert of REQ-CPI-11 fills to: `The CLOUDVAULT charge increased from
     100,00 EUR to 118,00 EUR, adding 216,00 EUR to your yearly cost. The price rose 18,0 % while the
     Spanish CPI (INE series IPC290751) changed by 2,0 % from 2026-01 to 2026-04. Source: f.csv:0, f.csv:1,
@@ -305,7 +332,10 @@ response before relying on a field name (see design §9 and Q2, Q3).
 
 - **REQ-CPI-18** The Zombie Subscriptions price-increase card shall show, under the explanation text and
   above the source rows: (a) a source line naming the series, the months used and the two index values in `format_index` form
-  (`CPI source: INE series IPC290751 (base 2025 = 100), 2026-01 = 100,000, 2026-04 = 102,000`); (b) the
+  (`CPI source: INE series IPC290751 (base 2025 = 100), 2026-01 = 100,000, 2026-04 = 102,000`); *when* the
+  CPI months differ from the price months the line **also shows the price months**
+  (`CPI source: INE series IPC290751 (base 2025 = 100), 2026-05 = 100,000, 2026-09 = 104,978; latest
+  published month used; price months 2026-05 and 2026-10`); (b) the
   comparison sentence **once**: when the displayed explanation already contains the sentence (fallback
   template) the card adds nothing; when the explanation is LLM text that lacks it, the card adds the
   sentence as a caption. A card whose alert has no CPI keys shows neither.
@@ -319,6 +349,11 @@ response before relying on a field name (see design §9 and Q2, Q3).
   and non-endorsement text in a short "Public data" section, and `data/public/README.md` shall give the
   licence reference (Finance Rule 6). Phantom Invoices does not use the CPI and carries no attribution.
   The wording shall not imply that the INE takes part in, sponsors or supports the app.
+  A one-line attribution (`Elaboración propia con datos extraídos del sitio web del INE: www.ine.es`,
+  `CC BY 4.0`) shall also appear once as a caption on the showcase Home page (`streamlit_app.py`), which
+  presents the Zombie app (DN-CPI-06 revised). `data/public/README.md` shall state that the snapshot is
+  **INE data that keeps the INE licence and is not covered by the repository MIT licence**, and that the
+  INE does not take part in, sponsor or support this reuse.
   - Page text contains `Elaboración propia con datos extraídos del sitio web del INE: www.ine.es` and
     `CC BY 4.0` and `The INE does not take part in, sponsor or support this reuse.`
   - A test compares the three texts in README, `data/public/README.md` and the snapshot: they are equal.
@@ -341,15 +376,19 @@ response before relying on a field name (see design §9 and Q2, Q3).
 - **REQ-CPI-21** The demo shall behave correctly whatever the last published month is. The headless run
   of the app with **Load demo data** shall show 3 tombstones and 19 alerts (1 critical, 4 warning,
   14 info), and every price-increase card shall carry the CPI sentence **if and only if** the snapshot
-  covers both of its months. Demo facts: `CLOUDVAULT` goes from `9.99` (first charge 2026-05-12) to
-  `12.99` (first new charge 2026-08-10): price months `2026-05` and `2026-08`, `price_change_percent`
-  `30.0`, always covered; `STREAMFLEX INTL` goes from `12.99` (first charge 2026-05-07) to `15.99`
-  (first new charge 2026-10-04): months `2026-05` and `2026-10`, `price_change_percent` `23.1`,
-  covered only once the snapshot reaches `2026-10`.
+  answers both of its months under REQ-CPI-06 (exactly, by gap fallback, or by the one-month lag of
+  `CPI_MAX_LAG_MONTHS = 1`) with two different CPI months. Demo facts: `CLOUDVAULT` goes from `9.99`
+  (first charge 2026-05-12) to `12.99` (first new charge 2026-08-10): price months `2026-05` and
+  `2026-08`, `price_change_percent` `30.0`, always covered exactly; `STREAMFLEX INTL` goes from `12.99`
+  (first charge 2026-05-07) to `15.99` (first new charge 2026-10-04): months `2026-05` and `2026-10`,
+  `price_change_percent` `23.1`, covered exactly once the snapshot reaches `2026-10`, and by the lag
+  rule (`cpi_end_month` `2026-09`) while `last_month` is `2026-09`.
   - With the snapshot of 9 November 2026 (last month 2026-09): the `CLOUDVAULT` card shows `30,0 %` and
-    its CPI sentence; the `STREAMFLEX INTL` card has no CPI sentence.
-  - After the developer refreshes the snapshot with 2026-10 included, both cards show it; no test
-    changes (the expectation is computed from the snapshot, not hard-coded).
+    its CPI sentence; the `STREAMFLEX INTL` card shows `23,1 %` and the lag-variant sentence
+    (`cpi_start_month` `2026-05`, `cpi_end_month` `2026-09`, price months `2026-05` and `2026-10` in the
+    sentence and in the source line).
+  - After the developer refreshes the snapshot with 2026-10 included, the `STREAMFLEX INTL` card uses the
+    plain sentence; no test changes (the expectation is computed from the snapshot, not hard-coded).
 
 ## Non-goals
 

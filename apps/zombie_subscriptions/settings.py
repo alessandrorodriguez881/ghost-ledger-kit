@@ -10,14 +10,22 @@ import tomllib
 from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 
+from apps.zombie_subscriptions.explain_support import (
+    cpi_sentence_template,
+    cpi_uses_lag,
+    has_cpi_context,
+)
+from ledger_kit.explainer import fill_fallback
 from ledger_kit.ingestion.sniffer import format_label
 from ledger_kit.models import Alert
-from ledger_kit.utils.money import format_amount
+from ledger_kit.public_data import CpiSeries, SnapshotError, load_snapshot
+from ledger_kit.utils.money import format_amount, format_index
 
 if TYPE_CHECKING:
     from apps.zombie_subscriptions.detectors.utils import ZombieCostResult
@@ -225,3 +233,95 @@ def tombstone_view(result: ZombieCostResult, currency: str = DEFAULT_CURRENCY) -
         yearly_cost=format_amount(result.yearly_cost, currency),
         source_refs=tuple(result.source_refs),
     )
+
+
+# --- CPI card helpers (public-cpi REQ-CPI-18, REQ-CPI-19) --------------------------------------
+
+
+def cpi_source_line(alert: Alert) -> str | None:
+    """Return the card's CPI source line, or None when the alert has no CPI keys.
+
+    The index values are shown with a decimal comma (Finance Rule 4). When a CPI month differs
+    from its price month the line also names the price months (DN-CPI-03).
+    """
+    data = alert.data
+    if not has_cpi_context(data):
+        return None
+    try:
+        start_index = format_index(Decimal(str(data["cpi_start_index"])))
+        end_index = format_index(Decimal(str(data["cpi_end_index"])))
+    except (KeyError, InvalidOperation, ValueError):
+        return None
+    line = (
+        f"CPI source: INE series {data['cpi_series']} (base {data['cpi_base_year']} = 100), "
+        f"{data['cpi_start_month']} = {start_index}, {data['cpi_end_month']} = {end_index}"
+    )
+    if cpi_uses_lag(data):
+        line += (
+            "; latest published month used; price months "
+            f"{data['price_start_month']} and {data['price_end_month']}"
+        )
+    return markdown_safe(line)
+
+
+def cpi_sentence_to_add(alert: Alert, explanation: Explanation) -> str | None:
+    """Return the CPI sentence the card must add, or None when the text already has it.
+
+    The comparison is deterministic data, so it is shown whatever the LLM writes; it is never
+    shown twice (REQ-CPI-18, DN-CPI-12).
+    """
+    template = cpi_sentence_template(alert)
+    if template is None:
+        return None
+    sentence = fill_fallback(template, alert)
+    if sentence in explanation.text:
+        return None
+    return markdown_safe(sentence)
+
+
+def attribution_lines(cpi: CpiSeries) -> list[str]:
+    """Return the three footer lines of the INE attribution, escaped for markdown."""
+    licence_line = (
+        f"Licence: {cpi.licence} · INE series {cpi.series_code} ({cpi.series_name}) · "
+        f"retrieved {cpi.retrieved_on}"
+    )
+    lines = [cpi.attribution, licence_line, cpi.no_endorsement]
+    return [markdown_safe(line) for line in lines]
+
+
+# --- CPI snapshot loading (public-cpi REQ-CPI-19, design §8) -----------------------------------
+
+CPI_UNAVAILABLE_NOT_FOUND: str = "CPI context unavailable: snapshot not found."
+CPI_UNAVAILABLE_INVALID: str = "CPI context unavailable: snapshot invalid."
+
+
+def cpi_snapshot_path(config: dict[str, Any], root: Path) -> Path | None:
+    """Return the snapshot path named by [cpi] (relative to `root`), or None when not set."""
+    text = config.get("cpi", {}).get("snapshot_path")
+    if not text:
+        return None
+    return Path(root) / str(text)
+
+
+def read_cpi(path: Path) -> CpiSeries | None:
+    """Load the CPI snapshot at `path`; None when it is missing or invalid (never raises).
+
+    A broken snapshot must not take the page down; the snapshot tests fail loudly instead.
+    """
+    try:
+        return load_snapshot(path)
+    except SnapshotError:
+        return None
+
+
+def load_cpi(config: dict[str, Any], root: Path) -> CpiSeries | None:
+    """Load the snapshot named by [cpi] in `config`; None when absent, missing or invalid."""
+    path = cpi_snapshot_path(config, root)
+    return None if path is None else read_cpi(path)
+
+
+def cpi_unavailable_caption(path: Path | None) -> str:
+    """Return the caption shown when no CPI snapshot could be loaded from `path`."""
+    if path is None or not Path(path).is_file():
+        return CPI_UNAVAILABLE_NOT_FOUND
+    return CPI_UNAVAILABLE_INVALID

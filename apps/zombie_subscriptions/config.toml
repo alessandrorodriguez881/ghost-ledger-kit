@@ -7,6 +7,11 @@
 streaming = ["STREAMFLIX INTL", "STREAMFLIXCOM", "STREAMFLIX"]
 music = ["BEATSTREAM", "BEATSTREAM PREMIUM"]
 
+# Official public data (public-cpi): a path to the committed INE snapshot, relative to the repo
+# root. The app never calls the network; refresh it with scripts/fetch_ine_cpi.py.
+[cpi]
+snapshot_path = "data/public/ine_cpi_ipc290751.json"
+
 # Inputs filled in by the "Load demo data" button (REQ-ZS-44). Every alias member and every
 # key below must equal a normalised counterparty key of the demo CSV (checked by
 # tests/test_zs_demo_e2e.py). Dates are converted with date.fromisoformat.

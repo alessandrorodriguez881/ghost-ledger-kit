@@ -255,3 +255,106 @@ def test_edge_exception_uses_interval_minimum() -> None:
     assert series is not None
     assert series.interval_type == "quarterly"
     assert series.price_steps == [_step("10.00", "12.00")]
+
+
+# --- Series.step_index (public-cpi CPI5, REQ-CPI-10): new field, old fields unchanged ---------
+
+
+def _old_fields(series: zs.Series) -> tuple:
+    """Every Series field that existed before step_index."""
+    return (
+        series.rows,
+        series.interval_type,
+        series.nominal_days,
+        series.current_amount,
+        series.price_steps,
+    )
+
+
+def test_step_index_up_9_99_to_12_99() -> None:
+    """9.99 x3 -> 12.99 x3: the old fields are as before and step_index is 3."""
+    series = _segment(["9.99"] * 3 + ["12.99"] * 3)
+    assert series is not None
+    rows = _run(["9.99"] * 3 + ["12.99"] * 3)
+    assert _old_fields(series) == (rows, "monthly", 30, Decimal("12.99"), [_step("9.99", "12.99")])
+    assert series.step_index == 3
+    assert series.rows[series.step_index]["amount"] == Decimal("12.99")
+    assert series.rows[series.step_index - 1]["amount"] == Decimal("9.99")
+
+
+def test_step_index_up_12_99_to_15_99() -> None:
+    """12.99 x3 -> 15.99 x3: step_index is 3."""
+    series = _segment(["12.99"] * 3 + ["15.99"] * 3)
+    assert series is not None
+    assert series.price_steps == [_step("12.99", "15.99")]
+    assert series.step_index == 3
+
+
+def test_step_index_final_single_row() -> None:
+    """E1 edge: 12.99 x5 then 15.99: the lone last row is the first new-level row."""
+    series = _segment(["12.99"] * 5 + ["15.99"])
+    assert series is not None
+    assert series.price_steps == [_step("12.99", "15.99")]
+    assert series.step_index == 5
+
+
+def test_step_index_first_single_row() -> None:
+    """One 12.99 then 15.99 x5: the new level starts at row 1."""
+    series = _segment(["12.99"] + ["15.99"] * 5)
+    assert series is not None
+    assert series.step_index == 1
+
+
+def test_step_index_downward_step() -> None:
+    """A downward step records its index too."""
+    series = _segment(["14.99"] * 3 + ["9.99"] * 3)
+    assert series is not None
+    assert series.step_index == 3
+
+
+def test_step_index_none_without_a_step() -> None:
+    """Stable, variable-bill and ambiguous runs have no step_index."""
+    stable = _segment(["12.99"] * 5)
+    variable = _segment(["48.00", "52.00", "50.00", "49.00", "51.00", "50.00"])
+    ambiguous = _segment(["100.00", "100.00", "104.00", "104.00", "108.00", "108.00"])
+    for series in (stable, variable, ambiguous):
+        assert series is not None
+        assert series.price_steps == []
+        assert series.step_index is None
+
+
+def test_step_index_survives_merge() -> None:
+    """Two price buckets give two series that Phase 2b merges; the index is the merge point."""
+    rows = _run(["9.99"] * 3 + ["12.99"] * 3)
+    found = zs.find_series(rows)
+    assert len(found) == 1
+    series = found[0]
+    assert series.price_steps == [_step("9.99", "12.99")]
+    assert series.step_index == 3
+    assert series.rows[series.step_index]["amount"] == Decimal("12.99")
+    assert all(r["amount"] == Decimal("9.99") for r in series.rows[: series.step_index])
+
+
+def test_step_index_survives_extend() -> None:
+    """9.99 x3 then one 12.99: Phase 2a extends the series by the lone new-price row."""
+    rows = _run(["9.99"] * 3 + ["12.99"])
+    found = zs.find_series(rows)
+    assert len(found) == 1
+    assert found[0].price_steps == [_step("9.99", "12.99")]
+    assert found[0].step_index == 3
+
+
+@settings(max_examples=200, deadline=None)
+@given(
+    base=st.integers(min_value=20, max_value=500),
+    pct=st.integers(min_value=7, max_value=45),
+    k=st.integers(min_value=1, max_value=5),
+)
+def test_step_index_is_the_split_position(base: int, pct: int, k: int) -> None:
+    """For a noise-free step at position k of 6, step_index == k and 1 <= k <= len(rows) - 1."""
+    old = round_to_cents(Decimal(base))
+    new = round_to_cents(Decimal(base) * (Decimal(1) + Decimal(pct) / Decimal(100)))
+    series = _segment([old] * k + [new] * (6 - k))
+    assert series is not None
+    assert series.step_index == k
+    assert 1 <= series.step_index <= len(series.rows) - 1

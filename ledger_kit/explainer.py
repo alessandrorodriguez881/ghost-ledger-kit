@@ -13,7 +13,7 @@ from typing import Literal
 import pandas as pd
 
 from ledger_kit.models import Alert
-from ledger_kit.utils.money import format_amount
+from ledger_kit.utils.money import format_amount, format_index, format_percent
 
 # Streamlit renders alerts synchronously: keep the LLM call short.
 LLM_TIMEOUT_SECONDS: int = 10  # seconds before giving up
@@ -106,13 +106,18 @@ class _AlertFormatter(string.Formatter):
         return self._data.get(key, "{" + str(key) + "}")
 
     def format_field(self, value, format_spec):
-        """Format a resolved value; ':money' uses the European amount formatter."""
-        if format_spec == "money":
+        """Format a resolved value: ':money' amounts, ':pct' percentages, ':idx' index values."""
+        formatter = _FORMAT_SPECS.get(format_spec)
+        if formatter is not None:
             try:
-                return format_amount(Decimal(str(value)))
-            except (InvalidOperation, TypeError):
+                return formatter(Decimal(str(value)))
+            except (InvalidOperation, TypeError, ValueError):
                 return str(value)
         return str(value)
+
+
+# European display of the numeric format specs; a value that is not a number is shown as is.
+_FORMAT_SPECS = {"money": format_amount, "pct": format_percent, "idx": format_index}
 
 
 def fill_fallback(template: str, alert: Alert) -> str:

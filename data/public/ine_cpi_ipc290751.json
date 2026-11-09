@@ -1,0 +1,602 @@
+{
+  "series_code": "IPC290751",
+  "series_name": "Nacional. Índice general. Índice.",
+  "table": 76125,
+  "base_year": 2025,
+  "classification": "ECOICOP v2",
+  "periodicity": "monthly",
+  "api_url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290751",
+  "retrieved_on": "2026-11-09",
+  "licence": "CC BY 4.0",
+  "attribution": "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es",
+  "no_endorsement": "The INE does not take part in, sponsor or support this reuse.",
+  "first_month": "2017-01",
+  "last_month": "2026-09",
+  "values": [
+    {
+      "month": "2017-01",
+      "value": "79.896",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-02",
+      "value": "79.608",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-03",
+      "value": "79.592",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-04",
+      "value": "80.356",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-05",
+      "value": "80.308",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-06",
+      "value": "80.343",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-07",
+      "value": "79.788",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-08",
+      "value": "79.947",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-09",
+      "value": "80.086",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-10",
+      "value": "80.825",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-11",
+      "value": "81.194",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2017-12",
+      "value": "81.231",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-01",
+      "value": "80.355",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-02",
+      "value": "80.463",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-03",
+      "value": "80.558",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-04",
+      "value": "81.224",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-05",
+      "value": "81.956",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-06",
+      "value": "82.170",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-07",
+      "value": "81.581",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-08",
+      "value": "81.697",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-09",
+      "value": "81.897",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-10",
+      "value": "82.654",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-11",
+      "value": "82.563",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2018-12",
+      "value": "82.193",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-01",
+      "value": "81.142",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-02",
+      "value": "81.340",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-03",
+      "value": "81.636",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-04",
+      "value": "82.459",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-05",
+      "value": "82.619",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-06",
+      "value": "82.522",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-07",
+      "value": "82.011",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-08",
+      "value": "81.965",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-09",
+      "value": "81.965",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-10",
+      "value": "82.760",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-11",
+      "value": "82.900",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2019-12",
+      "value": "82.840",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-01",
+      "value": "82.032",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-02",
+      "value": "81.935",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-03",
+      "value": "81.621",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-04",
+      "value": "81.868",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-05",
+      "value": "81.863",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-06",
+      "value": "82.240",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-07",
+      "value": "81.502",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-08",
+      "value": "81.540",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-09",
+      "value": "81.662",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-10",
+      "value": "82.090",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-11",
+      "value": "82.225",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2020-12",
+      "value": "82.400",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-01",
+      "value": "82.407",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-02",
+      "value": "81.922",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-03",
+      "value": "82.716",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-04",
+      "value": "83.693",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-05",
+      "value": "84.087",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-06",
+      "value": "84.487",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-07",
+      "value": "83.850",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-08",
+      "value": "84.232",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-09",
+      "value": "84.934",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-10",
+      "value": "86.496",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-11",
+      "value": "86.761",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2021-12",
+      "value": "87.797",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-01",
+      "value": "87.460",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-02",
+      "value": "88.167",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-03",
+      "value": "90.837",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-04",
+      "value": "90.676",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-05",
+      "value": "91.426",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-06",
+      "value": "93.118",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-07",
+      "value": "92.881",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-08",
+      "value": "93.117",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-09",
+      "value": "92.470",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-10",
+      "value": "92.780",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-11",
+      "value": "92.669",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2022-12",
+      "value": "92.808",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-01",
+      "value": "92.613",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-02",
+      "value": "93.487",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-03",
+      "value": "93.831",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-04",
+      "value": "94.390",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-05",
+      "value": "94.345",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-06",
+      "value": "94.881",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-07",
+      "value": "95.042",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-08",
+      "value": "95.552",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-09",
+      "value": "95.721",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-10",
+      "value": "95.998",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-11",
+      "value": "95.663",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2023-12",
+      "value": "95.687",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-01",
+      "value": "95.768",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-02",
+      "value": "96.108",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-03",
+      "value": "96.840",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-04",
+      "value": "97.514",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-05",
+      "value": "97.771",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-06",
+      "value": "98.139",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-07",
+      "value": "97.673",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-08",
+      "value": "97.713",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-09",
+      "value": "97.123",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-10",
+      "value": "97.729",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-11",
+      "value": "97.968",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2024-12",
+      "value": "98.411",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-01",
+      "value": "98.579",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-02",
+      "value": "98.966",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-03",
+      "value": "99.024",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-04",
+      "value": "99.647",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-05",
+      "value": "99.714",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-06",
+      "value": "100.382",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-07",
+      "value": "100.305",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-08",
+      "value": "100.345",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-09",
+      "value": "100.059",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-10",
+      "value": "100.748",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-11",
+      "value": "100.943",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2025-12",
+      "value": "101.289",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-01",
+      "value": "100.836",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-02",
+      "value": "101.261",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-03",
+      "value": "102.440",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-04",
+      "value": "102.883",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-05",
+      "value": "102.951",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-06",
+      "value": "103.598",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-07",
+      "value": "103.899",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-08",
+      "value": "104.638",
+      "status": "Definitivo"
+    },
+    {
+      "month": "2026-09",
+      "value": "104.978",
+      "status": "Definitivo"
+    }
+  ]
+}

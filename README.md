@@ -23,6 +23,22 @@ The explanation is decorative. It never feeds back into the alert logic, and it 
 
 **The proof is a switch.** Both apps have a sidebar toggle, *Simulate a hallucinating LLM*. It replaces the model with a stub that always answers with an invented figure (99999.99). The number guard rejects that answer, the card shows the fixed template, and the alert card shows a warning badge. You can watch the guard work without an API key.
 
+### Public context: the INE consumer price index
+
+A price increase says little on its own: 18 % is more or less depending on what prices did in the same months. When `zs.price_increase` has already raised an alert, it can add one piece of official context: how the Spanish consumer price index (IPC, INE series IPC290751, base 2025) changed between the same two months, in one neutral sentence on the card. It is context, not a verdict: it never decides whether an alert fires, changes a severity or a `source_refs` list, and gives no advice.
+
+- **A committed file, never the network.** The index is a snapshot in `data/public/ine_cpi_ipc290751.json`, read by `ledger_kit/public_data/`. The apps, the tests and the explanation layer never call the network. Only the developer runs `python scripts/fetch_ine_cpi.py`, which makes one request, checks the result and replaces the file only if every check passes.
+- **Same promise as every other figure.** The index values and the two percentages are named fields of `Alert.data` (`cpi_series`, the months used, the two index values, `cpi_change_percent`), so the number guard admits them and rejects any other number. When a month is not covered by the snapshot the alert carries no CPI field at all.
+- **Attribution.** The INE data keeps its own licence (CC BY 4.0) and is not covered by the MIT licence of this repository. The Zombie Subscriptions page shows this notice once, below its alerts:
+
+> Elaboración propia con datos extraídos del sitio web del INE: www.ine.es
+>
+> Licence: CC BY 4.0
+>
+> The INE does not take part in, sponsor or support this reuse.
+
+Source, series, licence and refresh steps are in `data/public/README.md`.
+
 ## The two apps
 
 Both apps are built on the same `ledger_kit` library and share nothing else.
@@ -76,12 +92,13 @@ python scripts/generate_samples.py --mode samples
 ## Project layout
 
 ```text
-ledger_kit/            shared library: models, ingestion, detectors, explainer, utils, ui
+ledger_kit/            shared library: models, ingestion, detectors, explainer, utils, ui, public_data
 apps/
   zombie_subscriptions/  app.py, config.toml, settings.py, detectors/, tests/
   phantom_invoices/      app.py, config.toml, settings.py, detectors/, tests/
-scripts/               generate_samples.py (seeded synthetic data)
+scripts/               generate_samples.py (seeded synthetic data), fetch_ine_cpi.py (INE snapshot)
 data/samples/          synthetic sample and demo files only
+data/public/           the committed INE CPI snapshot and its licence notes
 .kiro/                 specs, steering, hooks
 powers/                the ghost-ledger-detector power
 docs/                  mcp-api-checks.md (library API checks made through MCP)
@@ -95,7 +112,7 @@ streamlit_app.py       showcase entry page
 
 | Kiro feature | What we did | Why it mattered |
 |---|---|---|
-| Specs | Four specs, each with `requirements.md`, `design.md` and `tasks.md`: `.kiro/specs/ledger-core/`, `.kiro/specs/zombie-subscriptions/`, `.kiro/specs/phantom-invoices/` and `.kiro/specs/showcase/`. The tasks files are ticked off as work was done. | Each rule that keeps figures honest (cite the source row, no invented number) is a numbered requirement with a test, so the promise is written down before the code. |
+| Specs | Specs under `.kiro/specs/`, each with `requirements.md`, `design.md` and `tasks.md`: `.kiro/specs/ledger-core/`, `.kiro/specs/zombie-subscriptions/`, `.kiro/specs/phantom-invoices/`, `.kiro/specs/showcase/` and `.kiro/specs/public-cpi/` (the INE price-index context of the Zombie Subscriptions price-increase alert). The tasks files are ticked off as work was done. | Each rule that keeps figures honest (cite the source row, no invented number) is a numbered requirement with a test, so the promise is written down before the code. |
 | Steering | Six files in `.kiro/steering/`. Five are always included: `product.md`, `tech.md`, `structure.md`, `testing.md` and `finance-rules.md`. One is manual: `update-kiro-usage.md`, used to rewrite this section. | `finance-rules.md` makes "never invent a figure, always cite the source row" binding on every change, and it carries the exact no-invention wording the explainer prompt must use. |
 | Hooks | Three hooks in `.kiro/hooks/`: `detector-guard.kiro.hook` (audits a detector when it is edited), `samples-sync.kiro.hook` (keeps the demo data in sync with the generator) and `kiro-usage.kiro.hook` (manual, rewrites this section). | The detector hook audits registration, the three test tiers, purity and named thresholds on every detector edit; the samples hook keeps the demo numbers reproducible from a fixed seed. |
 | MCP | The context7 MCP server (remote, no API key) is configured in `.kiro/settings/mcp.json` after the developer approved it. The agent used it to check the Streamlit, pandas and Hypothesis behaviour the code relies on against the official docs, with the results in `docs/mcp-api-checks.md` (no mismatch; the open points were then confirmed against the installed versions). | Library APIs change between releases, so the assumptions behind the demo-loading callback, the AppTest tests and the property tests were checked against current docs instead of memory. |
@@ -106,13 +123,15 @@ Kiro documentation: [kiro.dev/docs](https://kiro.dev/docs/).
 
 ## Data and licence
 
-All data in this repository is synthetic and generated by `scripts/generate_samples.py` with a fixed seed (42 by default), so regenerating gives the same bytes. There are no public-domain files and no real data; see `data/samples/README.md`.
+All demo and sample data in this repository is synthetic and generated by `scripts/generate_samples.py` with a fixed seed (42 by default), so regenerating gives the same bytes. There is no real personal or financial data; see `data/samples/README.md`.
 
 - Company and person names are invented.
 - IBANs pass the ISO 13616 mod-97 check but have deliberately wrong Spanish national check digits, so they cannot be real accounts.
 - Spanish tax ids carry a wrong control character, a different one per fictional supplier.
 
-Released under the MIT licence, see `LICENSE`.
+The one exception is `data/public/`: official public data from the INE (the consumer price index), under CC BY 4.0, with its licence reference and attribution in `data/public/README.md` and in the section above. It contains no personal data.
+
+Released under the MIT licence, see `LICENSE`. The INE data keeps the INE licence.
 
 ## Hackathon
 

@@ -22,6 +22,9 @@ ghost-ledger-kit/
 │   │   ├── __init__.py
 │   │   └── base.py                 # DetectorResult type, detector registry
 │   ├── explainer.py                # LLM explanation layer; only file that calls an LLM
+│   ├── public_data/
+│   │   ├── __init__.py             # public names only
+│   │   └── ine_cpi.py              # INE CPI snapshot reader and validator (stdlib only, no network)
 │   └── utils/
 │       ├── __init__.py
 │       ├── money.py                # Decimal arithmetic helpers, rounding, formatting
@@ -45,6 +48,7 @@ ghost-ledger-kit/
 │   │       ├── conftest.py
 │   │       ├── test_zs_recurring_charge.py
 │   │       ├── test_zs_price_increase.py
+│   │       ├── test_zs_price_increase_cpi.py  # CPI context of the price-increase alert
 │   │       ├── test_zs_duplicate_subscription.py
 │   │       ├── test_zs_free_trial_to_paid.py
 │   │       ├── test_zs_charges_after_cancellation.py
@@ -63,6 +67,8 @@ ghost-ledger-kit/
 │   │       ├── test_zs_app_logic.py
 │   │       ├── test_zs_app.py      # headless AppTest runs of app.py
 │   │       ├── test_zs_real_formats.py  # Norma 43 demo, routers, equivalence with the CSV demo
+│   │       ├── test_zs_cpi_support.py   # CPI template, card helpers, number guard with CPI figures
+│   │       ├── test_zs_cpi_demo.py      # headless AppTest of the demo with the INE snapshot
 │   │       ├── test_zs_scaffold.py
 │   │       └── test_zs_fixtures.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
@@ -125,15 +131,26 @@ ghost-ledger-kit/
 │   │   ├── test_facturae_reader.py
 │   │   ├── test_facturae_security.py
 │   │   └── test_real_formats_roundtrip.py
+│   ├── public_data/
+│   │   ├── conftest.py             # synthetic CPI series S, G and C as fixtures
+│   │   ├── cpi_builders.py         # synthetic CPI values and snapshot builders (not INE figures)
+│   │   ├── test_ine_cpi_reader.py
+│   │   └── test_ine_cpi_snapshot.py  # pinned checks of the committed INE snapshot, .gitignore
 │   ├── test_generate_real_formats.py   # Norma 43 / Facturae writers and committed samples
+│   ├── test_fetch_ine_cpi.py       # fetch script with a fake opener; no network
+│   ├── test_public_data_docs.py    # attribution identical in snapshot, READMEs, Home page
 │   ├── test_showcase_app.py        # headless AppTest runs of streamlit_app.py
 │   ├── test_showcase_requirements.py
 │   ├── test_models.py
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/
-│   └── generate_samples.py         # Deterministic synthetic sample generator (--mode, --seed)
+│   ├── generate_samples.py         # Deterministic synthetic sample generator (--mode, --seed)
+│   └── fetch_ine_cpi.py            # Developer-run INE CPI snapshot download (stdlib only; never at run time)
 ├── data/
+│   ├── public/                     # Official public data under an open licence (never personal data)
+│   │   ├── README.md               # Source, licence, attribution, refresh command
+│   │   └── ine_cpi_ipc290751.json  # INE CPI snapshot written by scripts/fetch_ine_cpi.py
 │   └── samples/                    # Synthetic or public-domain sample files only
 │       ├── README.md               # Licence reference for any public-domain files
 │       ├── bank_statement_sample.csv
@@ -195,13 +212,21 @@ files with the generator (`scripts/generate_samples.py`).
 - Apps read bank statements and invoices through the routers of `ledger_kit/ingestion/sniffer.py`
   (`read_bank_statement`, `read_invoices`); the content, not the file extension, picks the reader.
 - `facturae_reader.py` is the only module that parses XML, and it imports XML only from `defusedxml`.
+- `ledger_kit/public_data/` is stdlib only and never touches the network; the committed snapshot in
+  `data/public/` is its only input. `scripts/fetch_ine_cpi.py` is the only code that downloads it,
+  it is run by the developer, imports nothing from the project, and is never called by an app, a
+  test or CI.
+- The zombie app receives the CPI series through `context["cpi"]`; the detectors do no I/O.
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
 
 ## Data directory rules
 - `data/samples/` contains only synthetic or explicitly public-domain files.
+- `data/public/` contains only official public data under an open licence (today the INE CPI
+  snapshot), with its licence reference and attribution in `data/public/README.md`. Never personal data.
 - Real user data must never be committed to the repository.
-- `.gitignore` must exclude `data/real/` and any `*.csv` / `*.json` outside `data/samples/`.
+- `.gitignore` must exclude `data/real/` and any `*.csv` / `*.json` outside `data/samples/` and
+  `data/public/` (the lines `!data/public/` and `!data/public/**` follow `*.json`).
 
 ## Configuration files
 - Each app has its own `config.toml`; shared defaults live in `ledger_kit/defaults.toml`.

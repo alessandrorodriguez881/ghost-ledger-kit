@@ -84,8 +84,9 @@ The `ledger_kit/utils/anonymise.py` module provides helpers to strip or pseudony
 - All files in `data/samples/` must be either:
   - **Synthetically generated** by a script in `data/generate/`, or
   - **Explicitly public-domain** with a licence reference in `data/samples/README.md`.
+- `data/public/` holds **official public data under an open licence**, each file with its licence reference and the required attribution in `data/public/README.md`. It is written by a developer-run script from an official source, never edited by hand, and never contains personal data.
 - Real bank statements, real invoices, or any file containing real personal or financial data must never be committed.
-- `.gitignore` must block `data/real/` and loose `*.csv` / `*.pdf` files outside `data/samples/`.
+- `.gitignore` must block `data/real/` and loose `*.csv` / `*.json` / `*.pdf` files outside `data/samples/` and `data/public/`.
 
 ---
 
@@ -115,3 +116,15 @@ The LLM explanation layer must not:
 - Recommend specific financial actions (e.g. "cancel this subscription", "refuse this invoice").
 
 Permitted LLM outputs: a plain-language explanation of what the detector found, citing the source rows, and phrased neutrally for the user to act on.
+
+---
+
+## Rule 9 — Public reference data
+
+A figure from a committed public snapshot (`data/public/`, for example the INE consumer price index) is not a row of the user's file, so it enters an alert only under these conditions:
+
+- It appears only as a **named field of `Alert.data`**, together with its series code and period (for example `cpi_series`, `cpi_start_month`, `cpi_end_month`, `cpi_start_index`). Values are copied verbatim from the snapshot; any percentage is computed in `ledger_kit/utils/money.py` from fields that are themselves in `data`.
+- It **never appears in `source_refs`**, which stay the `source_ref` values of rows of the user's own files. A pseudo reference to a public file is not allowed.
+- It is **context around an alert that already fired**: it never decides whether an alert fires, and it changes no severity, title or `source_refs`. If a public figure cannot be stated honestly for the period (month not covered, zero-length span), the alert carries none of the public-data fields.
+- Wherever a public figure is shown, the **attribution required by its licence is shown once on the same page**, with the licence name and the statement that the source does not take part in, sponsor or support the reuse. Wording must not imply endorsement.
+- Apps, tests and the explanation layer read the committed file only; they never download it. Only a developer-run script does.

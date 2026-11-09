@@ -7,14 +7,19 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from ledger_kit.utils.money import (
+    PERCENT_DECIMALS,
     apply_sign,
     balance_after,
     decimal_from_implied,
     format_amount,
     format_as_european,
+    format_index,
+    format_percent,
     implied_digits,
     net_total,
+    percent_change,
     percent_of,
+    round_percent,
     round_to_cents,
     sum_amounts,
     within_tolerance,
@@ -228,3 +233,118 @@ def test_implied_digits_negative_that_rounds_to_zero_is_zero() -> None:
 @given(x=st.decimals(min_value=0, max_value=999_999_999_999, places=4))
 def test_implied_round_trip_equals_round_to_cents(x: Decimal) -> None:
     assert decimal_from_implied(implied_digits(x)) == round_to_cents(x)
+
+
+# --- Percent helpers (REQ-CPI-08) -----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "rounded"),
+    [
+        ("100.00", "118.00", "18.0"),
+        ("100.000", "102.000", "2.0"),
+        ("9.99", "12.99", "30.0"),
+        ("12.99", "15.99", "23.1"),
+        # The two index values of the INE series (INE): 0.32493... -> 0.3.
+        ("104.638", "104.978", "0.3"),
+        ("400", "401", "0.3"),
+        ("400", "399", "-0.3"),
+    ],
+)
+def test_round_percent_of_percent_change(old: str, new: str, rounded: str) -> None:
+    result = round_percent(percent_change(D(old), D(new)))
+    assert result == D(rounded)
+    assert str(result) == rounded
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "exact"),
+    [("100.00", "118.00", "18"), ("100.000", "102.000", "2"), ("400", "401", "0.25")],
+)
+def test_percent_change_is_exact_before_rounding(old: str, new: str, exact: str) -> None:
+    assert percent_change(D(old), D(new)) == D(exact)
+
+
+def test_percent_change_is_not_rounded() -> None:
+    change = percent_change(D("3"), D("4"))
+    assert change != round_percent(change)
+
+
+@pytest.mark.parametrize("old", ["0", "0.00", "-1", "-100.00"])
+def test_percent_change_rejects_non_positive_old(old: str) -> None:
+    with pytest.raises(ValueError):
+        percent_change(D(old), D("1"))
+
+
+def test_percent_change_negative_when_price_falls() -> None:
+    assert round_percent(percent_change(D("100"), D("90"))) == D("-10.0")
+
+
+def test_percent_decimals_constant() -> None:
+    assert PERCENT_DECIMALS == 1
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [
+        ("30.0", "30,0 %"),
+        ("-0.3", "-0,3 %"),
+        ("1234.5", "1.234,5 %"),
+        ("0.0", "0,0 %"),
+        ("0", "0,0 %"),
+        ("18", "18,0 %"),
+        ("0.04", "0,0 %"),
+        ("-0.04", "0,0 %"),
+        ("2.05", "2,1 %"),
+        ("1234567.89", "1.234.567,9 %"),
+    ],
+)
+def test_format_percent(value: str, text: str) -> None:
+    assert format_percent(D(value)) == text
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [
+        ("104.978", "104,978"),
+        ("100.000", "100,000"),
+        ("79.592", "79,592"),
+        ("1234.500", "1.234,500"),
+    ],
+)
+def test_format_index(value: str, text: str) -> None:
+    assert format_index(D(value)) == text
+
+
+def test_format_amount_unchanged_by_the_percent_refactor() -> None:
+    assert format_amount(D("1234.56")) == "1.234,56 EUR"
+    assert format_amount(D("-0.004")) == "0,00 EUR"
+    assert format_as_european(D("1234567.895")) == "1.234.567,90"
+
+
+_POSITIVE_THREE_DECIMALS = st.decimals(
+    min_value=D("0.001"), max_value=D("1000000"), places=3, allow_nan=False, allow_infinity=False
+)
+
+
+@settings(max_examples=200)
+@given(a=_POSITIVE_THREE_DECIMALS, b=_POSITIVE_THREE_DECIMALS)
+def test_round_percent_stays_within_half_a_tenth(a: Decimal, b: Decimal) -> None:
+    exact = percent_change(a, b)
+    rounded = round_percent(exact)
+    assert abs(rounded - exact) <= D("0.05")
+    assert rounded == rounded.quantize(D("0.1"), rounding=ROUND_HALF_UP)
+
+
+@settings(max_examples=200)
+@given(a=_POSITIVE_THREE_DECIMALS, b=_POSITIVE_THREE_DECIMALS)
+def test_percent_change_sign_follows_the_difference(a: Decimal, b: Decimal) -> None:
+    exact = percent_change(a, b)
+    if b > a:
+        assert exact > 0
+        assert round_percent(exact) >= 0
+    elif b < a:
+        assert exact < 0
+        assert round_percent(exact) <= 0
+    else:
+        assert exact == 0

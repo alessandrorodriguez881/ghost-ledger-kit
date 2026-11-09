@@ -31,13 +31,18 @@ from apps.zombie_subscriptions.detectors.utils import (  # noqa: E402
     normalise_date_map,
 )
 from apps.zombie_subscriptions.explain_support import (  # noqa: E402
-    TEMPLATES,
     HallucinatingStubClient,
+    template_for,
 )
 from apps.zombie_subscriptions.settings import (  # noqa: E402
     DEMO_FORMATS,
     SEVERITY_ORDER,
     apply_demo,
+    attribution_lines,
+    cpi_sentence_to_add,
+    cpi_snapshot_path,
+    cpi_source_line,
+    cpi_unavailable_caption,
     demo_inputs,
     group_alerts_by_severity,
     guard_badge,
@@ -46,6 +51,7 @@ from apps.zombie_subscriptions.settings import (  # noqa: E402
     markdown_safe,
     parse_aliases_text,
     parse_dates_text,
+    read_cpi,
     statement_caption,
     tombstone_view,
 )
@@ -55,6 +61,7 @@ from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: 
 from ledger_kit.ingestion.normaliser import normalise  # noqa: E402
 from ledger_kit.ingestion.sniffer import read_bank_statement, sniff_format  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.public_data import CpiSeries  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     SEVERITY_BADGES,
     count_by_severity,
@@ -255,9 +262,28 @@ def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanati
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
         client = HallucinatingStubClient() if hallucinate else None
         cache[key] = explain_with_meta(
-            alert, rows, fallback_template=TEMPLATES[alert.detector], client=client
+            alert, rows, fallback_template=template_for(alert), client=client
         )
     return cache[key]
+
+
+@st.cache_resource(show_spinner=False)
+def _cached_cpi(path: str, stamp: int) -> CpiSeries | None:
+    """Load the CPI snapshot once per (path, modification time); the object is immutable.
+
+    `stamp` is only part of the cache key, so a refreshed or newly added file is picked up.
+    """
+    return read_cpi(Path(path))
+
+
+def _load_cpi() -> tuple[CpiSeries | None, str]:
+    """Return the CPI series (None when unavailable) and the caption to show when it is None."""
+    path = cpi_snapshot_path(load_config(CONFIG_PATH), ROOT)
+    caption = cpi_unavailable_caption(path)
+    if path is None:
+        return None, caption
+    stamp = path.stat().st_mtime_ns if path.is_file() else -1
+    return _cached_cpi(str(path), stamp), caption
 
 
 def _refs_markdown(refs: Sequence[str]) -> str:
@@ -313,6 +339,20 @@ def _render_graveyard(zombies: Sequence[Any], currency: str) -> None:
                         st.caption("No charge after the last-used date.")
 
 
+def _render_cpi_lines(alert: Alert, explanation: Explanation) -> None:
+    """Under the explanation: the CPI sentence when the text lacks it, then the CPI source line.
+
+    Both come from the alert data, so the comparison is shown whatever the LLM wrote and never
+    twice (REQ-CPI-18). An alert without CPI keys shows neither.
+    """
+    sentence = cpi_sentence_to_add(alert, explanation)
+    if sentence is not None:
+        st.caption(sentence)
+    source_line = cpi_source_line(alert)
+    if source_line is not None:
+        st.caption(source_line)
+
+
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
@@ -326,6 +366,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
             f'<span class="zs-badge zs-badge-{badge.kind}">{html.escape(badge.label)}</span>',
             unsafe_allow_html=True,
         )
+        _render_cpi_lines(alert, explanation)
         st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
@@ -345,6 +386,15 @@ def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: b
         st.markdown(f"#### {SEVERITY_BADGES[severity]} {severity.capitalize()}")
         for alert in groups[severity]:
             _render_alert(alert, ledger, hallucinate)
+
+
+def _render_attribution(cpi: CpiSeries | None, unavailable: str) -> None:
+    """Footer, drawn once: the INE attribution while a snapshot is loaded, else why it is not."""
+    if cpi is None:
+        st.caption(unavailable)
+        return
+    for line in attribution_lines(cpi):
+        st.caption(line)
 
 
 def _render_quarantine(quarantine: Sequence[dict]) -> None:
@@ -391,7 +441,8 @@ def main() -> None:
     debit_ledger = ledger[ledger["flow"] == "debit"].reset_index(drop=True)
     st.caption(statement_caption(name, sniff_format(data), len(debit_ledger), len(quarantine)))
 
-    context = {"aliases": aliases, "cancellation_dates": cancellation_dates}
+    cpi, cpi_unavailable = _load_cpi()
+    context = {"aliases": aliases, "cancellation_dates": cancellation_dates, "cpi": cpi}
     results = run_all(debit_ledger, namespace="zs", context=context)
     alerts = [alert for result in results for alert in result.alerts]
     zombies = compute_zombie_cost(debit_ledger, last_used_dates, aliases=aliases)
@@ -400,6 +451,7 @@ def main() -> None:
     _render_quarantine(quarantine)
     _render_graveyard(zombies, ledger_currency(debit_ledger))
     _render_alerts(alerts, debit_ledger, bool(st.session_state[HALLUCINATE_KEY]))
+    _render_attribution(cpi, cpi_unavailable)
 
 
 # Streamlit executes the script as __main__; importing the module (tests) renders nothing.

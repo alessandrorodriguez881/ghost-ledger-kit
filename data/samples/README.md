@@ -4,6 +4,9 @@ Every file in this directory is **synthetically generated**. None is derived fro
 statement, invoice or person (Finance Rules 5 and 6). There are no public-domain files here, so
 no third-party licence applies.
 
+Official public data lives in `data/public/`, not here: see [`data/public/README.md`](../public/README.md)
+for its source, licence and attribution.
+
 ## Generation script
 
 All files are produced by [`scripts/generate_samples.py`](../../scripts/generate_samples.py):

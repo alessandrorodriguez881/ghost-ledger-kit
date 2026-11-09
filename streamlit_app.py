@@ -69,9 +69,19 @@ PHANTOM_BLURB = (
 )
 
 SYNTHETIC_NOTE = (
-    "All data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
+    "All demo data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
     "national check digits are deliberately wrong. Without an API key the explanations come from "
     "fixed templates; the number guard works the same way."
+)
+
+# Zombie Subscriptions compares price increases with a committed snapshot of the INE consumer
+# price index (public-cpi). The same texts are in the snapshot, the README and the data/public
+# README; tests/test_public_data_docs.py compares them. This file imports neither app.
+INE_ATTRIBUTION = "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"
+INE_LICENCE = "CC BY 4.0"
+INE_NOTE = (
+    "Official public data in Zombie Subscriptions (Spanish consumer price index): "
+    f"{INE_ATTRIBUTION}. Licence {INE_LICENCE}."
 )
 
 
@@ -85,6 +95,7 @@ def home() -> None:
     left.markdown(ZOMBIE_BLURB)
     right.markdown(PHANTOM_BLURB)
     st.caption(SYNTHETIC_NOTE)
+    st.caption(INE_NOTE)
 
 
 def _page(spec: PageSpec) -> st.Page:

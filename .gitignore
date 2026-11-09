@@ -227,6 +227,9 @@ data/real/
 *.pdf
 !data/samples/
 !data/samples/**
+# Official public data under an open licence (public-cpi); see data/public/README.md.
+!data/public/
+!data/public/**
 # Tooling configuration (hooks, settings) is JSON that must stay tracked.
 !.kiro/
 !.kiro/**
