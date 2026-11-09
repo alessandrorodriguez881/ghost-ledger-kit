@@ -17,6 +17,7 @@ from apps.phantom_invoices.detectors.utils import (
     IBAN_FORMAT_RE,
     IBAN_MOD97_MODULUS,
     IBAN_MOD97_REMAINDER,
+    accepted_accounts,
     as_date,
     as_decimal,
     as_text,
@@ -43,6 +44,9 @@ __all__ = [
     "detect_iban_changes",
 ]
 
+# (iban_key, master row) of each accepted account of one supplier, in source_ref order.
+Accounts = tuple[tuple[str, dict], ...]
+
 # Deterministic advice shown with the two critical variants (REQ-PI-26): one string, no digit.
 VERIFY_BY_PHONE_MESSAGE: str = (
     "Verify this change by phone, using a contact you already have for this supplier. "
@@ -57,14 +61,6 @@ def _iban_state(cell: Any) -> tuple[str, str | None] | None:
         return None
     key = iban_key(text)
     return key, iban_problem(key)
-
-
-def _valid_master_key(sup: dict | None) -> str | None:
-    """Return the iban_key of the master IBAN when it is present and valid, else None."""
-    if sup is None:
-        return None
-    state = _iban_state(sup.get("iban"))
-    return state[0] if state is not None and state[1] is None else None
 
 
 def _invalid(subject: str, label: str, problem: str, raw_iban: Any, refs: list[str]) -> Alert:
@@ -84,48 +80,64 @@ def _invalid(subject: str, label: str, problem: str, raw_iban: Any, refs: list[s
     )
 
 
-def _invoice_differs(row: dict, ref: str, number: str, sup: dict, raw_iban: Any) -> Alert:
+def _account_refs(ref: str, sup: dict, accounts: Accounts) -> list[str]:
+    """Return the row, the naming master row and every master row with an accepted account."""
+    refs = [ref, as_text(sup.get("source_ref")) or ""]
+    refs.extend(as_text(row.get("source_ref")) or "" for _, row in accounts)
+    return refs
+
+
+def _master_masks(accounts: Accounts) -> list[str]:
+    """Return the masked form of every accepted account, in source_ref order."""
+    return [mask_iban(as_text(row.get("iban")) or "") for _, row in accounts]
+
+
+def _invoice_differs(
+    row: dict, ref: str, number: str, sup: dict, raw_iban: Any, accounts: Accounts
+) -> Alert:
     """Build a critical / invoice_iban_differs_from_master alert."""
     sup_ref = as_text(sup.get("source_ref")) or ""
     invoice_masked = mask_iban(as_text(raw_iban) or "")
-    master_masked = mask_iban(as_text(sup.get("iban")) or "")
+    masks = _master_masks(accounts)
     name = text_or_ref(sup.get("supplier_name"), sup_ref)
     return Alert(
         detector="pi.iban_change",
         severity="critical",
         title=f"Poltergeist IBAN: {name}",
-        source_refs=sort_refs([ref, sup_ref]),
+        source_refs=sort_refs(_account_refs(ref, sup, accounts)),
         data={
             "variant": "invoice_iban_differs_from_master",
             "supplier_name": name,
             "invoice_number": number,
             "invoice_iban_masked": invoice_masked,
-            "master_iban_masked": master_masked,
-            "last4_identical": invoice_masked == master_masked,
+            "master_iban_masked": masks[0],
+            "last4_identical": invoice_masked in masks,
             "verification_message": VERIFY_BY_PHONE_MESSAGE,
         },
     )
 
 
-def _payment_differs(row: dict, ref: str, sup: dict, day: date, amount: Decimal) -> Alert:
+def _payment_differs(
+    row: dict, ref: str, sup: dict, day: date, amount: Decimal, accounts: Accounts
+) -> Alert:
     """Build a critical / payment_to_non_master_iban alert."""
     sup_ref = as_text(sup.get("source_ref")) or ""
     payment_masked = mask_iban(as_text(row.get("iban")) or "")
-    master_masked = mask_iban(as_text(sup.get("iban")) or "")
+    masks = _master_masks(accounts)
     name = text_or_ref(sup.get("supplier_name"), sup_ref)
     return Alert(
         detector="pi.iban_change",
         severity="critical",
         title=f"Payment sent to a non-master IBAN: {name}",
-        source_refs=sort_refs([ref, sup_ref]),
+        source_refs=sort_refs(_account_refs(ref, sup, accounts)),
         data={
             "variant": "payment_to_non_master_iban",
             "supplier_name": name,
             "payment_date": day.isoformat(),
             "payment_amount": str(round_to_cents(amount)),
             "payment_iban_masked": payment_masked,
-            "master_iban_masked": master_masked,
-            "last4_identical": payment_masked == master_masked,
+            "master_iban_masked": masks[0],
+            "last4_identical": payment_masked in masks,
             "verification_message": VERIFY_BY_PHONE_MESSAGE,
         },
     )
@@ -137,13 +149,14 @@ def detect_iban_changes(ledger: pd.DataFrame, context: Mapping[str, Any]) -> lis
     master = build_master(context.get("suppliers"))
     alerts: list[Alert] = []
 
-    # 1 - master rows whose own IBAN is present but invalid
-    for row in master.by_tax.values():
-        state = _iban_state(row.get("iban"))
-        if state is not None and state[1] is not None:
-            ref = as_text(row.get("source_ref")) or ""
-            label = text_or_ref(row.get("supplier_name"), ref)
-            alerts.append(_invalid("supplier", label, state[1], row.get("iban"), [ref]))
+    # 1 - every master row whose own IBAN is present but invalid (REQ-DF-06)
+    for rows in master.rows_by_tax.values():
+        for row in rows:
+            state = _iban_state(row.get("iban"))
+            if state is not None and state[1] is not None:
+                ref = as_text(row.get("source_ref")) or ""
+                label = text_or_ref(row.get("supplier_name"), ref)
+                alerts.append(_invalid("supplier", label, state[1], row.get("iban"), [ref]))
 
     # 2 - invoices
     for row in load_rows(ledger, "issue_date"):
@@ -156,11 +169,12 @@ def detect_iban_changes(ledger: pd.DataFrame, context: Mapping[str, Any]) -> lis
         if problem is not None:
             alerts.append(_invalid("invoice", number, problem, row.get("iban"), [ref]))
             continue
-        sup = master.by_tax.get(tax_key(as_text(row.get("supplier_tax_id")) or ""))
-        master_key = _valid_master_key(sup)
-        if sup is None or master_key is None or master_key == key:
-            continue  # unknown supplier / no usable master IBAN / same account
-        alerts.append(_invoice_differs(row, ref, number, sup, row.get("iban")))
+        tax = tax_key(as_text(row.get("supplier_tax_id")) or "")
+        sup = master.by_tax.get(tax)
+        accounts = accepted_accounts(master, tax)
+        if sup is None or not accounts or key in {k for k, _ in accounts}:
+            continue  # unknown supplier / no usable master IBAN / one of its accounts
+        alerts.append(_invoice_differs(row, ref, number, sup, row.get("iban"), accounts))
 
     # 3 - bank payments (debits attributed to a master supplier)
     for row in load_rows(context.get("payments"), "date"):
@@ -176,9 +190,9 @@ def detect_iban_changes(ledger: pd.DataFrame, context: Mapping[str, Any]) -> lis
             label = text_or_ref(row.get("counterparty"), ref)
             alerts.append(_invalid("payment", label, problem, row.get("iban"), [ref]))
             continue
-        master_key = _valid_master_key(sup)
+        accounts = accepted_accounts(master, tax_key(as_text(sup.get("tax_id")) or ""))
         day, amount = as_date(row.get("date")), as_decimal(row.get("amount"))
-        if master_key is None or master_key == key or day is None or amount is None:
+        if not accounts or key in {k for k, _ in accounts} or day is None or amount is None:
             continue
-        alerts.append(_payment_differs(row, ref, sup, day, amount))
+        alerts.append(_payment_differs(row, ref, sup, day, amount, accounts))
     return finish(alerts)

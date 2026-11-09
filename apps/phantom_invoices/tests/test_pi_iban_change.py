@@ -16,6 +16,7 @@ from apps.phantom_invoices.detectors.iban_change import (
 )
 from apps.phantom_invoices.detectors.utils import iban_key
 from apps.phantom_invoices.tests.pi_builders import (
+    BANKS,
     SUPPLIER_NAMES,
     Scenario,
     ctx,
@@ -501,3 +502,164 @@ def test_dirty_cells_never_raise(
 def test_empty_input_returns_empty(columns: list[str]) -> None:
     """Any ledger without rows, with empty suppliers and payments, gives an empty list."""
     assert detect_iban_changes(pd.DataFrame(columns=columns), ctx()) == []
+
+
+# Several accounts per supplier (REQ-DF-01 to REQ-DF-08)
+
+THIRD_IBAN = format_iban(make_test_iban(*BANKS[0], "0123456789"))  # valid, in no master
+TWO_ACCOUNTS = make_suppliers([{"supplier": 1}, {"supplier": 1, "iban": NEW_IBAN}])  # A and B
+
+
+def _break_checksum(compact_iban: str) -> str:
+    """Return the IBAN with check digits 00, which are never valid."""
+    return compact_iban[:2] + "00" + compact_iban[4:]
+
+
+def test_df02_invoice_on_any_accepted_account_is_silent() -> None:
+    """REQ-DF-02: an invoice on account A, on account B or on A re-typed raises nothing."""
+    typed = " " + OWN_IBAN.lower() + " "
+    invoices = make_invoices([{"iban": OWN_IBAN}, {"iban": NEW_IBAN}, {"iban": typed}])
+
+    assert _run(invoices, TWO_ACCOUNTS) == []
+
+
+def test_df03_invoice_on_a_third_account_cites_every_master_row() -> None:
+    """REQ-DF-03: an account outside the master is critical and cites the invoice and both rows."""
+    alerts = _run(make_invoices([{"iban": THIRD_IBAN}]), TWO_ACCOUNTS)
+
+    assert len(alerts) == 1
+    alert = alerts[0]
+    assert alert.severity == "critical"
+    assert alert.source_refs == ["inv.csv:0", "sup.csv:0", "sup.csv:1"]
+    assert alert.data["variant"] == "invoice_iban_differs_from_master"
+    assert alert.data["master_iban_masked"] == mask_iban(OWN_IBAN)
+    assert alert.data["invoice_iban_masked"] == mask_iban(THIRD_IBAN)
+    assert alert.data["last4_identical"] is False
+    assert set(alert.data) == INVOICE_DIFFERS_KEYS
+
+
+def test_df03_last4_identical_when_any_account_has_the_same_last_four() -> None:
+    """REQ-DF-03: last4_identical compares with every accepted account, not only the first."""
+    twin_of_b = format_iban(make_test_iban("0049", "1500", "0008765432"))  # B ends in 5432
+    assert twin_of_b != NEW_IBAN
+    assert mask_iban(twin_of_b) == mask_iban(NEW_IBAN)
+
+    alerts = _run(make_invoices([{"iban": twin_of_b}]), TWO_ACCOUNTS)
+
+    assert len(alerts) == 1
+    assert alerts[0].data["master_iban_masked"] == mask_iban(OWN_IBAN)
+    assert alerts[0].data["last4_identical"] is True
+
+
+def test_df04_payments_follow_the_same_rule() -> None:
+    """REQ-DF-04: a debit to account B is silent; a debit to account C cites both rows."""
+    payments = make_payments(
+        [{"supplier": 1, "iban": NEW_IBAN}, {"supplier": 1, "iban": THIRD_IBAN}]
+    )
+
+    alerts = _run(make_invoices([]), TWO_ACCOUNTS, payments)
+
+    assert len(alerts) == 1
+    assert alerts[0].severity == "critical"
+    assert alerts[0].data["variant"] == "payment_to_non_master_iban"
+    assert alerts[0].source_refs == ["pay.csv:1", "sup.csv:0", "sup.csv:1"]
+    assert alerts[0].data["master_iban_masked"] == mask_iban(OWN_IBAN)
+    assert set(alerts[0].data) == PAYMENT_DIFFERS_KEYS
+
+
+def test_df04_payment_to_second_account_with_unknown_name_is_silent() -> None:
+    """REQ-DF-07: the second account attributes the payment, and it is one of the accounts."""
+    payments = make_payments([{"counterparty": UNKNOWN_COUNTERPARTY, "iban": NEW_IBAN}])
+
+    assert _run(make_invoices([]), TWO_ACCOUNTS, payments) == []
+
+
+def test_df05_no_usable_account_no_differs_alert() -> None:
+    """REQ-DF-05: an invalid and an empty master IBAN leave nothing to compare with."""
+    broken = _break_checksum(iban_for_supplier(1))
+    master = make_suppliers([{"supplier": 1, "iban": broken}, {"supplier": 1, "iban": None}])
+
+    alerts = _run(make_invoices([{"iban": NEW_IBAN}]), master)
+
+    assert [a.data["variant"] for a in alerts] == ["iban_invalid"]
+    assert alerts[0].source_refs == ["sup.csv:0"]
+
+
+def test_df05_only_the_valid_row_counts_as_an_account() -> None:
+    """REQ-DF-05: with row 0 invalid and row 1 valid (B), B is silent and C is critical."""
+    broken = _break_checksum(iban_for_supplier(1))
+    master = make_suppliers([{"supplier": 1, "iban": broken}, {"supplier": 1, "iban": NEW_IBAN}])
+
+    on_b = _run(make_invoices([{"iban": NEW_IBAN}]), master)
+    on_c = _run(make_invoices([{"iban": THIRD_IBAN}]), master)
+
+    assert [a.severity for a in on_b] == ["warning"]  # only the broken master row
+    critical = [a for a in on_c if a.severity == "critical"]
+    assert len(critical) == 1
+    assert critical[0].source_refs == ["inv.csv:0", "sup.csv:0", "sup.csv:1"]
+    assert critical[0].data["master_iban_masked"] == mask_iban(NEW_IBAN)
+
+
+def test_df06_invalid_iban_on_a_later_master_row_is_flagged() -> None:
+    """REQ-DF-06: a later master row with a broken checksum raises one warning citing that row."""
+    broken = _break_checksum(iban_for_supplier(1, other=True))
+    master = make_suppliers([{"supplier": 1}, {"supplier": 1, "iban": broken}])
+
+    alerts = _run(make_invoices([]), master)
+
+    assert len(alerts) == 1
+    assert alerts[0].severity == "warning"
+    assert alerts[0].source_refs == ["sup.csv:1"]
+    assert alerts[0].data["subject"] == "supplier"
+    assert alerts[0].data["reason"] == "checksum"
+
+
+def test_df08_an_iban_seen_on_invoices_never_becomes_an_account() -> None:
+    """REQ-DF-08: five invoices on account C give five critical alerts."""
+    invoices = make_invoices([{"iban": THIRD_IBAN} for _ in range(5)])
+
+    alerts = _run(invoices, TWO_ACCOUNTS)
+
+    assert [a.severity for a in alerts] == ["critical"] * 5
+
+
+def test_df01_master_row_order_never_changes_the_alerts() -> None:
+    """REQ-DF-01: the order of the master frame never changes the alerts."""
+    invoices = make_invoices([{"iban": THIRD_IBAN}, {"iban": NEW_IBAN}])
+    shuffled = TWO_ACCOUNTS.iloc[::-1].reset_index(drop=True)
+
+    assert _run(invoices, shuffled) == _run(invoices, TWO_ACCOUNTS)
+
+
+@settings(max_examples=200, deadline=None)
+@given(
+    accounts=st.lists(st.integers(0, 10**10 - 1), min_size=2, max_size=6, unique=True),
+    data=st.data(),
+)
+def test_df_several_accounts_property(accounts: list[int], data: st.DataObject) -> None:
+    """A master account is silent; any other valid account is one critical alert citing all rows.
+
+    Holds for invoices and for payments, and every cited source_ref is a loaded row.
+    """
+    ibans = [format_iban(make_test_iban(*BANKS[0], f"{n:010d}")) for n in accounts]
+    held = data.draw(st.integers(1, min(4, len(ibans) - 1)))
+    master = make_suppliers([{"supplier": 1, "iban": iban} for iban in ibans[:held]])
+    invoices = make_invoices([{"iban": iban} for iban in ibans])
+    payments = make_payments([{"supplier": 1, "iban": iban} for iban in ibans])
+    context = ctx(master, payments)
+
+    alerts = detect_iban_changes(invoices, context)
+
+    assert len(alerts) == 2 * (len(ibans) - held)
+    master_refs = {f"sup.csv:{i}" for i in range(held)}
+    loaded = loaded_source_refs(invoices, context)
+    cited_rows: set[str] = set()
+    for alert in alerts:
+        assert alert.severity == "critical"
+        assert master_refs <= set(alert.source_refs) <= loaded
+        row_refs = set(alert.source_refs) - master_refs
+        assert len(row_refs) == 1
+        cited_rows |= row_refs
+    expected_rows = {f"inv.csv:{i}" for i in range(held, len(ibans))}
+    expected_rows |= {f"pay.csv:{i}" for i in range(held, len(ibans))}
+    assert cited_rows == expected_rows

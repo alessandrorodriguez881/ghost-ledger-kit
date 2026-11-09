@@ -15,15 +15,22 @@ order so that each re-run isolates one change (design §5).
 
 **Covers**: REQ-DF-16, design §5 step 1
 
-- [ ] **User action.** The benchmark generator changed in session 10d (D-BM-20), so the committed
+- [x] **User action.** The benchmark generator changed in session 10d (D-BM-20), so the committed
   `data/benchmark/results.json` and `docs/benchmark.md` are stale. Run
   `python scripts/benchmark.py`, then `python scripts/benchmark.py --check` (exit 0) and
-  `pytest tests/test_benchmark_runner.py`. Commit both files.
-- [ ] Record in `.kiro/specs/benchmark/design.md` §8, row "After D-BM-20": zombie precision and
+  `pytest tests/test_benchmark_runner.py`. Commit both files. *(Done, commit `6a3542f`; the 63
+  benchmark runner tests pass.)*
+- [x] Record in `.kiro/specs/benchmark/design.md` §8, row "After D-BM-20": zombie precision and
   recall, and whether `zs.duplicate_subscription` recall rose (expected, not measured). Update
-  the coverage index there if the list of false positives or misses changed.
-- [ ] Read the zombie `false_positives` again: if the 29 false alarms of F2 moved, write the new
-  count here before going on (it is the baseline for DF4).
+  the coverage index there if the list of false positives or misses changed. *(Recorded in
+  session 11a. The index is unchanged on purpose: a test pins `zs.duplicate_subscription` in it.)*
+- [x] Read the zombie `false_positives` again: if the 29 false alarms of F2 moved, write the new
+  count here before going on (it is the baseline for DF4). *(Baseline, seed 2026, 200 scenarios:
+  zombie planted 1002, alerts 1031, found 1002, missed 0, **false alarms 29** (all
+  `zs.recurring_charge` on `fuel_irregular` and `weekly_groceries_irregular`), precision
+  `0.9719`, recall `1.0000`; `zs.duplicate_subscription` 84 of 84. Phantom: planted 480, alerts
+  620, found 480, **false alarms 140** (all `two_legit_ibans`), precision `0.7742`, recall
+  `1.0000`. The F2 count did not move.)*
 
 ## Task DF1 — Phantom: several accounts per supplier
 

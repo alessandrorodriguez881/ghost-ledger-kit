@@ -200,6 +200,105 @@ def test_current_amount_rounded_half_up() -> None:
     assert series.current_amount == Decimal("10.01")
 
 
+# --- REQ-DF-10 and REQ-DF-14: weekly variable bills and the `variable` flag -------------------
+
+WEEKLY = zs.INTERVALS_BY_NAME["weekly"]
+
+
+def _weekly(amounts: list[str]) -> list[dict]:
+    """Build a weekly cadence run (7-day gaps) with the given amounts."""
+    return [
+        {
+            "date": START + timedelta(days=7 * i),
+            "amount": Decimal(a),
+            "counterparty": "FRESHCO",
+            "source_ref": f"w.csv:{i}",
+            "source_row": i,
+        }
+        for i, a in enumerate(amounts)
+    ]
+
+
+def test_weekly_variable_run_is_rejected() -> None:
+    """REQ-DF-10 (E7c): weekly 100.00, 104.50, 109.00, 113.50 is not a variable bill."""
+    run = _weekly(["100.00", "104.50", "109.00", "113.50"])
+    assert zs._segment_by_price(run, WEEKLY) is None
+
+
+def test_same_amounts_monthly_are_a_variable_bill() -> None:
+    """REQ-DF-10, REQ-DF-14: the same four amounts monthly are one series with variable=True."""
+    series = _segment(["100.00", "104.50", "109.00", "113.50"])
+    assert series is not None
+    assert series.variable is True
+    assert series.price_steps == []
+    assert series.current_amount == Decimal("106.75")
+
+
+def test_quarterly_and_yearly_variable_runs_are_variable_bills() -> None:
+    """REQ-DF-10: quarterly and yearly runs may still be variable bills."""
+    for name in ("quarterly", "yearly"):
+        interval = zs.INTERVALS_BY_NAME[name]
+        run = _run(["100.00", "104.50", "109.00"])
+        series = zs._segment_by_price(run, interval)
+        assert series is not None
+        assert series.variable is True
+
+
+def test_stable_series_is_not_variable() -> None:
+    """REQ-DF-14: a stable series has variable=False."""
+    series = _segment(["12.99"] * 4)
+    assert series is not None
+    assert series.variable is False
+
+
+def test_step_change_series_is_not_variable() -> None:
+    """REQ-DF-14: a step-change series has variable=False."""
+    series = _segment(["9.99"] * 3 + ["12.99"] * 3)
+    assert series is not None
+    assert series.variable is False
+
+
+def test_ambiguous_split_is_a_variable_bill() -> None:
+    """REQ-DF-14: two valid splits record no step, so the run is accepted only as branch 3.
+
+    REQ-DF-14 lists "ambiguous-split" next to the False cases, but such a run is not one price
+    level and records no step: branch 3 is the only way it is accepted, so it carries
+    variable=True (design 3.2). Pinned here so the guard of REQ-DF-11 applies to it.
+    """
+    series = _segment(["100.00", "100.00", "104.00", "104.00", "108.00", "108.00"])
+    assert series is not None
+    assert series.price_steps == []
+    assert series.variable is True
+
+
+def test_weekly_stable_still_accepted() -> None:
+    """REQ-DF-10: four weekly charges of 100.00 are one stable series."""
+    series = zs._segment_by_price(_weekly(["100.00"] * 4), WEEKLY)
+    assert series is not None
+    assert series.variable is False
+    assert series.current_amount == Decimal("100.00")
+
+
+def test_weekly_step_still_accepted() -> None:
+    """REQ-DF-10: weekly 100.00, 100.00, 108.00, 108.00 is still a step-change series."""
+    series = zs._segment_by_price(_weekly(["100.00", "100.00", "108.00", "108.00"]), WEEKLY)
+    assert series is not None
+    assert series.variable is False
+    assert series.price_steps == [_step("100.00", "108.00")]
+
+
+def test_series_variable_defaults_to_false() -> None:
+    """REQ-DF-14: existing constructions of Series stay valid."""
+    series = zs.Series(
+        rows=[],
+        interval_type="monthly",
+        nominal_days=30,
+        current_amount=Decimal("1"),
+        price_steps=[],
+    )
+    assert series.variable is False
+
+
 # --- Tier 3 -----------------------------------------------------------------------------------
 
 

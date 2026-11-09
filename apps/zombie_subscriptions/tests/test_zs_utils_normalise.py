@@ -78,6 +78,8 @@ def test_constants_values() -> None:
     assert utils.MAX_EDGE_STEP_RATIO == Decimal("0.50")
     assert utils.MIN_SIDE_ROWS == 2
     assert utils.AMOUNT_MATCH_RATIO == Decimal("0.10")
+    # REQ-DF-10: a weekly run is never accepted as a variable bill.
+    assert utils.VARIABLE_BILL_INTERVALS == ("monthly", "quarterly", "yearly")
     assert utils.FREE_TRIAL_MIN_TOKEN_AMOUNT == Decimal("0.01")
     assert utils.FREE_TRIAL_MAX_TOKEN_AMOUNT == Decimal("1.00")
     assert utils.TRIAL_MAX_DAYS_BEFORE_FIRST_CHARGE == 35

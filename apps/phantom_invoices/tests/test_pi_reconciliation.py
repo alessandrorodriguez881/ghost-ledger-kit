@@ -276,6 +276,18 @@ def test_payment_attributed_by_name_and_by_iban() -> None:
     assert rec.payment_buckets == {"pay.csv:0": "matched", "pay.csv:1": "matched"}
 
 
+def test_payment_to_second_master_account_matches_its_invoice() -> None:
+    """REQ-DF-07: a payment to a supplier's second account, name unknown, matches its invoice."""
+    two_accounts = make_suppliers([{"supplier": 1}, {"supplier": 1, "iban": NEW_IBAN}])
+    payments = [{"counterparty": UNKNOWN_COUNTERPARTY, "iban": NEW_IBAN}]
+
+    rec = _rec([{}], payments, suppliers=two_accounts)
+
+    assert rec.payment_supplier == {"pay.csv:0": TAX_1}
+    assert rec.matches == [("inv.csv:0", "pay.csv:0")]
+    assert rec.invoice_buckets == {"inv.csv:0": "matched"}
+
+
 def test_unknown_counterparty_and_iban_is_in_no_bucket() -> None:
     """A debit to an unknown counterparty on an unknown account is not a supplier payment."""
     payments = [{"counterparty": UNKNOWN_COUNTERPARTY, "iban": NEW_IBAN}]

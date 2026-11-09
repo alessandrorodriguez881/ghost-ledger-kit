@@ -41,6 +41,11 @@ MIN_SIDE_ROWS: int = 2
 # Variable bills, parallel series and duplicate subscriptions match within 10% of the median.
 AMOUNT_MATCH_RATIO: Decimal = Decimal("0.10")
 
+# Intervals whose cadence run may be accepted as a variable bill (amounts within AMOUNT_MATCH_RATIO
+# of the median but not one price level). Weekly runs are excluded: variable weekly spending is
+# ordinary shopping (REQ-DF-10).
+VARIABLE_BILL_INTERVALS: tuple[str, ...] = ("monthly", "quarterly", "yearly")
+
 # Free-trial detection: a token charge of 0.01 to 1.00 EUR up to 35 days before the first charge.
 FREE_TRIAL_MIN_TOKEN_AMOUNT: Decimal = Decimal("0.01")
 FREE_TRIAL_MAX_TOKEN_AMOUNT: Decimal = Decimal("1.00")
@@ -213,6 +218,7 @@ class Series:
     current_amount: Decimal  # rounded median of the charges since the last price step
     price_steps: list[tuple[Decimal, Decimal]]  # [(old, new), ...] rounded medians, any direction
     step_index: int | None = None  # index in `rows` of the first charge of the new price level
+    variable: bool = False  # accepted as a variable bill (branch 3); needs an exclusive span
 
 
 def is_level(amounts: list[Decimal]) -> bool:
@@ -238,6 +244,7 @@ def _make_series(
     current_amount: Decimal,
     price_steps: list[tuple[Decimal, Decimal]],
     step_index: int | None = None,
+    variable: bool = False,
 ) -> Series:
     """Build a Series for `run` (assumed date-sorted) and an interval descriptor."""
     return Series(
@@ -247,6 +254,7 @@ def _make_series(
         current_amount=current_amount,
         price_steps=price_steps,
         step_index=step_index,
+        variable=variable,
     )
 
 
@@ -284,8 +292,10 @@ def _segment_by_price(run: list[dict], interval: dict) -> Series | None:
         return _make_series(run, interval, b, [(a, b)], step_index=p)
 
     # Branch 3 - variable bill: no step, every amount within AMOUNT_MATCH_RATIO of the median.
-    if _within_match_ratio(amounts):
-        return _make_series(run, interval, round_to_cents(median(amounts)), [])
+    # Not for weekly runs (REQ-DF-10); the series is flagged so _accept can demand an exclusive
+    # span (REQ-DF-11).
+    if interval["name"] in VARIABLE_BILL_INTERVALS and _within_match_ratio(amounts):
+        return _make_series(run, interval, round_to_cents(median(amounts)), [], variable=True)
 
     return None
 
@@ -330,11 +340,14 @@ def _other_rows_in_span(series_rows: list[dict], key_rows: list[dict]) -> bool:
 
 
 def _accept(series: Series | None, key_rows: list[dict]) -> Series | None:
-    """Acceptance guard: a quarterly/yearly series may not span other rows of the same key."""
+    """Acceptance guard: quarterly, yearly and variable-bill series may not span other rows.
+
+    REQ-ZS-10b covers quarterly and yearly series; REQ-DF-11 adds variable bills of any interval.
+    """
     if series is None:
         return None
     long_interval = series.interval_type in ("quarterly", "yearly")
-    if long_interval and _other_rows_in_span(series.rows, key_rows):
+    if (long_interval or series.variable) and _other_rows_in_span(series.rows, key_rows):
         return None
     return series
 

@@ -16,14 +16,14 @@
           "tp": 116
         },
         "pi.iban_change": {
-          "alerts": 280,
-          "false_alarms_per_noise_scenario": "1.2000",
+          "alerts": 140,
+          "false_alarms_per_noise_scenario": "0.0000",
           "fn": 0,
-          "fp": 140,
+          "fp": 0,
           "labels": 140,
-          "noise_only_alerts": 48,
-          "noise_only_scenarios_with_alert": 12,
-          "precision": "0.5000",
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "1.0000",
           "recall": "1.0000",
           "seed": 2026,
           "tp": 140
@@ -56,1268 +56,7 @@
         }
       },
       "errors": {},
-      "false_positives": [
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:1",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0000",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:5",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0000",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:1",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0000",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:3",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0000",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:16",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0002",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:18",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0002",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:15",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0002",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:18",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0002",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:5",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0011",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0011",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0011",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:7",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0011",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:6",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0019",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0019",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:5",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0019",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0019",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:8",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0020",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:15",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0020",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:9",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0020",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0020",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:9",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0028",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:14",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0028",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:9",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0028",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:15",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0028",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0035",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0035",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0035",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0035",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:21",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0037",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:25",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0037",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:17",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0037",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:25",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0037",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:1",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0046",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0046",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:0",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0046",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0046",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:18",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0054",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0054",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:16",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0054",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:21",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0054",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0055",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:19",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0055",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0055",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:16",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0055",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:3",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0063",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0063",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0063",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0063",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:1",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0070",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:3",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0070",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:2",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0070",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:6",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0070",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:2",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0072",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:7",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0072",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:2",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0072",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:7",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0072",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0081",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:25",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0081",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:20",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0081",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:25",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0081",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0089",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:13",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0089",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0089",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:13",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0089",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:12",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0090",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:16",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0090",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:11",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0090",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:16",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0090",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:15",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0098",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:19",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0098",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:15",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0098",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:19",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0098",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0105",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:13",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0105",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0105",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:14",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0105",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:9",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0107",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0107",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:9",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0107",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0107",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:19",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0116",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0116",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:18",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0116",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0116",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:6",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0124",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0124",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:6",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0124",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0124",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:2",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0125",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:7",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0125",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:0",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0125",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:10",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0125",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0133",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0133",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0133",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0133",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:5",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0140",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0140",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0140",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:11",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0140",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:15",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0142",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:18",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0142",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:16",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0142",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:19",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0142",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:14",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0151",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:17",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0151",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0151",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:17",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0151",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:20",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0159",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0159",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:19",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0159",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:22",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0159",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:13",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0160",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:18",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0160",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:9",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0160",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:15",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0160",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0168",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0168",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0168",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0168",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:6",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0175",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:10",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0175",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:7",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0175",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0175",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:1",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0177",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0177",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:4",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0177",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:5",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0177",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:17",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0186",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:20",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0186",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:16",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0186",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:20",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0186",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:8",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0194",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0194",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:9",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0194",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:12",
-            "suppliers.csv:3"
-          ],
-          "scenario": "pi-0194",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:11",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0195",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "invoices.csv:15",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0195",
-          "type": "pi.iban_change/invoice_iban_differs_from_master"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:8",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0195",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        },
-        {
-          "hard_negative": "two_legit_ibans",
-          "refs": [
-            "payments.csv:14",
-            "suppliers.csv:0"
-          ],
-          "scenario": "pi-0195",
-          "type": "pi.iban_change/payment_to_non_master_iban"
-        }
-      ],
+      "false_positives": [],
       "hard_negatives": {
         "iban_spelling_variant": {
           "false_alarms": 0,
@@ -1380,9 +119,9 @@
           "instances_with_false_alarm": 0
         },
         "two_legit_ibans": {
-          "false_alarms": 140,
+          "false_alarms": 0,
           "instances": 35,
-          "instances_with_false_alarm": 35
+          "instances_with_false_alarm": 0
         },
         "vat_off_by_one_cent": {
           "false_alarms": 0,
@@ -1395,9 +134,9 @@
       "scenarios": 200,
       "scenarios_detail": [
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0000",
           "labels": 0,
           "noise_only": true,
@@ -1413,9 +152,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0002",
           "labels": 3,
           "noise_only": false,
@@ -1494,9 +233,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0011",
           "labels": 3,
           "noise_only": false,
@@ -1566,18 +305,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0019",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0020",
           "labels": 0,
           "noise_only": true,
@@ -1647,9 +386,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0028",
           "labels": 3,
           "noise_only": false,
@@ -1710,9 +449,9 @@
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0035",
           "labels": 0,
           "noise_only": true,
@@ -1728,9 +467,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0037",
           "labels": 3,
           "noise_only": false,
@@ -1809,9 +548,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0046",
           "labels": 3,
           "noise_only": false,
@@ -1881,18 +620,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0054",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0055",
           "labels": 0,
           "noise_only": true,
@@ -1962,9 +701,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0063",
           "labels": 3,
           "noise_only": false,
@@ -2025,9 +764,9 @@
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0070",
           "labels": 0,
           "noise_only": true,
@@ -2043,9 +782,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0072",
           "labels": 3,
           "noise_only": false,
@@ -2124,9 +863,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0081",
           "labels": 3,
           "noise_only": false,
@@ -2196,18 +935,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0089",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0090",
           "labels": 0,
           "noise_only": true,
@@ -2277,9 +1016,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0098",
           "labels": 3,
           "noise_only": false,
@@ -2340,9 +1079,9 @@
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0105",
           "labels": 0,
           "noise_only": true,
@@ -2358,9 +1097,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0107",
           "labels": 3,
           "noise_only": false,
@@ -2439,9 +1178,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0116",
           "labels": 3,
           "noise_only": false,
@@ -2511,18 +1250,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0124",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0125",
           "labels": 0,
           "noise_only": true,
@@ -2592,9 +1331,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0133",
           "labels": 3,
           "noise_only": false,
@@ -2655,9 +1394,9 @@
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0140",
           "labels": 0,
           "noise_only": true,
@@ -2673,9 +1412,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0142",
           "labels": 3,
           "noise_only": false,
@@ -2754,9 +1493,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0151",
           "labels": 3,
           "noise_only": false,
@@ -2826,18 +1565,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0159",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0160",
           "labels": 0,
           "noise_only": true,
@@ -2907,9 +1646,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0168",
           "labels": 3,
           "noise_only": false,
@@ -2970,9 +1709,9 @@
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0175",
           "labels": 0,
           "noise_only": true,
@@ -2988,9 +1727,9 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0177",
           "labels": 3,
           "noise_only": false,
@@ -3069,9 +1808,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0186",
           "labels": 3,
           "noise_only": false,
@@ -3141,18 +1880,18 @@
           "tp": 3
         },
         {
-          "alerts": 7,
+          "alerts": 3,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0194",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 4,
+          "alerts": 0,
           "fn": 0,
-          "fp": 4,
+          "fp": 0,
           "id": "pi-0195",
           "labels": 0,
           "noise_only": true,
@@ -3197,11 +1936,11 @@
       ],
       "seed": 2026,
       "totals": {
-        "alerts": 620,
+        "alerts": 480,
         "fn": 0,
-        "fp": 140,
+        "fp": 0,
         "labels": 480,
-        "precision": "0.7742",
+        "precision": "1.0000",
         "recall": "1.0000",
         "tp": 480
       },
@@ -3243,20 +1982,20 @@
           "tp": 84
         },
         "pi.iban_change/invoice_iban_differs_from_master": {
-          "alerts": 98,
+          "alerts": 28,
           "fn": 0,
-          "fp": 70,
+          "fp": 0,
           "labels": 28,
-          "precision": "0.2857",
+          "precision": "1.0000",
           "recall": "1.0000",
           "tp": 28
         },
         "pi.iban_change/payment_to_non_master_iban": {
-          "alerts": 98,
+          "alerts": 28,
           "fn": 0,
-          "fp": 70,
+          "fp": 0,
           "labels": 28,
-          "precision": "0.2857",
+          "precision": "1.0000",
           "recall": "1.0000",
           "tp": 28
         },
@@ -3362,14 +2101,14 @@
           "tp": 84
         },
         "zs.recurring_charge": {
-          "alerts": 751,
-          "false_alarms_per_noise_scenario": "0.3250",
+          "alerts": 724,
+          "false_alarms_per_noise_scenario": "0.0000",
           "fn": 0,
-          "fp": 29,
+          "fp": 2,
           "labels": 722,
-          "noise_only_alerts": 13,
-          "noise_only_scenarios_with_alert": 11,
-          "precision": "0.9614",
+          "noise_only_alerts": 0,
+          "noise_only_scenarios_with_alert": 0,
+          "precision": "0.9972",
           "recall": "1.0000",
           "seed": 2026,
           "tp": 722
@@ -3377,108 +2116,6 @@
       },
       "errors": {},
       "false_positives": [
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:33",
-            "statement.csv:41",
-            "statement.csv:51"
-          ],
-          "scenario": "zs-0000",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:57",
-            "statement.csv:68",
-            "statement.csv:77"
-          ],
-          "scenario": "zs-0001",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:74",
-            "statement.csv:85",
-            "statement.csv:91"
-          ],
-          "scenario": "zs-0001",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:29",
-            "statement.csv:32",
-            "statement.csv:36",
-            "statement.csv:42"
-          ],
-          "scenario": "zs-0009",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:44",
-            "statement.csv:57",
-            "statement.csv:69"
-          ],
-          "scenario": "zs-0009",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:50",
-            "statement.csv:59",
-            "statement.csv:63"
-          ],
-          "scenario": "zs-0010",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:55",
-            "statement.csv:61",
-            "statement.csv:65"
-          ],
-          "scenario": "zs-0010",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:5",
-            "statement.csv:12",
-            "statement.csv:16"
-          ],
-          "scenario": "zs-0020",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:2",
-            "statement.csv:13",
-            "statement.csv:26"
-          ],
-          "scenario": "zs-0036",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:20",
-            "statement.csv:31",
-            "statement.csv:41",
-            "statement.csv:51"
-          ],
-          "scenario": "zs-0036",
-          "type": "zs.recurring_charge"
-        },
         {
           "hard_negative": "weekly_groceries_irregular",
           "refs": [
@@ -3492,88 +2129,6 @@
           "type": "zs.recurring_charge"
         },
         {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:24",
-            "statement.csv:34",
-            "statement.csv:43"
-          ],
-          "scenario": "zs-0040",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:21",
-            "statement.csv:31",
-            "statement.csv:39"
-          ],
-          "scenario": "zs-0062",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:34",
-            "statement.csv:42",
-            "statement.csv:52"
-          ],
-          "scenario": "zs-0062",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:50",
-            "statement.csv:61",
-            "statement.csv:71",
-            "statement.csv:83"
-          ],
-          "scenario": "zs-0062",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:24",
-            "statement.csv:33",
-            "statement.csv:48"
-          ],
-          "scenario": "zs-0090",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:29",
-            "statement.csv:40",
-            "statement.csv:51"
-          ],
-          "scenario": "zs-0090",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:24",
-            "statement.csv:34",
-            "statement.csv:41"
-          ],
-          "scenario": "zs-0097",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:32",
-            "statement.csv:35",
-            "statement.csv:37",
-            "statement.csv:39"
-          ],
-          "scenario": "zs-0097",
-          "type": "zs.recurring_charge"
-        },
-        {
           "hard_negative": "weekly_groceries_irregular",
           "refs": [
             "statement.csv:43",
@@ -3582,100 +2137,6 @@
             "statement.csv:81"
           ],
           "scenario": "zs-0097",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:30",
-            "statement.csv:42",
-            "statement.csv:51"
-          ],
-          "scenario": "zs-0100",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:46",
-            "statement.csv:55",
-            "statement.csv:67",
-            "statement.csv:79"
-          ],
-          "scenario": "zs-0106",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:53",
-            "statement.csv:62",
-            "statement.csv:70"
-          ],
-          "scenario": "zs-0120",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:46",
-            "statement.csv:57",
-            "statement.csv:65",
-            "statement.csv:78"
-          ],
-          "scenario": "zs-0149",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:33",
-            "statement.csv:42",
-            "statement.csv:51"
-          ],
-          "scenario": "zs-0150",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:15",
-            "statement.csv:24",
-            "statement.csv:36"
-          ],
-          "scenario": "zs-0158",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "fuel_irregular",
-          "refs": [
-            "statement.csv:43",
-            "statement.csv:46",
-            "statement.csv:50",
-            "statement.csv:52",
-            "statement.csv:55"
-          ],
-          "scenario": "zs-0160",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:55",
-            "statement.csv:62",
-            "statement.csv:67"
-          ],
-          "scenario": "zs-0170",
-          "type": "zs.recurring_charge"
-        },
-        {
-          "hard_negative": "weekly_groceries_irregular",
-          "refs": [
-            "statement.csv:5",
-            "statement.csv:9",
-            "statement.csv:15"
-          ],
-          "scenario": "zs-0180",
           "type": "zs.recurring_charge"
         }
       ],
@@ -3686,9 +2147,9 @@
           "instances_with_false_alarm": 0
         },
         "fuel_irregular": {
-          "false_alarms": 14,
+          "false_alarms": 0,
           "instances": 43,
-          "instances_with_false_alarm": 12
+          "instances_with_false_alarm": 0
         },
         "gap_34_days": {
           "false_alarms": 0,
@@ -3746,9 +2207,9 @@
           "instances_with_false_alarm": 0
         },
         "weekly_groceries_irregular": {
-          "false_alarms": 15,
+          "false_alarms": 2,
           "instances": 43,
-          "instances_with_false_alarm": 13
+          "instances_with_false_alarm": 2
         }
       },
       "misses": [],
@@ -3756,18 +2217,18 @@
       "scenarios": 200,
       "scenarios_detail": [
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0000",
           "labels": 0,
           "noise_only": true,
           "tp": 0
         },
         {
-          "alerts": 5,
+          "alerts": 3,
           "fn": 0,
-          "fp": 2,
+          "fp": 0,
           "id": "zs-0001",
           "labels": 3,
           "noise_only": false,
@@ -3837,18 +2298,18 @@
           "tp": 6
         },
         {
-          "alerts": 5,
+          "alerts": 3,
           "fn": 0,
-          "fp": 2,
+          "fp": 0,
           "id": "zs-0009",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 2,
+          "alerts": 0,
           "fn": 0,
-          "fp": 2,
+          "fp": 0,
           "id": "zs-0010",
           "labels": 0,
           "noise_only": true,
@@ -3936,9 +2397,9 @@
           "tp": 8
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0020",
           "labels": 0,
           "noise_only": true,
@@ -4080,9 +2541,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 5,
           "fn": 0,
-          "fp": 3,
+          "fp": 1,
           "id": "zs-0036",
           "labels": 4,
           "noise_only": false,
@@ -4116,9 +2577,9 @@
           "tp": 7
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0040",
           "labels": 0,
           "noise_only": true,
@@ -4314,9 +2775,9 @@
           "tp": 10
         },
         {
-          "alerts": 11,
+          "alerts": 8,
           "fn": 0,
-          "fp": 3,
+          "fp": 0,
           "id": "zs-0062",
           "labels": 8,
           "noise_only": false,
@@ -4566,9 +3027,9 @@
           "tp": 8
         },
         {
-          "alerts": 2,
+          "alerts": 0,
           "fn": 0,
-          "fp": 2,
+          "fp": 0,
           "id": "zs-0090",
           "labels": 0,
           "noise_only": true,
@@ -4629,9 +3090,9 @@
           "tp": 9
         },
         {
-          "alerts": 12,
+          "alerts": 10,
           "fn": 0,
-          "fp": 3,
+          "fp": 1,
           "id": "zs-0097",
           "labels": 9,
           "noise_only": false,
@@ -4656,9 +3117,9 @@
           "tp": 4
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0100",
           "labels": 0,
           "noise_only": true,
@@ -4710,9 +3171,9 @@
           "tp": 0
         },
         {
-          "alerts": 7,
+          "alerts": 6,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0106",
           "labels": 6,
           "noise_only": false,
@@ -4836,9 +3297,9 @@
           "tp": 8
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0120",
           "labels": 0,
           "noise_only": true,
@@ -5097,18 +3558,18 @@
           "tp": 9
         },
         {
-          "alerts": 4,
+          "alerts": 3,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0149",
           "labels": 3,
           "noise_only": false,
           "tp": 3
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0150",
           "labels": 0,
           "noise_only": true,
@@ -5178,9 +3639,9 @@
           "tp": 6
         },
         {
-          "alerts": 4,
+          "alerts": 3,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0158",
           "labels": 3,
           "noise_only": false,
@@ -5196,9 +3657,9 @@
           "tp": 6
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0160",
           "labels": 0,
           "noise_only": true,
@@ -5286,9 +3747,9 @@
           "tp": 6
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0170",
           "labels": 0,
           "noise_only": true,
@@ -5376,9 +3837,9 @@
           "tp": 3
         },
         {
-          "alerts": 1,
+          "alerts": 0,
           "fn": 0,
-          "fp": 1,
+          "fp": 0,
           "id": "zs-0180",
           "labels": 0,
           "noise_only": true,
@@ -5558,11 +4019,11 @@
       ],
       "seed": 2026,
       "totals": {
-        "alerts": 1031,
+        "alerts": 1004,
         "fn": 0,
-        "fp": 29,
+        "fp": 2,
         "labels": 1002,
-        "precision": "0.9719",
+        "precision": "0.9980",
         "recall": "1.0000",
         "tp": 1002
       },
@@ -5604,11 +4065,11 @@
           "tp": 84
         },
         "zs.recurring_charge": {
-          "alerts": 751,
+          "alerts": 724,
           "fn": 0,
-          "fp": 29,
+          "fp": 2,
           "labels": 722,
-          "precision": "0.9614",
+          "precision": "0.9972",
           "recall": "1.0000",
           "tp": 722
         }

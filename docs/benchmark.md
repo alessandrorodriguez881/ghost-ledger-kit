@@ -22,7 +22,7 @@ Within one scenario, alerts are visited in ascending order of (natural order of 
 
 ## Zombie Subscriptions
 
-Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted `1002`, alerts `1031`, found `1002`, missed `0`, false alarms `29`; precision `0.9719`, recall `1.0000`.
+Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted `1002`, alerts `1004`, found `1002`, missed `0`, false alarms `2`; precision `0.9980`, recall `1.0000`.
 
 ### Detectors
 
@@ -32,14 +32,14 @@ Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted 
 | zs.duplicate_subscription | 84 | 84 | 0 | 0 | 1.0000 | 1.0000 | 0 |
 | zs.free_trial_to_paid | 56 | 56 | 0 | 0 | 1.0000 | 1.0000 | 0 |
 | zs.price_increase | 84 | 84 | 0 | 0 | 1.0000 | 1.0000 | 0 |
-| zs.recurring_charge | 722 | 722 | 0 | 29 | 0.9614 | 1.0000 | 11 |
+| zs.recurring_charge | 722 | 722 | 0 | 2 | 0.9972 | 1.0000 | 0 |
 
 ### Hard negatives
 
 | Hard negative | Instances | Instances with a false alarm | False alarms |
 | --- | --- | --- | --- |
 | cancel_same_day | 22 | 0 | 0 |
-| fuel_irregular | 43 | 12 | 14 |
+| fuel_irregular | 43 | 0 | 0 |
 | gap_34_days | 43 | 0 | 0 |
 | one_off_price_change | 43 | 0 | 0 |
 | parallel_amounts_differ | 22 | 0 | 0 |
@@ -51,18 +51,18 @@ Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted 
 | trial_amount_above | 23 | 0 | 0 |
 | trial_too_early | 23 | 0 | 0 |
 | two_charges_only | 43 | 0 | 0 |
-| weekly_groceries_irregular | 43 | 13 | 15 |
+| weekly_groceries_irregular | 43 | 2 | 2 |
 
 ## Phantom Invoices
 
-Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted `480`, alerts `620`, found `480`, missed `0`, false alarms `140`; precision `0.7742`, recall `1.0000`.
+Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted `480`, alerts `480`, found `480`, missed `0`, false alarms `0`; precision `1.0000`, recall `1.0000`.
 
 ### Detectors
 
 | Detector | Planted | Found | Missed | False alarms | Precision | Recall | Clean scenarios with an alert |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | pi.duplicate_invoice | 116 | 116 | 0 | 0 | 1.0000 | 1.0000 | 0 |
-| pi.iban_change | 140 | 140 | 0 | 140 | 0.5000 | 1.0000 | 12 |
+| pi.iban_change | 140 | 140 | 0 | 0 | 1.0000 | 1.0000 | 0 |
 | pi.reconciliation | 84 | 84 | 0 | 0 | 1.0000 | 1.0000 | 0 |
 | pi.vat_error | 140 | 140 | 0 | 0 | 1.0000 | 1.0000 | 0 |
 
@@ -82,7 +82,7 @@ Seed `2026`. `200` scenarios, `40` of them without any planted problem. Planted 
 | same_amount_other_months | 35 | 0 | 0 |
 | same_number_two_suppliers | 35 | 0 | 0 |
 | same_total_7_days_apart | 34 | 0 | 0 |
-| two_legit_ibans | 35 | 35 | 140 |
+| two_legit_ibans | 35 | 0 | 0 |
 | vat_off_by_one_cent | 34 | 0 | 0 |
 
 ## Limits

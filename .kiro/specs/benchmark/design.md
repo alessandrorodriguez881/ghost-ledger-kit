@@ -521,9 +521,18 @@ and judged on its own, never removed by changing the benchmark or a threshold.
 | Step | Zombie precision | Zombie recall | Phantom precision | Phantom recall | Remaining findings |
 |---|---|---|---|---|---|
 | First measurement | `0.9697` | `0.9251` | `0.7742` | `1.0000` | F1, F2, F3 |
-| After D-BM-20 | *(to be measured)* | | `0.7742` (unchanged generator) | `1.0000` | |
-| After `detector-fixes` phantom task | | | *(to be measured)* | | |
-| After `detector-fixes` zombie task | *(to be measured)* | | | | |
+| After D-BM-20 | `0.9719` | `1.0000` | `0.7742` (unchanged generator) | `1.0000` | F2, F3 (F1 gone) |
+| After `detector-fixes` phantom task | | | *(to be measured, DF2)* | | |
+| After `detector-fixes` zombie task | *(to be measured, DF4)* | | | | |
+
+Baseline measured by the owner after D-BM-20 (seed 2026, 200 scenarios per app, commit `6a3542f`):
+zombie planted 1002, alerts 1031, found 1002, missed 0, false alarms 29, precision `0.9719`,
+recall `1.0000` (`zs.duplicate_subscription` now 84 of 84; all 29 false alarms are
+`zs.recurring_charge` on the hard negatives `fuel_irregular` and `weekly_groceries_irregular`, the
+same count as the first measurement); phantom planted 480, alerts 620, found 480, false alarms 140,
+precision `0.7742`, recall `1.0000` (all on `two_legit_ibans`). F1 has no miss left. The coverage
+index above is left as it is: `tests/test_benchmark_runner.py` pins `zs.duplicate_subscription`
+in the "Miss types" line, so removing it would need that test to change too.
 
 ## 9 Not verified by the author
 

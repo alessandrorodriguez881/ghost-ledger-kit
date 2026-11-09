@@ -8,6 +8,7 @@ from hypothesis import strategies as st
 
 from apps.phantom_invoices.detectors.utils import (
     Master,
+    accepted_accounts,
     attribute_payment,
     build_master,
     iban_key,
@@ -119,8 +120,87 @@ def test_duplicate_tax_key_first_in_source_ref_order_wins() -> None:
         master = build_master(source)
         assert list(master.by_tax) == ["B00000001"]
         assert master.by_tax["B00000001"]["source_ref"] == "sup.csv:0"
-        assert IBAN_2 not in master.by_iban
+        # REQ-DF-01: the second row is no longer dropped; its IBAN is a second account of the
+        # supplier that the first row names.
+        assert [r["source_ref"] for r in master.by_iban[IBAN_2]] == ["sup.csv:0"]
         assert name_key("Otro nombre") not in master.by_name
+
+
+TWO_ACCOUNTS = [ROW_A, ("Otro nombre", "b 00000001", _spaced(IBAN_2))]
+BROKEN_IBAN_1 = IBAN_1[:2] + "00" + IBAN_1[4:]  # check digits 00 are never valid
+
+
+def test_rows_by_tax_keeps_every_row_in_source_ref_order() -> None:
+    """REQ-DF-01: all rows of a tax_key are kept in source_ref order, whatever the frame order."""
+    frame = _suppliers([*TWO_ACCOUNTS, ROW_B])
+    shuffled = frame.iloc[::-1].reset_index(drop=True)
+
+    for source in (frame, shuffled):
+        master = build_master(source)
+        assert [r["source_ref"] for r in master.rows_by_tax["B00000001"]] == [
+            "sup.csv:0",
+            "sup.csv:1",
+        ]
+        assert [r["source_ref"] for r in master.rows_by_tax["B00000002"]] == ["sup.csv:2"]
+        assert master.by_tax["B00000001"] is master.rows_by_tax["B00000001"][0]
+
+
+def test_by_iban_maps_second_account_once_to_the_first_row() -> None:
+    """REQ-DF-01: a second account is indexed once, under the supplier's first row."""
+    rows = [*TWO_ACCOUNTS, ("Tercera", "B00000001", IBAN_2.lower())]  # IBAN_2 repeated
+
+    master = build_master(_suppliers(rows))
+
+    assert [r["source_ref"] for r in master.by_iban[IBAN_1]] == ["sup.csv:0"]
+    assert [r["source_ref"] for r in master.by_iban[IBAN_2]] == ["sup.csv:0"]
+
+
+def test_accepted_accounts_skip_invalid_and_missing_and_deduplicate() -> None:
+    """REQ-DF-01: only present, valid IBANs count; a repeated key is listed once."""
+    rows = [
+        (AURORA, "B00000001", BROKEN_IBAN_1),
+        (AURORA, "B00000001", None),
+        (AURORA, "B00000001", _spaced(IBAN_2)),
+        (AURORA, "B00000001", IBAN_2.lower()),
+        (AURORA, "B00000001", IBAN_3),
+    ]
+    master = build_master(_suppliers(rows))
+
+    accounts = accepted_accounts(master, "B00000001")
+
+    assert [(key, row["source_ref"]) for key, row in accounts] == [
+        (IBAN_2, "sup.csv:2"),
+        (IBAN_3, "sup.csv:4"),
+    ]
+    assert accepted_accounts(master, "B99999999") == ()
+
+
+def test_two_rows_of_one_tax_id_are_one_name_hit() -> None:
+    """REQ-DF-07: a name shared by two rows of one tax id is one supplier, not an ambiguity."""
+    rows = [ROW_A, (AURORA, "B00000001", IBAN_2)]
+    master = build_master(_suppliers(rows))
+
+    assert _tax_of(attribute_payment(_payment(AURORA), master)) == "B00000001"
+
+
+def test_payment_attributed_by_second_account() -> None:
+    """REQ-DF-07: the IBAN of a second master row attributes the payment when the name cannot."""
+    # The second account (IBAN_3) is held by this supplier only; IBAN_2 belongs to ROW_B.
+    second_account = [ROW_A, ("Otro nombre", "b 00000001", _spaced(IBAN_3))]
+    master = build_master(_suppliers([*second_account, ROW_B]))
+
+    row = attribute_payment(_payment("Pago desconocido", IBAN_3), master)
+
+    assert row is not None
+    assert row["source_ref"] == "sup.csv:0"  # the row that names the supplier
+
+
+def test_second_account_shared_with_another_supplier_falls_through() -> None:
+    """REQ-DF-07: an account held by two different tax ids still attributes nothing."""
+    rows = [*TWO_ACCOUNTS, (VALDEMAR, "B00000002", IBAN_2)]
+    master = build_master(_suppliers(rows))
+
+    assert attribute_payment(_payment("Pago desconocido", IBAN_2), master) is None
 
 
 def test_master_row_with_empty_tax_key_is_not_a_supplier() -> None:

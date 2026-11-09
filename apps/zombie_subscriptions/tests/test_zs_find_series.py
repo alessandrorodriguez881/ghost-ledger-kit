@@ -77,6 +77,100 @@ def test_zs_acceptance_e7b_weekly_shopping_no_series(builders: SimpleNamespace) 
     assert zs.find_series(builders.rows_weekly_shopping()) == []
 
 
+# --- detector-fixes, Tier 1: variable bills need cadence and an exclusive span ----------------
+
+
+def _weekly_rows(amounts: list[str] | list[Decimal]) -> list[dict]:
+    """Build weekly rows (7-day gaps) with the given amounts."""
+    return _rows_at([(7 * i, a) for i, a in enumerate(amounts)])
+
+
+def test_zs_acceptance_e7c_weekly_variable_amounts_no_series() -> None:
+    """E7c, REQ-DF-10: weekly 100.00, 104.50, 109.00, 113.50 is no variable bill."""
+    assert zs.find_series(_weekly_rows(["100.00", "104.50", "109.00", "113.50"])) == []
+
+
+def test_zs_acceptance_e7d_variable_bill_alone_is_a_series() -> None:
+    """E7d, REQ-DF-11: monthly 90.00, 95.00, 100.00 with nothing else under the key is a series."""
+    series = zs.find_series(_monthly(["90.00", "95.00", "100.00"]))
+    assert len(series) == 1
+    assert series[0].interval_type == "monthly"
+    assert series[0].current_amount == Decimal("95.00")
+    assert series[0].variable is True
+
+
+def test_zs_acceptance_e7d_variable_bill_with_foreign_row_no_series() -> None:
+    """E7d, REQ-DF-11: the same triple plus a 20.00 purchase 10 days after the first is none."""
+    entries = [(0, "90.00"), (10, "20.00"), (30, "95.00"), (60, "100.00")]
+    assert zs.find_series(_rows_at(entries)) == []
+
+
+def test_benchmark_zs_0000_shape_groceries_among_other_charges_no_series() -> None:
+    """REQ-DF-11 (benchmark zs-0000): three similar monthly charges among six others give none."""
+    entries = [
+        (0, "115.63"),  # 2025-06-04 in the benchmark
+        (5, "42.10"),
+        (9, "260.00"),
+        (14, "18.75"),
+        (20, "61.30"),
+        (24, "33.40"),
+        (28, "119.51"),  # 2025-07-02
+        (33, "7.95"),
+        (56, "114.75"),  # 2025-07-30
+    ]
+    assert zs.find_series(_rows_at(entries)) == []
+
+
+def test_stable_subscription_with_a_purchase_between_is_found() -> None:
+    """REQ-DF-12: three monthly 20.00 charges and a 12.50 purchase between them stay a series."""
+    entries = [(0, "20.00"), (10, "12.50"), (30, "20.00"), (60, "20.00")]
+    series = zs.find_series(_rows_at(entries))
+    assert len(series) == 1
+    assert _rows_of(series[0]) == [0, 2, 3]
+    assert series[0].variable is False
+
+
+def test_extension_keeps_a_weekly_step_change_series() -> None:
+    """REQ-DF-13: four weekly 50.00 and a fifth of 52.50 stay one weekly step-change series."""
+    series = zs.find_series(_weekly_rows(["50.00"] * 4 + ["52.50"]))
+    assert len(series) == 1
+    assert series[0].interval_type == "weekly"
+    assert len(series[0].rows) == 5
+    assert series[0].price_steps == [(Decimal("50.00"), Decimal("52.50"))]
+
+
+def test_fifth_weekly_charge_does_not_make_a_variable_bill() -> None:
+    """REQ-DF-13: weekly 100.00, 104.50, 109.00, 113.50 plus 118.00 give no series."""
+    amounts = ["100.00", "104.50", "109.00", "113.50", "118.00"]
+    assert zs.find_series(_weekly_rows(amounts)) == []
+
+
+def test_step_change_with_a_foreign_row_in_its_span_is_not_variable() -> None:
+    """REQ-DF-12: a step-change series is not subject to the span guard of variable bills."""
+    entries = [(0, "20.00"), (10, "5.00"), (30, "20.00"), (60, "20.00"), (90, "22.00")]
+    series = zs.find_series(_rows_at(entries))
+    assert len(series) == 1
+    assert series[0].variable is False
+    assert series[0].price_steps == [(Decimal("20.00"), Decimal("22.00"))]
+
+
+# --- detector-fixes, REQ-DF-20: the two documented limits -------------------------------------
+
+
+def test_limit_1_variable_bill_with_a_fee_in_its_span_is_not_reported() -> None:
+    """REQ-DF-20 limit 1: a utility bill and a one-off fee of the same merchant give no series."""
+    entries = [(0, "88.40"), (15, "9.90"), (30, "93.10"), (60, "97.60")]
+    assert zs.find_series(_rows_at(entries)) == []
+
+
+def test_limit_2_weekly_charges_on_one_price_level_are_still_a_series() -> None:
+    """REQ-DF-20 limit 2: four weekly charges within 2 % of their median are a stable series."""
+    series = zs.find_series(_weekly_rows(["40.00", "40.40", "39.80", "40.20"]))
+    assert len(series) == 1
+    assert series[0].interval_type == "weekly"
+    assert series[0].variable is False
+
+
 # --- Tier 1: basic series and the span guard --------------------------------------------------
 
 
@@ -413,3 +507,58 @@ def test_row_order_invariant_with_steps(case: list[dict], data: st.DataObject) -
     """Shuffled rows of a step-change ledger give the same series."""
     shuffled = data.draw(st.permutations(case))
     assert zs.find_series(list(shuffled)) == zs.find_series(case)
+
+
+# --- detector-fixes, Tier 3: variable bills need cadence and an exclusive span ----------------
+
+
+def _spaced_amounts(base_cents: int, bps: int, count: int) -> list[Decimal]:
+    """Return `count` amounts that rise by `bps` basis points of the base at every step."""
+    base = Decimal(base_cents) / Decimal(100)
+    return [round_to_cents(base * Decimal(10000 + i * bps) / Decimal(10000)) for i in range(count)]
+
+
+@settings(max_examples=200, deadline=None)
+@given(
+    base_cents=st.integers(min_value=10000, max_value=50000),
+    bps=st.integers(min_value=450, max_value=500),
+    count=st.integers(min_value=4, max_value=5),
+)
+def test_weekly_runs_of_spaced_amounts_are_never_a_series(
+    base_cents: int, bps: int, count: int
+) -> None:
+    """REQ-DF-10: 4 to 5 weekly charges spaced by 4.5 to 5 % (within 10 % of their median)."""
+    amounts = _spaced_amounts(base_cents, bps, count)
+    assert zs._within_match_ratio(amounts)  # the premise: a loose variable bill, not a level
+    assert not zs.is_level(amounts)
+
+    assert zs.find_series(_weekly_rows(amounts)) == []
+
+
+# Day offsets of a foreign row: never within 27 to 33 days of a charge, so the cadence is intact.
+FOREIGN_DAYS = [*range(5, 26), *range(35, 56)]
+
+
+@settings(max_examples=200, deadline=None)
+@given(
+    base_cents=st.integers(min_value=10000, max_value=50000),
+    bps=st.integers(min_value=450, max_value=500),
+    foreign_day=st.sampled_from(FOREIGN_DAYS),
+    foreign_cents=st.integers(min_value=500, max_value=40000),
+)
+def test_monthly_variable_bill_needs_an_exclusive_span(
+    base_cents: int, bps: int, foreign_day: int, foreign_cents: int
+) -> None:
+    """REQ-DF-11: a monthly variable triple is one series alone and none with a row in its span."""
+    amounts = _spaced_amounts(base_cents, bps, 3)
+    assert zs._within_match_ratio(amounts)
+    assert not zs.is_level(amounts)
+    charges: list[tuple[int, str | Decimal]] = [(30 * i, a) for i, a in enumerate(amounts)]
+
+    alone = zs.find_series(_rows_at(charges))
+    mixed = zs.find_series(_rows_at([*charges, (foreign_day, Decimal(foreign_cents) / 100)]))
+
+    assert len(alone) == 1
+    assert alone[0].interval_type == "monthly"
+    assert alone[0].variable is True
+    assert mixed == []

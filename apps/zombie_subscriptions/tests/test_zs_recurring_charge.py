@@ -259,6 +259,22 @@ def test_amount_boundary_at_match_ratio() -> None:
     assert detect_recurring_charges(outside, _ctx()) == []
 
 
+def test_e7c_weekly_variable_amounts_raise_no_alert() -> None:
+    """REQ-DF-10 (E7c): four weekly charges that vary by 4.5 % each are not a subscription."""
+    weekly = pd.DataFrame(_periodic(["100.00", "104.50", "109.00", "113.50"], step_days=7))
+    assert detect_recurring_charges(weekly, _ctx()) == []
+
+
+def test_e7d_variable_bill_alert_only_with_an_exclusive_span() -> None:
+    """REQ-DF-11 (E7d): 90.00, 95.00, 100.00 alert alone, but not with a purchase between."""
+    alone = pd.DataFrame(_rows_at([(0, "90.00"), (30, "95.00"), (60, "100.00")]))
+    (alert,) = detect_recurring_charges(alone, _ctx())
+    assert alert.data["current_amount"] == "95.00"
+    entries = [(0, "90.00"), (10, "20.00"), (30, "95.00"), (60, "100.00")]
+    mixed = pd.DataFrame(_rows_at(entries))
+    assert detect_recurring_charges(mixed, _ctx()) == []
+
+
 def test_source_refs_sorted_by_date_not_text() -> None:
     """f.csv:8, f.csv:9, f.csv:10 stay in date order; text order would put 10 first."""
     ledger = pd.DataFrame(_periodic(["12.99"] * 3, first_row=8))
