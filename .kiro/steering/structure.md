@@ -194,6 +194,7 @@ ghost-ledger-kit/
 │   ├── test_models.py
 │   ├── test_explainer_question.py  # optional question and raw_answer of the explainer
 │   ├── test_explainer_timeout.py   # optional LEDGER_KIT_LLM_TIMEOUT (1 to 120, default 10)
+│   ├── test_explainer_live_run.py  # first real-model run replayed through the guard; guard rules
 │   ├── test_live_guard.py          # pure helpers of the Provoke-the-LLM panel
 │   ├── test_live_guard_docs.py     # docs/live-guard.md, README paragraph, .env.example
 │   ├── test_money.py
@@ -209,6 +210,8 @@ ghost-ledger-kit/
 ├── data/
 │   ├── benchmark/                  # Generated output of synthetic scenarios (no personal data)
 │   │   └── results.json            # Written by scripts/benchmark.py; compared byte for byte by a test
+│   ├── live_runs/                  # Raw answers of real-model runs on the synthetic demo data (never real statements)
+│   │   └── 2026-11-10_llama3.2-3b.json  # LG8: llama3.2:3b on Ollama; replayed by test_explainer_live_run.py
 │   ├── public/                     # Official public data under an open licence (never personal data)
 │   │   ├── README.md               # Source, licence, attribution, refresh command
 │   │   └── ine_cpi_ipc290751.json  # INE CPI snapshot written by scripts/fetch_ine_cpi.py

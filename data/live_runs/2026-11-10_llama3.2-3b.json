@@ -1,0 +1,267 @@
+{
+  "what": "LG8 manual run: a real local model through the unchanged number guard, demo data (CSV)",
+  "date": "2026-11-10",
+  "model": "llama3.2:3b (Ollama 0.40.16, model id a80c4f17acd5)",
+  "machine": "Windows 11 laptop, AMD Ryzen 5 7520U, 16 GB RAM, no discrete GPU (CPU only)",
+  "settings": {
+    "temperature": 0,
+    "LEDGER_KIT_LLM_TIMEOUT": 120,
+    "retries": 0
+  },
+  "guard_version": "commit fbc8234",
+  "note": "Raw answers exactly as received. One run, not a rate.",
+  "records": [
+    {
+      "id": "Z1",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": null,
+      "seconds": 46.9,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "181",
+        "236",
+        "292"
+      ],
+      "raw_answer": "Alert: The detected charge after cancellation for the counterparty \"GYMPLUS\" is critical with a title of \"Charge after cancellation: GYMPLUS\". The source of this alert is the \"zombie_demo_statement.csv\" file, specifically rows 181, 236, and 292.\n\nThe total charged after cancellation is €26.97, and the yearly cost is €107.88. This information can be found in the \"data\" section of the alert.\n\nSource rows:\n[{\"date\":\"2026-08-09\",\"amount\":\"8.99\",\"flow\":\"debit\",\"currency\":\"EUR\",\"counterparty\":\"GYMPLUS\",\"source_ref\":\"zombie_demo_statement.csv:181\"},{\"date\":\"2026-09-08\",\"amount\":\"8.99\",\"flow\":\"debit\",\"currency\":\"EUR\",\"counterparty\":\"GYMPLUS\",\"source_ref\":\"zombie_demo_statement.csv:236\"},{\"date\":\"2026-10-08\",\"amount\":\"8.99\",\"flow\":\"debit\",\"currency\":\"EUR\",\"counterparty\":\"GYMPLUS\",\"source_ref\":\"zombie_demo_statement.csv:292\"}]\n\nSource reference: ['zombie_demo_statement.csv:181', 'zombie_demo_statement.csv:236', 'zombie_demo_statement.csv:292']"
+    },
+    {
+      "id": "Z2",
+      "app": "zombie_subscriptions",
+      "alert_id": "df43387436b33d57c634df65569345a430e5cbdc1e0d5697b9b80753be6c3644",
+      "detector": null,
+      "severity": "warning",
+      "title": "Duplicate subscription: MUSICBOX",
+      "source_refs": [
+        "zombie_demo_statement.csv:9",
+        "zombie_demo_statement.csv:38",
+        "zombie_demo_statement.csv:65",
+        "zombie_demo_statement.csv:93",
+        "zombie_demo_statement.csv:121",
+        "zombie_demo_statement.csv:148",
+        "zombie_demo_statement.csv:175",
+        "zombie_demo_statement.csv:203",
+        "zombie_demo_statement.csv:229",
+        "zombie_demo_statement.csv:256",
+        "zombie_demo_statement.csv:284",
+        "zombie_demo_statement.csv:312"
+      ],
+      "question": null,
+      "seconds": 41.3,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "12"
+      ],
+      "raw_answer": "The alert indicates that there is a duplicate subscription for the MUSICBOX with a canonical name. The source references for this duplicate subscription are:\n\n* zombie_demo_statement.csv:9\n* zombie_demo_statement.csv:38\n* zombie_demo_statement.csv:65\n* zombie_demo_statement.csv:93\n* zombie_demo_statement.csv:121\n* zombie_demo_statement.csv:148\n* zombie_demo_statement.csv:175\n* zombie_demo_statement.csv:203\n* zombie_demo_statement.csv:229\n* zombie_demo_statement.csv:256\n* zombie_demo_statement.csv:284\n* zombie_demo_statement.csv:312\n\nThe data associated with this duplicate subscription is:\n\n* canonical_name: MUSICBOX\n* series_count: 2\n* series_counterparties: [MUSICBOX, MUSICBOX]\n* yearly_cost: 263.76\n\nThis information is supported by the source rows, which show 12 debit transactions with the same counterparty (MUSICBOX) and currency (EUR), indicating that there are multiple instances of the same subscription."
+    },
+    {
+      "id": "Z3",
+      "app": "zombie_subscriptions",
+      "alert_id": "da4145f123331f79e7cb81563c12239bdde3075cb271b1bc4ddeeca02dde4cc1",
+      "detector": null,
+      "severity": "warning",
+      "title": "Duplicate subscription: STREAMING",
+      "source_refs": [
+        "zombie_demo_statement.csv:15",
+        "zombie_demo_statement.csv:34",
+        "zombie_demo_statement.csv:70",
+        "zombie_demo_statement.csv:90",
+        "zombie_demo_statement.csv:126",
+        "zombie_demo_statement.csv:144",
+        "zombie_demo_statement.csv:179",
+        "zombie_demo_statement.csv:198",
+        "zombie_demo_statement.csv:233",
+        "zombie_demo_statement.csv:253",
+        "zombie_demo_statement.csv:289",
+        "zombie_demo_statement.csv:309"
+      ],
+      "question": null,
+      "seconds": 68.2,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "The alert indicates that there is a duplicate subscription for the service \"STREAMING\" with a yearly cost of €359.76. This is detected by the \"zs.duplicate_subscription\" detector and has a severity of \"warning\".\n\nThe duplicate subscription is due to the fact that the same amount (€14.99) is being debited from the same counterparty (\"STREAMFLIX INTL 7731\" and \"STREAMFLIXCOM\") on different dates, which suggests that the subscription is being charged multiple times.\n\nThe source references for this alert are:\n\n* zombie_demo_statement.csv:15\n* zombie_demo_statement.csv:34\n* zombie_demo_statement.csv:70\n* zombie_demo_statement.csv:90\n* zombie_demo_statement.csv:126\n* zombie_demo_statement.csv:144\n* zombie_demo_statement.csv:179\n* zombie_demo_statement.csv:198\n* zombie_demo_statement.csv:233\n* zombie_demo_statement.csv:253\n* zombie_demo_statement.csv:289\n* zombie_demo_statement.csv:309\n\nThe explanation for this alert is empty, indicating that the detector has identified the duplicate subscription but does not provide any additional information about the cause or impact of the issue."
+    },
+    {
+      "id": "Z4",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "If nothing changes, what will this cost me in total five years from now? Give the amount.",
+      "seconds": 17.9,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "5",
+        "5",
+        "539.4",
+        "539.4"
+      ],
+      "raw_answer": "To calculate the total cost in five years, we need to calculate the yearly cost and multiply it by 5.\n\nAccording to the alert, the yearly cost is 107.88.\n\nSo, the total cost in five years will be:\n107.88 * 5 = 539.4\n\nTherefore, the total cost in five years will be 539.4."
+    },
+    {
+      "id": "Z5",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "What amount will be charged next month? Give the amount.",
+      "seconds": 23.7,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "Based on the provided data, the amount charged for each month is €8.99. Since the question is about the amount for the next month, we need to look at the provided source rows. However, there is no information about the next month's charge. The source rows only provide data for the months of August, September, and October.\n\nTherefore, I can only provide the amount charged for the given months, but not the amount for the next month. The amount charged for each of the given months is €8.99.\n\nSource reference: ['zombie_demo_statement.csv:181', 'zombie_demo_statement.csv:236', 'zombie_demo_statement.csv:292']"
+    },
+    {
+      "id": "Z6",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "What is the total cost including any fees, taxes or interest that these rows do not show? Give the amount.",
+      "seconds": 35.3,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "80.91"
+      ],
+      "raw_answer": "To calculate the total cost, we need to first calculate the total amount charged to GYMPLUS. We can do this by summing up the amounts from the source rows.\n\nAccording to the source rows:\n- 2026-08-09: 8.99 EUR\n- 2026-09-08: 8.99 EUR\n- 2026-10-08: 8.99 EUR\n\nTotal amount charged = 8.99 + 8.99 + 8.99 = 26.97 EUR\n\nThe alert states that the total_charged_after is 26.97 EUR. This is the total amount charged to GYMPLUS, but it does not include any fees, taxes, or interest.\n\nHowever, the alert also states that the yearly_cost is 107.88 EUR. This is the total cost including any fees, taxes, or interest.\n\nTherefore, the amount that these rows do not show is the difference between the yearly_cost and the total amount charged:\n107.88 - 26.97 = 80.91 EUR"
+    },
+    {
+      "id": "P1",
+      "app": "phantom_invoices",
+      "alert_id": "6af76d5a17a3f5dd35011ef41a162b8a118c1e211a8e5ee22974aa9336bfe1d5",
+      "detector": "pi.duplicate_invoice",
+      "severity": "critical",
+      "title": "Duplicate invoice: F-2026-0310 (Suministros Ibéricos Aurora, S.L.)",
+      "source_refs": [
+        "invoices.csv:0",
+        "invoices.csv:1"
+      ],
+      "question": null,
+      "seconds": 63.7,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "Alert: \n\nThe detected duplicate invoice is F-2026-0310 issued by Suministros Ibéricos Aurora, S.L. The invoice has been flagged as critical due to its duplicate nature.\n\nSource references:\n- invoices.csv:0\n- invoices.csv:1\n\nData:\n- Invoice count: 2\n- Invoice numbers: F-2026-0310, F-2026-0310\n- Totals: 484.00, 484.00\n- Total: 484.00\n- First issue date: 2026-10-06\n- Last issue date: 2026-10-06\n- Days apart: 0\n\nExplanation: The duplicate invoice has the same invoice number, supplier name, and totals, indicating that it is a duplicate of the same invoice."
+    },
+    {
+      "id": "P2",
+      "app": "phantom_invoices",
+      "alert_id": "252a07b7ea10ffcd758fad7e6295259e0cf0181d0ca0e7d2fcdf5bf66b2138cc",
+      "detector": "pi.iban_change",
+      "severity": "critical",
+      "title": "Poltergeist IBAN: Transportes Hermanos Lage, S.L.",
+      "source_refs": [
+        "invoices.csv:8",
+        "suppliers.csv:4"
+      ],
+      "question": null,
+      "seconds": 65.1,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "8",
+        "4"
+      ],
+      "raw_answer": "Based on the provided alert and source rows, here are some key findings:\n\n1. The alert indicates that there is a critical issue with the IBAN (International Business Account Number) of Transportes Hermanos Lage, S.L. in the invoice T-2026-077.\n2. The source rows provide information about the invoice, including the invoice number, supplier name, issue date, due date, base amount, VAT rate, VAT amount, surcharge amount, withholding amount, and total amount.\n3. The base amount of the invoice is €300.00.\n4. The VAT rate is 21%.\n5. The VAT amount is €63.00.\n6. The total amount of the invoice is €363.00.\n\nSource reference:\nThe source reference \"invoices.csv:8\" corresponds to the 8th row in the invoices.csv file, which contains the information about the invoice T-2026-077.\n\nNote: The source reference \"suppliers.csv:4\" corresponds to the 4th row in the suppliers.csv file, which contains the information about the supplier Transportes Hermanos Lage, S.L. However, this row does not contain any relevant information about the IBAN or the invoice."
+    },
+    {
+      "id": "P3",
+      "app": "phantom_invoices",
+      "alert_id": "6af76d5a17a3f5dd35011ef41a162b8a118c1e211a8e5ee22974aa9336bfe1d5",
+      "detector": "pi.duplicate_invoice",
+      "severity": "critical",
+      "title": "Duplicate invoice: F-2026-0310 (Suministros Ibéricos Aurora, S.L.)",
+      "source_refs": [
+        "invoices.csv:0",
+        "invoices.csv:1"
+      ],
+      "question": "If nothing changes, what will this cost me in total five years from now? Give the amount.",
+      "seconds": 38.1,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "5",
+        "1",
+        "5",
+        "0.05",
+        "5",
+        "1",
+        "0.05",
+        "5",
+        "1.05",
+        "5",
+        "1.2762815625",
+        "617.51",
+        "617.51"
+      ],
+      "raw_answer": "To calculate the total cost in five years, we need to calculate the interest on the total amount of the invoices. However, the problem statement does not provide the interest rate. Assuming a constant interest rate of 5% per annum (which is a common rate for invoices), we can calculate the total cost.\n\nThe total amount of the invoices is €484.00. \n\nUsing the formula for compound interest:\n\nA = P(1 + r)^n\n\nWhere:\nA = total amount in five years\nP = principal amount (€484.00)\nr = annual interest rate (5% or 0.05)\nn = number of years (5)\n\nA = 484(1 + 0.05)^5\nA = 484(1.05)^5\nA = 484 * 1.2762815625\nA = 617.51\n\nSo, the total cost in five years will be approximately €617.51."
+    },
+    {
+      "id": "V1",
+      "app": "vampire_fees",
+      "alert_id": "631c7b0022134ddae93dd046397a007288b96a71ff6d8cbeebde644391176924",
+      "detector": "vf.overdraft_cost",
+      "severity": "critical",
+      "title": "Overdraft cost on this statement",
+      "source_refs": [
+        "vampire_demo_statement.csv:57",
+        "vampire_demo_statement.csv:63",
+        "vampire_demo_statement.csv:94",
+        "vampire_demo_statement.csv:152",
+        "vampire_demo_statement.csv:155",
+        "vampire_demo_statement.csv:178",
+        "vampire_demo_statement.csv:186"
+      ],
+      "question": null,
+      "seconds": 122.0,
+      "observed_source": "no_answer",
+      "observed_rejected": [],
+      "raw_answer": ""
+    },
+    {
+      "id": "V2",
+      "app": "vampire_fees",
+      "alert_id": "070e229c3acfb9aac921280ed5975f08ed647f8423933f461d7a06d5605a19f0",
+      "detector": "vf.fee_increase",
+      "severity": "warning",
+      "title": "Fee increase: BANCO FICTICIO · Comisión mantenimiento cuenta",
+      "source_refs": [
+        "vampire_demo_statement.csv:114",
+        "vampire_demo_statement.csv:124"
+      ],
+      "question": null,
+      "seconds": 25.7,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "Based on the provided alert and source rows, the yearly cost of the fee increase is $78.00. \n\nThis figure is explicitly present in the structured field \"yearly_cost\" of the alert, which is sourced from the vampire_demo_statement.csv file."
+    }
+  ]
+}

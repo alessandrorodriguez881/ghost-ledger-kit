@@ -93,13 +93,45 @@ What the guard does and does not do:
 
 - It checks figures, dates and IBAN-shaped tokens only. It does not judge wording, so an accepted
   answer is not a statement that the answer is true or good advice.
-- It is strict by design. A derived figure, a list number such as `1.`, or a count such as
-  `3 months` is rejected unless it is in the cited rows or the alert data. A real answer can
-  therefore be rejected for a harmless count. The panel shows the exact tokens, so you can judge
-  for yourself.
-- It is not changed for the demo. Loosening it would defeat the demo.
+- It is strict by design. A derived figure, or a count such as `3 months`, is rejected unless it is
+  in the cited rows or the alert data. A real answer can therefore be rejected for a harmless
+  count. The panel shows the exact tokens, so you can judge for yourself.
+- Four things are not treated as figures, because the first real run (below) showed they are not:
+  the line number of one of the card's own source refs written as a row citation (`rows 181, 236,
+  and 292`, `the 8th row`); the number of cited rows followed by a word such as `rows`,
+  `transactions` or `debits`; a list marker of one or two digits at the start of a line (`1.`);
+  and a currency named by the rows. Every other number keeps the strict rule: `row 999` or
+  `181 EUR` is still rejected.
+- It also rejects a currency symbol or code that the cited rows and the alert data do not name,
+  for example `$` on a euro account. With no currency named anywhere, that check is skipped.
+- It was changed only after a real run, never to make the demo look better: an invented amount is
+  still caught wherever it stands in an answer.
 
 If nothing comes back, the panel says so and counts nothing as checked.
+
+### The first real run
+
+On 2026-11-10 the demo cards of the three apps and the trick questions went to `llama3.2:3b`
+(Ollama 0.40.16) on a Windows laptop with an AMD Ryzen 5 7520U, 16 GB of memory and no GPU, so on
+the CPU only: temperature 0, a 120 second timeout, eleven questions. The raw answers are in
+`data/live_runs/2026-11-10_llama3.2-3b.json`. It is one run, not a rate.
+
+- The guard caught three inventions: a total for five years (`539.4`, the yearly cost times five),
+  a difference presented as fees the rows do not show (`80.91`), and an interest rate the data does
+  not hold, with a total built on it (`617.51`).
+- The model also refused honestly once, saying the rows do not show next month's charge. The guard
+  accepted that answer.
+- The old guard rejected correct answers too: for the line numbers of the card's own source refs
+  (`181`, `236`, `292`, and `8th row`), for the count of the cited rows (`12 debit transactions`)
+  and for list markers (`1.` to `6.`). The changes of tasks LG9 to LG12 fix exactly these.
+- The old guard accepted one answer that wrote `$78.00` on a euro account, because it did not check
+  the currency. It now rejects it.
+- One card got no answer within 120 seconds, and the answers were long, because the model repeated
+  the alert and the rows. The system message now asks for plain prose of at most three sentences,
+  and the call passes `max_tokens` (200).
+
+The record keeps what the old guard did. `tests/test_explainer_live_run.py` replays every answer
+through the current guard.
 
 ## Limits
 
@@ -107,6 +139,13 @@ If nothing comes back, the panel says so and counts nothing as checked.
   The panel then shows that the model did not answer. Warm the model up (see Option B) and press
   again, or raise `LEDGER_KIT_LLM_TIMEOUT` for a slow CPU.
 - There is one attempt per press. The call is never retried.
+- With a key set, every card of a page is explained once per browser session, and the result is
+  kept. On a laptop CPU the first load of a page therefore takes minutes, and a card whose model
+  does not answer in time shows its fixed template. `LEDGER_KIT_LLM_TIMEOUT` 90 suits a CPU:
+
+  ```
+  $env:LEDGER_KIT_LLM_TIMEOUT = "90"
+  ```
 - Each browser session may ask 30 questions. This is a courtesy, not security: a reload resets it.
 - The panel does not run on Community Cloud unless the deployer sets a key in the environment of
   the deployment. Doing so lets every visitor spend that key, so do not set a hosted key on a public

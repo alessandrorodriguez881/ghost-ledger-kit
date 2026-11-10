@@ -286,3 +286,86 @@ never share one (REQ-SC-04).
   `ruff format --check` pass, the 80 % coverage floor holds, and the new modules are added to the
   coverage command of `testing.md` only if they sit outside `ledger_kit` or the three apps (they do
   not).
+
+---
+
+## 6 — Amendment A-LG-01 (session 16a): what the first real run showed
+
+The manual run LG8 (`data/live_runs/2026-11-10_llama3.2-3b.json`, 11 records, one run, not a rate)
+sent the three apps' demo cards and the trick questions to `llama3.2:3b` through the unchanged
+guard. The guard caught every invented figure (Z4 `539.4`, Z6 `80.91`, P3 `617.51`) and accepted an
+honest refusal (Z5). It also **rejected correct answers** for numbers that are not figures: the line
+number of the card's own source ref (Z1 `181`, `236`, `292`; P2 `8th row`, `4th row`), the count of
+the cited rows (Z2 `12 debit transactions`) and list markers (P2 `1.` to `6.`). It accepted V2,
+which wrote `$78.00` on a euro account. And answers were long: they repeated the alert and the rows.
+
+The five requirements below narrow the guard in `ledger_kit/explainer.py` only. They supersede, for
+the cases named, the sentences "the guard is not touched" (DN-LG-15, DN-LG-21) and "a list number
+such as `1.` … is rejected" (REQ-LG-19). REQ-LG-03 still holds: nothing is special-cased for a
+question, and the figures of the question are not allowed. No detector, figure, template, alert text,
+widget key, stub or panel changes.
+
+Shared fixture of the examples: alert `B` with `source_refs = ["bank.csv:181", "bank.csv:236",
+"bank.csv:292"]` and `data = {"yearly_cost": "107.88"}`; three cited rows, all `currency` `EUR`,
+amount `8.99` **(synthetic)**.
+
+- **REQ-LG-21** *When* a number of the answer is the line number of one of the alert's own source
+  refs **and** is written as a row or line citation, the guard shall not treat it as a figure. A
+  citation is: the number right after `row`, `rows`, `line` or `lines` (any case; a list such as
+  `181, 236, and 292` counts, each member judged on its own), or an ordinal right before `row` or
+  `line` (`8th row`). *If* the number is not a cited line number, *or* it is not written as a
+  citation, *then* today's rule applies unchanged.
+  - Example (accepted): `The charges are in rows 181, 236, and 292 of bank.csv.` for `B`.
+  - Example (accepted): `See the 8th row.` for refs `["invoices.csv:8", "suppliers.csv:4"]`.
+  - Example (rejected, token `999`): `See row 999.` for `B`.
+  - Example (rejected, token `181`): `The cost is 181 EUR.` for `B`, because `181` is not allowed
+    by today's rule and is not written as a citation.
+  - Example (rejected, token `999`): `rows 181, 999` for `B`: only the cited member is blanked.
+
+- **REQ-LG-22** *When* an integer of the answer equals the number of the alert's source refs and the
+  next word is one of `row`, `transaction`, `charge`, `payment`, `debit`, `entry`, `invoice`,
+  `time` (singular or plural; `entries` counts), with at most one adjective between (for example
+  `debit`, but never an ISO currency code), the guard shall not treat that integer as a figure.
+  Every other count keeps today's rule.
+  - Example (accepted): `The 3 debit transactions are listed.` for `B` (3 refs).
+  - Example (rejected, token `7`): `The 7 rows are listed.` for `B` (3 refs).
+  - Example (rejected, token `3`): `It ran for 3 months.` for `B`: `months` is not in the list.
+
+- **REQ-LG-23** *When* one or two digits stand at the start of a line, followed by `.` or `)` and a
+  space, the guard shall not treat those digits as a figure. The same digits in the middle of a
+  line keep today's rule.
+  - Example (accepted): `1. The charge repeats.\n2) It is monthly.` for `B`.
+  - Example (rejected, token `5`): `The charge repeats. 5. It is monthly.` for `B`.
+
+- **REQ-LG-24** *Where* the cited rows (their `currency` column) or the alert data name at least
+  one currency, the guard shall reject an answer holding a currency symbol or ISO code that is not
+  among the named ones, and shall report that token like a rejected number. Symbols: `€` is EUR, `$`
+  any dollar currency (USD, CAD, AUD, NZD), `£` GBP, `¥` JPY. Codes are the values of
+  `ledger_kit/ingestion/iso4217.py`. *Where* no currency is named, the check is skipped.
+  - Example (rejected, token `$`): `The fee is $78.00.` when the cited rows are EUR.
+  - Example (rejected, token `GBP`): `The fee is 8.99 GBP.` when the cited rows are EUR.
+  - Example (accepted): `The fee is €8.99 or 8.99 EUR.` when the cited rows are EUR.
+  - Example (accepted): `The fee is $8.99.` when no row and no data field names a currency.
+
+- **REQ-LG-25** The system message shall also ask for plain prose of at most three sentences, no
+  lists, no JSON, no repetition of the input, and source refs written exactly as given, and shall
+  keep every existing sentence (the verbatim no-invention sentence and the citation sentence). The
+  request shall pass `max_tokens` from the named constant `LLM_MAX_TOKENS = 200`. The question,
+  `temperature=0`, the single attempt and the guard input are unchanged.
+  - Example: `client.calls[0]["max_tokens"] == 200`; `messages[0]["content"]` still contains the
+    no-invention sentence and `Cite at least one source reference from:`.
+
+- **REQ-LG-26** The repository shall keep the run record `data/live_runs/2026-11-10_llama3.2-3b.json`
+  (model answers on synthetic demo data only, never a real statement) and tests shall replay it
+  through the guard: with the demo data rebuilt from the committed demo files, Z1, Z2, Z3, Z5, P1 and
+  P2 are accepted; Z4 (`539.4`), Z6 (`80.91`), P3 (`617.51`) and V2 (`$`) are rejected naming that
+  token; V1 is recorded as `no_answer`. A record that does not reach its verdict with REQ-LG-21 to
+  REQ-LG-24 is marked `xfail` with the exact token in the reason; no further rule is added for it.
+  A property test shall show that an invented amount inserted anywhere into an accepted answer is
+  still rejected.
+
+- **REQ-LG-27** `docs/live-guard.md` shall describe this run (model, machine, the three inventions
+  caught, the honest refusal, the false rejections fixed by REQ-LG-21 to REQ-LG-24) without a rate,
+  and shall say that with a key every card of a page is explained once per browser session, so on a
+  CPU the first load of a page takes minutes, and that `LEDGER_KIT_LLM_TIMEOUT` 90 suits a CPU.
+  `.gitignore` shall track `data/live_runs/`.

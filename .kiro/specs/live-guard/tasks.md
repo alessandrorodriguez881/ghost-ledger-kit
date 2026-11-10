@@ -133,11 +133,62 @@ one pattern.
 
 **Covers**: REQ-LG-19 claims
 
-- [ ] The user follows `docs/live-guard.md` on Windows with Ollama and the chosen small model, presses
-  each preset on one alert in each app, and records what happened (accepted, rejected, timeout). The
-  README and the doc must not claim a rejection rate; the doc states only what the commands do and
-  that results vary by model. If the first call times out, the warm-up step is confirmed or
-  corrected in the doc.
+- [x] Run on 2026-11-10 (llama3.2:3b, Ollama, CPU only); record: `data/live_runs/2026-11-10_llama3.2-3b.json`.
+
+## Task LG9 — Row citations (A-LG-01)
+
+**Covers**: REQ-LG-21, DN-LG-25, DN-LG-26
+
+- [x] Tests first in `tests/test_explainer_live_run.py` (negative: `row 999`, `181 EUR`, `rows 181,
+  999`; positive: `rows 181, 236, and 292`, `8th row`, any case). Then `_without_non_figures` in
+  `ledger_kit/explainer.py` (`_ROW_CITATION_RE`, `_ORDINAL_ROW_RE`).
+
+## Task LG10 — Count of cited rows (A-LG-01)
+
+**Covers**: REQ-LG-22, DN-LG-27
+
+- [x] Tests first (`7 rows` with 3 refs rejected, `3 months` rejected, `3 debit transactions`
+  accepted, `3 EUR payments` rejected), then `_COUNT_OF_ROWS_RE`.
+
+## Task LG11 — List markers (A-LG-01)
+
+**Covers**: REQ-LG-23, DN-LG-28
+
+- [x] Tests first (line-start `1.` and `2)` accepted, mid-line `5. ` rejected, `12.99` at line start
+  unaffected), then `_LIST_MARKER_RE`.
+
+## Task LG12 — Currency (A-LG-01)
+
+**Covers**: REQ-LG-24, DN-LG-29
+
+- [x] Tests first (`$` and `GBP` on EUR rows rejected, `€`/`EUR` accepted, no currency named → skipped,
+  `$` accepted when the data names USD), then `_named_currencies` and `_foreign_currencies`.
+
+## Task LG13 — Shorter answers (A-LG-01)
+
+**Covers**: REQ-LG-25, DN-LG-30
+
+- [x] Tests first (`max_tokens == 200`, old sentences still in the system message, system message the
+  same with and without a question), then `LLM_MAX_TOKENS` and the prompt sentence in `_call_llm`.
+
+## Task LG14 — Replay of the run record (A-LG-01)
+
+**Covers**: REQ-LG-26
+
+- [x] `tests/test_explainer_live_run.py` loads the record, rebuilds each alert and its cited rows
+  from the committed demo files through the apps' own `run_pipeline`, and asserts the verdicts
+  (accepted Z1, Z2, Z3, Z5, P1, P2; rejected Z4, Z6, P3, V2; V1 `no_answer`) plus the Hypothesis
+  property (an invented amount inserted anywhere in an accepted answer is rejected).
+- [x] `.gitignore` tracks `data/live_runs/`.
+
+## Task LG15 — Documentation of the run (A-LG-01)
+
+**Covers**: REQ-LG-27
+
+- [x] `docs/live-guard.md`: a short subsection *The first real run* under *What to expect*, the
+  once-per-session explanation of every card and the `LEDGER_KIT_LLM_TIMEOUT` 90 advice under
+  *Limits*; the "strict by design" bullet now matches the guard. `tests/test_live_guard_docs.py` is
+  not edited and still holds (five `##` sections, required phrases).
 
 ## Not verified by the author
 

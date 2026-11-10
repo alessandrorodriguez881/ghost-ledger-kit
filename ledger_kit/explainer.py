@@ -12,6 +12,7 @@ from typing import Literal
 
 import pandas as pd
 
+from ledger_kit.ingestion.iso4217 import NUMERIC_TO_ALPHA
 from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount, format_index, format_percent
 
@@ -21,6 +22,9 @@ LLM_TIMEOUT_MIN_SECONDS: int = 1  # smallest accepted LEDGER_KIT_LLM_TIMEOUT
 LLM_TIMEOUT_MAX_SECONDS: int = 120  # largest accepted LEDGER_KIT_LLM_TIMEOUT
 LLM_TIMEOUT_ENV: str = "LEDGER_KIT_LLM_TIMEOUT"  # optional override, whole seconds
 LLM_MAX_RETRIES: int = 1  # one attempt; callers cache per alert.id
+# Upper bound on the answer length: three plain sentences fit; long echoes of the input do not
+# (a CPU-only local model is slow, a hosted one is paid per token).
+LLM_MAX_TOKENS: int = 200
 
 # Default columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-11).
 _LLM_ROW_COLUMNS = ("date", "amount", "flow", "currency", "counterparty", "source_ref")
@@ -277,7 +281,7 @@ def _passes_number_guard(
     row_columns: Sequence[str] | None = None,
 ) -> tuple[bool, tuple[str, ...]]:
     """Check LLM text; return (passed, rejected_tokens)."""
-    tokens = _tokenise(text, alert.source_refs)
+    tokens = _tokenise(_without_non_figures(text, alert), alert.source_refs)
     if tokens.ibans:
         return False, tokens.ibans
     if tokens.malformed_dates:
@@ -292,9 +296,139 @@ def _passes_number_guard(
         value = _parse_decimal(token)
         if value is not None and value not in allowed:
             rejected.append(token)
+    rejected.extend(_foreign_currencies(text, alert, _visible_rows(rows, row_columns)))
     if rejected:
         return False, tuple(rejected)
     return True, ()
+
+
+# --- Numbers that are not figures (row citations, counts of cited rows, list markers) -----------
+
+# A whole integer: not part of a longer number, a date, a ref or a hyphenated code.
+_INT = r"(?<![\d.,:/-])\d+(?!\d|[.,]\d|[/-]\d)"
+_INT_RE = re.compile(_INT)
+# "rows 181, 236, and 292": a list of integers after the keyword.
+_CITE_SEPARATOR = r"(?:,\s+(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s*&\s*)"
+_ROW_CITATION_RE = re.compile(
+    r"\b(?:rows?|lines?)\s+(" + _INT + "(?:" + _CITE_SEPARATOR + _INT + ")*)", re.IGNORECASE
+)
+# "the 8th row": an ordinal right before row or line.
+_ORDINAL_ROW_RE = re.compile(
+    r"(?<![\w.,:/-])(\d+)(?:st|nd|rd|th)\s+(?:rows?|lines?)\b", re.IGNORECASE
+)
+# "12 debit transactions": the count of cited rows, one optional adjective (not an ISO code).
+_COUNT_NOUN = r"(?:rows?|transactions?|charges?|payments?|debits?|entr(?:y|ies)|invoices?|times?)"
+_COUNT_OF_ROWS_RE = re.compile(
+    "(" + _INT + r")(\s+(?:(?!(?-i:[A-Z]{3}\b))[A-Za-z]+\s+)?" + _COUNT_NOUN + r"\b)",
+    re.IGNORECASE,
+)
+# "1. " or "2) " at the start of a line: a list marker of one or two digits.
+_LIST_MARKER_RE = re.compile(r"^\d{1,2}[.)](?= )", re.MULTILINE)
+_MAX_INT_DIGITS = 9  # longer integers are never row numbers or counts
+
+
+def _as_int(token: str) -> int | None:
+    """Return the integer value of a short digit string, else None."""
+    return int(token) if token.isascii() and 0 < len(token) <= _MAX_INT_DIGITS else None
+
+
+def _cited_line_numbers(alert: Alert) -> frozenset[int]:
+    """Line numbers of the alert's own source refs ('file.csv:181' gives 181)."""
+    numbers = (_as_int(ref.rpartition(":")[2]) for ref in alert.source_refs)
+    return frozenset(n for n in numbers if n is not None)
+
+
+def _without_non_figures(text: str, alert: Alert) -> str:
+    """Blank out the numbers that cite a row, count the cited rows or number a list.
+
+    Only the three exact forms are blanked; every other number keeps the strict rule.
+    """
+    lines = _cited_line_numbers(alert)
+    cited_count = len(alert.source_refs)
+
+    def _blank_cited(match: re.Match[str]) -> str:
+        return " " if _as_int(match.group(0)) in lines else match.group(0)
+
+    def _row_citation(match: re.Match[str]) -> str:
+        head = match.group(0)[: match.start(1) - match.start(0)]
+        return head + _INT_RE.sub(_blank_cited, match.group(1))
+
+    def _ordinal_row(match: re.Match[str]) -> str:
+        if _as_int(match.group(1)) not in lines:
+            return match.group(0)
+        return " " + match.group(0)[len(match.group(1)) :]
+
+    def _count(match: re.Match[str]) -> str:
+        return " " + match.group(2) if _as_int(match.group(1)) == cited_count else match.group(0)
+
+    text = _ROW_CITATION_RE.sub(_row_citation, text)
+    text = _ORDINAL_ROW_RE.sub(_ordinal_row, text)
+    if cited_count:
+        text = _COUNT_OF_ROWS_RE.sub(_count, text)
+    return _LIST_MARKER_RE.sub("", text)
+
+
+# --- Currency ------------------------------------------------------------------------------
+
+_CURRENCY_CODES = frozenset(NUMERIC_TO_ALPHA.values())  # the codes iso4217.py knows
+_DOLLAR_CODES = frozenset({"USD", "CAD", "AUD", "NZD"})  # codes written with a dollar sign
+_SYMBOL_CODES: dict[str, frozenset[str]] = {
+    "€": frozenset({"EUR"}),
+    "$": _DOLLAR_CODES,
+    "£": frozenset({"GBP"}),
+    "¥": frozenset({"JPY"}),
+}
+_CURRENCY_TOKEN_RE = re.compile(
+    "[" + re.escape("".join(_SYMBOL_CODES)) + r"]|(?<![A-Za-z])[A-Z]{3}(?![A-Za-z])"
+)
+
+
+def _named_currencies(alert: Alert, rows: pd.DataFrame) -> tuple[set[str], set[str]]:
+    """Currency codes and symbols named by the alert data and the `currency` column of the rows."""
+    codes: set[str] = set()
+    symbols: set[str] = set()
+
+    def _scan(text: str) -> None:
+        for token in _CURRENCY_TOKEN_RE.findall(text):
+            if token in _SYMBOL_CODES:
+                symbols.add(token)
+            elif token in _CURRENCY_CODES:
+                codes.add(token)
+
+    for value in alert.data.values():
+        _scan(str(value))
+    if "currency" in rows.columns:
+        for cell in rows["currency"]:
+            if cell is None or (not isinstance(cell, str) and pd.isna(cell)):
+                continue  # a missing cell names no currency
+            text = str(cell).strip().upper()
+            if not text:
+                continue
+            if text in _CURRENCY_CODES:
+                codes.add(text)
+            _scan(str(cell))
+    return codes, symbols
+
+
+def _foreign_currencies(text: str, alert: Alert, rows: pd.DataFrame) -> list[str]:
+    """Currency symbols and ISO codes in `text` that the rows and the alert data do not name.
+
+    With no currency named anywhere the check is skipped (nothing to compare with).
+    """
+    codes, symbols = _named_currencies(alert, rows)
+    if not codes and not symbols:
+        return []
+    foreign: list[str] = []
+    for token in _CURRENCY_TOKEN_RE.findall(text):
+        if token in _SYMBOL_CODES:
+            named = token in symbols or bool(codes & _SYMBOL_CODES[token])
+        elif token in _CURRENCY_CODES:
+            named = token in codes or any(token in _SYMBOL_CODES[s] for s in symbols)
+        else:
+            continue  # three capital letters that are not a currency
+        if not named and token not in foreign:
+            foreign.append(token)
+    return foreign
 
 
 # --- LLM call -----------------------------------------------------------------------------
@@ -311,7 +445,9 @@ def _call_llm(
         "provided or in the structured fields of the alert (such as yearly_cost). "
         "Do not derive, round, or estimate any figure not explicitly present in "
         "those inputs. "
-        f"Cite at least one source reference from: {alert.source_refs}."
+        f"Cite at least one source reference from: {alert.source_refs}. "
+        "Answer in plain prose of at most three sentences: no lists, no JSON, no repetition "
+        "of the input. Write source references exactly as given."
     )
     # pandas date_format="iso" would render date cells as "...T00:00:00.000", so every
     # date-holding column is mapped to plain ISO strings first (missing values stay None).
@@ -338,6 +474,7 @@ def _call_llm(
             response = client.chat.completions.create(
                 model=model,
                 temperature=0,
+                max_tokens=LLM_MAX_TOKENS,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},

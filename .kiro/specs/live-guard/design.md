@@ -186,3 +186,25 @@ key check extended; see LG6).
 
 Not touched: detectors, templates, thresholds, every existing test body, `requirements.txt`
 (`openai==3.46.0` is already pinned there).
+
+## §9 Amendment A-LG-01: five narrow guard changes (REQ-LG-21 to REQ-LG-27)
+
+**What was read.** The run record `data/live_runs/2026-11-10_llama3.2-3b.json` (raw answers as
+received), `_passes_number_guard` and `_tokenise` in `ledger_kit/explainer.py`, and
+`ledger_kit/ingestion/iso4217.py` (eleven codes).
+
+| # | Decision | Reason |
+|---|---|---|
+| DN-LG-25 | The three "not a figure" forms are blanked in the answer text **before** `_tokenise`, by `_without_non_figures`; `_tokenise`, `_allowed_decimals` and `_allowed_dates` are untouched. | The allowed set stays what it was, so the only change is which tokens of the answer are judged. The blanking is local to the answer; it cannot make a figure of the data look different. |
+| DN-LG-26 | A row citation needs both conditions: the keyword (or the ordinal before `row`) **and** a number equal to the line number of one of `alert.source_refs`. Each member of a list is judged on its own. | `row 999` and `181 EUR` stay rejected, as the brief demands; a model cannot hide a figure behind the word "row". |
+| DN-LG-27 | The count of rows is allowed only when it equals `len(alert.source_refs)` and a noun of the closed list follows, with at most one adjective that is not an ISO code. | `12 EUR payments` must not pass for a count; `3 months` stays rejected. |
+| DN-LG-28 | A list marker is one or two digits at the very start of a line, then `.` or `)`, then a space. | `12.99` at the start of a line has no space after the dot, and a mid-line `5. ` keeps the rule. An indented marker is not blanked: the brief says start of a line. |
+| DN-LG-29 | The currency check reads the `currency` column of the visible rows and every `alert.data` value; symbols are matched with `€ $ £ ¥`, codes with three capitals that iso4217.py knows. Foreign tokens are appended after the rejected numbers. With nothing named the check is skipped. | A phantom card whose rows carry no currency column is then unchanged. The token is reported like a number so the verdict line and `Explanation.rejected_numbers` need no new field. |
+| DN-LG-30 | `LLM_MAX_TOKENS = 200` is passed as `max_tokens`; the prompt keeps every old sentence and appends the brevity sentence. | Shorter answers are faster on a CPU and cheaper on a hosted model, and give the guard less text to misread. |
+| DN-LG-31 | Known limit, not fixed: `highlight_segments` (REQ-LG-08) flags a token only when no digit follows it, so a rejected `$` in `$78.00` is reported in the verdict line but not marked in the raw answer. | The brief limits the change to `explainer.py`; the panel and `live_guard.py` stay as they are. |
+
+**Test plan.** `tests/test_explainer_live_run.py`: Tier 1 the replay of the record (rebuilding the
+alert and the cited rows from the committed demo files through each app's own `run_pipeline`); Tier 2
+one negative test per rule; Tier 3 a Hypothesis property (an invented amount inserted at any
+position of an accepted answer is rejected). A record that misses its verdict is `xfail` with the
+token, never a new rule.

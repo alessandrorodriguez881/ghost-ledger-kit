@@ -233,6 +233,10 @@ data/real/
 # Generated benchmark results (synthetic data only); see docs/benchmark.md.
 !data/benchmark/
 !data/benchmark/**
+# Raw answers of a real model run on the synthetic demo data (see docs/live-guard.md): model
+# answers on synthetic demo data only, never real statements.
+!data/live_runs/
+!data/live_runs/**
 # Tooling configuration (hooks, settings) is JSON that must stay tracked.
 !.kiro/
 !.kiro/**
