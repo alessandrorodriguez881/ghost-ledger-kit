@@ -109,19 +109,20 @@ def _page(path: Path, content: Any = None, *, raw: str | None = None) -> AppTest
 # --- the page list ------------------------------------------------------------------------------
 
 
-def test_the_four_pages_in_order() -> None:
+def test_the_five_pages_in_order() -> None:
     pages = streamlit_app.PAGES
 
     assert [page.title for page in pages] == [
         "Home",
         "Zombie Subscriptions",
         "Phantom Invoices",
+        "Vampire Fees",
         "Benchmark",
     ]
     assert pages[-1].url_path == "benchmark"
     assert pages[-1].icon == "📊"
     assert pages[-1].script is None  # a function page: it has no app.py
-    assert len({page.url_path for page in pages}) == 4
+    assert len({page.url_path for page in pages}) == 5
 
 
 def test_every_function_page_has_a_function() -> None:

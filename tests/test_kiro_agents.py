@@ -3,8 +3,9 @@
 The agent is configuration, not code: these tests only prove that the JSON parses, has the
 fields Kiro reads, cannot run a shell, and that every file or glob it points to exists, so a
 renamed steering file or a moved skill is caught in CI instead of at agent start.
-Relative paths in ``resources`` and ``prompt`` resolve from the workspace (repository) root, not
-from the folder of the agent file. Checked with a probe on 10 November 2026: an agent that used
+A relative ``prompt`` path (``file://...``) resolves from the folder of the agent file, while
+relative paths in ``resources`` resolve from the workspace (repository) root. Checked with a
+probe on 10 November 2026 for the resources: an agent that used
 ``file://../steering/...`` and ``skill://../../powers/...`` loaded only the always-included
 steering files, while an agent with ``file://README.md`` and
 ``skill://powers/ghost-ledger-detector/skills/add-detector/SKILL.md`` loaded the README and the

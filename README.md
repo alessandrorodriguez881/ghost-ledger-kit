@@ -69,11 +69,13 @@ It found real weaknesses, which the `detector-fixes` spec then corrected without
 
 ## The two apps
 
-Both apps are built on the same `ledger_kit` library and share nothing else.
+All three apps are built on the same `ledger_kit` library and share nothing else.
 
 **Zombie Subscriptions** (`apps/zombie_subscriptions/`) is for individuals. It reads a bank statement and finds forgotten subscriptions. The registered detectors are `zs.recurring_charge`, `zs.price_increase`, `zs.duplicate_subscription`, `zs.free_trial_to_paid` and `zs.charges_after_cancellation`. It also shows the cost of a service since its last-used date as a tombstone card. With the demo data loaded in the browser it shows 3 tombstones and 19 alerts: 1 critical, 4 warning and 14 info.
 
 **Phantom Invoices** (`apps/phantom_invoices/`) is for small Spanish businesses. It reads invoices, a supplier master and bank payments and finds duplicate invoices (`pi.duplicate_invoice`), supplier IBAN changes and invalid IBANs (`pi.iban_change`), VAT errors (`pi.vat_error`), and overdue invoices or payments that match no invoice (`pi.reconciliation`). With the demo data loaded it shows 9 alerts: 3 critical and 6 warning. The end-to-end test `apps/phantom_invoices/tests/test_pi_demo_e2e.py` pins this split.
+
+**Vampire Fees** (`apps/vampire_fees/`) is for individuals and small businesses. It reads a bank statement (CSV or Norma 43) and finds the bank fees that drain an account: recurring fees (`vf.recurring_fee`), fees that rise (`vf.fee_increase`), the cost of an overdraft (`vf.overdraft_cost`) and the total (`vf.fee_summary`). Each recurring fee is drawn as a coffin card. It was built as the third app, only from the finished template and by the Kiro custom agent `ghost-ledger-builder`, with no change to `ledger_kit/` or to the other two apps; the one copy of code between apps is listed as a decision in `.kiro/specs/vampire-fees/design.md`. Refunds are not subtracted from its totals, and only EUR rows are analysed.
 
 The demo numbers are pinned by tests: `apps/zombie_subscriptions/tests/test_zs_demo_e2e.py` and `apps/phantom_invoices/tests/test_pi_demo_e2e.py` run the demo end to end, and `tests/test_showcase_app.py` checks the alert counts shown in the showcase.
 

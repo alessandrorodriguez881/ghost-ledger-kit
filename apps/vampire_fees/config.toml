@@ -1,0 +1,18 @@
+# vampire-fees configuration: the fee vocabulary and the demo paths. No threshold lives here
+# (detectors/utils.py holds them as named constants). Phrases are folded on load: accents and
+# case do not matter, and a phrase matches whole words only.
+
+[vocabulary]
+# A debit whose counterparty or description holds one of these phrases is a fee.
+fee = ["comision", "comisiones", "cuota de mantenimiento", "gastos", "fee", "fees",
+       "commission", "commissions", "maintenance"]
+# Overdraft words: also a fee; the row gets kind "overdraft".
+overdraft = ["descubierto", "intereses deudores", "overdraft"]
+# Inside an overdraft row, these words make it an overdraft interest (otherwise an overdraft fee).
+interest = ["intereses", "interest"]
+# A row with one of these words is not a bank fee (professional fees); a concept 16/17 still wins.
+exclude = ["notaria", "notario", "notary", "gestoria", "abogado", "lawyer", "honorarios"]
+
+[demo]
+csv_path = "data/samples/vampire_demo_statement.csv"
+n43_path = "data/samples/vampire_demo_statement.n43"

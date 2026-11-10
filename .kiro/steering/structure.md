@@ -72,6 +72,38 @@ ghost-ledger-kit/
 │   │       ├── test_zs_cpi_demo.py      # headless AppTest of the demo with the INE snapshot
 │   │       ├── test_zs_scaffold.py
 │   │       └── test_zs_fixtures.py
+│   ├── vampire_fees/               # App 3: bank-fee detector (built from the finished template)
+│   │   ├── __init__.py
+│   │   ├── app.py                  # Streamlit entry point (path bootstrap at top)
+│   │   ├── config.toml             # fee vocabulary and demo paths (no thresholds)
+│   │   ├── settings.py             # load config.toml, run_pipeline, view-model helpers
+│   │   ├── explain_support.py      # fallback TEMPLATES, HallucinatingStubClient
+│   │   ├── detectors/
+│   │   │   ├── __init__.py         # auto_discover
+│   │   │   ├── utils.py            # constants, folding, vocabulary, classify_fee, runs
+│   │   │   ├── recurring_fee.py
+│   │   │   ├── fee_increase.py
+│   │   │   ├── overdraft_cost.py
+│   │   │   └── fee_summary.py
+│   │   └── tests/
+│   │       ├── conftest.py
+│   │       ├── vf_builders.py      # row and ledger builders, Hypothesis strategies
+│   │       ├── test_vf_scaffold.py
+│   │       ├── test_vf_utils_normalise.py
+│   │       ├── test_vf_classify.py
+│   │       ├── test_vf_series.py
+│   │       ├── test_vf_fixtures.py
+│   │       ├── test_vf_recurring_fee.py
+│   │       ├── test_vf_fee_increase.py
+│   │       ├── test_vf_overdraft_cost.py
+│   │       ├── test_vf_fee_summary.py
+│   │       ├── test_vf_registry.py
+│   │       ├── test_vf_explain_support.py
+│   │       ├── test_vf_settings.py
+│   │       ├── test_vf_demo_generator.py
+│   │       ├── test_vf_demo_e2e.py
+│   │       ├── test_vf_real_formats.py  # Norma 43 demo, routers, equivalence with the CSV demo
+│   │       └── test_vf_app_logic.py     # pure helpers and headless AppTest runs of app.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
 │       ├── __init__.py
 │       ├── app.py                  # Streamlit entry point (path bootstrap at top)
@@ -168,13 +200,15 @@ ghost-ledger-kit/
 │       ├── invoice_sample.csv
 │       ├── zombie_demo_statement.csv   # zombie-subscriptions demo (generate_samples.py)
 │       ├── zombie_demo_statement.n43   # the same demo as Norma 43 (information mode 3, SEPA)
+│       ├── vampire_demo_statement.csv  # vampire-fees demo (generate_samples.py --mode vampire-demo)
+│       ├── vampire_demo_statement.n43  # the same demo as Norma 43 (information mode 1)
 │       └── phantom_demo/           # phantom-invoices demo (generate_samples.py --mode phantom-demo)
 │           ├── suppliers.csv
 │           ├── invoices.csv
 │           ├── payments.csv
 │           ├── payments.n43        # the same payments as Norma 43 (mode 1)
 │           └── facturae/           # one Facturae 3.2.2 file per supplier: <kk>-<case>.xml
-├── streamlit_app.py                # Showcase entry (st.navigation: Home + both apps + Benchmark); Community Cloud default
+├── streamlit_app.py                # Showcase entry (st.navigation: Home + the three apps + Benchmark); Community Cloud default
 ├── .streamlit/
 │   └── config.toml                 # Shared dark Halloween theme: [theme] keys only, no secrets
 ├── .gitattributes                  # demo CSV, .n43 and .xml samples are byte-compared: no line-ending conversion
@@ -203,6 +237,7 @@ To prevent pytest collection collisions, test files inside each app's `tests/` f
 |---|---|---|
 | `apps/zombie_subscriptions/` | `zs_` | `test_zs_dormant_subscription.py` |
 | `apps/phantom_invoices/` | `pi_` | `test_pi_duplicate_invoice.py` |
+| `apps/vampire_fees/` | `vf_` | `test_vf_recurring_fee.py` |
 
 Shared library tests in `tests/` carry no prefix.
 
@@ -219,6 +254,7 @@ files with the generator (`scripts/generate_samples.py`).
 - App packages (`apps.zombie_subscriptions`, `apps.phantom_invoices`) **import from `ledger_kit`** and from their own `detectors/` sub-package only.
 - The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py` and `explain_support.py`.
 - The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
+- The vampire app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py` and `explain_support.py`.
 - Apps must not import from each other.
 - Apps read bank statements and invoices through the routers of `ledger_kit/ingestion/sniffer.py`
   (`read_bank_statement`, `read_invoices`); the content, not the file extension, picks the reader.

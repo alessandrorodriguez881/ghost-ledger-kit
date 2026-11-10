@@ -337,6 +337,14 @@ def test_zombie_demo_mode_is_implemented_by_the_zombie_subscriptions_spec(capsys
     assert "zombie_demo_statement.csv" in capsys.readouterr().out
 
 
+def test_vampire_demo_mode_is_implemented(capsys, tmp_path):
+    """vampire-demo writes the demo statement as CSV and as Norma 43 (vampire-fees VF12)."""
+    assert gen.main(["--mode", "vampire-demo", "--out-dir", str(tmp_path)]) == 0
+    written = sorted(p.name for p in tmp_path.iterdir())
+    assert written == ["vampire_demo_statement.csv", "vampire_demo_statement.n43"]
+    assert "vampire_demo_statement.csv" in capsys.readouterr().out
+
+
 def test_main_rejects_negative_rows(capsys):
     assert gen.main(["--mode", "bank", "--rows", "-1"]) == 2
     assert "--rows" in capsys.readouterr().err

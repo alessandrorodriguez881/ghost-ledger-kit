@@ -661,6 +661,28 @@ app copies them so that the claim "needs no library change" is measured honestly
 "Copied" means written again in `apps/vampire_fees/`, not imported (apps must not import each
 other). The copy count is part of what the reviewer records in the last task.
 
+Status after the build (agent, session 13c): C1 to C7 were all copied and none was needed from
+the library. C1 `HallucinatingStubClient` and C3 `markdown_safe` are verbatim in behaviour; C2
+(`GuardBadge`, `guard_badge`, the four labels), C4 (`group_alerts_by_severity`) and C5
+(`ingest_statement`) are in `settings.py`; C6 (`_keep_widgets`, `_restore_widgets`) is in
+`app.py`; C7 is `sorted_refs` in `detectors/utils.py`. That is seven copies. All of them are
+candidates for one `ledger_kit` helper.
+
+### 11.4 Findings of the build (none is a library gap)
+
+No `DN-VF-L<n>` was raised: no file under `ledger_kit/` or in the other apps was edited, and no
+need for such an edit appeared. The agent could not run commands, so "no gap" means "none seen
+while reading and writing", to be confirmed by the boundary command of task VF16.
+
+| Id | Finding | What was done |
+|---|---|---|
+| F-VF-1 | `tests/test_benchmark_page.py` pins the page list (`test_the_four_pages_in_order`) and is not in the file list of REQ-VF-58. | Edited minimally (five pages, `Vampire Fees` before `Benchmark`). The recipe requires updating tests that pin the page list. The reviewer should add the file to REQ-VF-58. |
+| F-VF-2 | `tests/test_readme.py` requires the heading `The two apps`. | The heading is kept; the section now describes three apps. Renaming it needs a change to that test, which is outside REQ-VF-58. |
+| F-VF-3 | `apps/vampire_fees/tests/__init__.py` (empty) was created in task VF1 and the agent has no delete tool that worked. | Harmless: tests import `apps.vampire_fees.tests.vf_builders` by full path, which works with or without the file. The other apps have no such file; the human may delete it. |
+| F-VF-4 | The design draws the recurring-run grouping inline in each detector. | `recurring_runs` and `in_first_row_order` are shared helpers in `detectors/utils.py`, used by `vf.recurring_fee` and `vf.fee_increase`. |
+| F-VF-5 | `Interval` and `INTERVALS` are needed by the VF2 constants test. | Defined in VF2; VF4 added `classify_gap`, `find_run`, `yearly_cost`. |
+| F-VF-6 | The Norma 43 writer maps a description to a concept by exact text. | Ten entries were added to `N43_CONCEPT_BY_DESCRIPTION` (design 7.1). The concept-only test adds one more entry with `monkeypatch.setitem`, so the module stays unchanged. |
+
 ---
 
 ## 12 — Limits of the app (shown honestly)

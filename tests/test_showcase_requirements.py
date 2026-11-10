@@ -1,6 +1,7 @@
 """Community Cloud readiness and package boundaries of the showcase (REQ-SC-10, REQ-SC-11)."""
 
 import ast
+import itertools
 import re
 import sys
 from pathlib import Path
@@ -12,7 +13,7 @@ FIRST_PARTY = {"ledger_kit", "apps", "streamlit_app"}
 # Import name -> distribution name, for packages whose two names differ (none are used so far).
 DISTRIBUTION: dict[str, str] = {}
 PIN = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)==([0-9][^\s#;]*)$")
-APPS = ("zombie_subscriptions", "phantom_invoices")
+APPS = ("zombie_subscriptions", "phantom_invoices", "vampire_fees")
 
 
 def _runtime_files() -> list[Path]:
@@ -55,6 +56,7 @@ def test_runtime_files_are_found() -> None:
     assert "ledger_kit/explainer.py" in names
     assert "apps/zombie_subscriptions/app.py" in names
     assert "apps/phantom_invoices/detectors/utils.py" in names
+    assert "apps/vampire_fees/detectors/utils.py" in names
     assert not any("/tests/" in name for name in names)
 
 
@@ -121,8 +123,9 @@ def test_the_entry_page_imports_neither_app() -> None:
 
 
 def test_apps_never_import_each_other() -> None:
-    """Neither app imports the other one (REQ-SC-11)."""
-    for app, other in (APPS, APPS[::-1]):
+    """No app imports another one: every ordered pair of the three apps is checked (REQ-SC-11)."""
+    assert len(APPS) == 3
+    for app, other in itertools.permutations(APPS, 2):
         forbidden = f"apps.{other}"
         offenders = [
             path.relative_to(REPO_ROOT).as_posix()

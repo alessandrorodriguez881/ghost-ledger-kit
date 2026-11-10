@@ -37,6 +37,7 @@ python scripts/generate_samples.py --mode bank --seed 42 --rows 50 --dialect eur
 
 `--mode zombie-demo` writes the demo statement of the zombie-subscriptions app (see below).
 `--mode phantom-demo` writes the demo files of the phantom-invoices app (see below).
+`--mode vampire-demo` writes the demo statement of the vampire-fees app (see below).
 
 ## Zombie-subscriptions demo statement
 
@@ -89,6 +90,34 @@ IBAN spellings, changed IBAN, VAT error, withholding, double payment, same total
 surcharge, invalid IBAN, payment to a non-master IBAN, overdue, open, multi-rate invoice). `--seed`
 only changes the amounts, dates and payment delays of the nine clean suppliers. The latest date in
 the data is 2026-10-30.
+
+## Vampire-fees demo statement
+
+```
+python scripts/generate_samples.py --mode vampire-demo --seed 42
+```
+
+writes `vampire_demo_statement.csv` and `vampire_demo_statement.n43` from the same 227 rows
+(25 credits and 202 debits, 2025-01-02 to 2026-10-30). The CSV is plain dialect (comma, dot
+decimal, ISO dates; negative amounts are debits); the Norma 43 file is ISO-8859-1 with CRLF,
+information mode 1. Both are **synthetic, no real data**: the bank is `BANCO FICTICIO`, names are
+fictional, no IBAN appears (Finance Rules 5 and 6). They are committed and byte-identical to the
+generator output for seed 42 (`apps/vampire_fees/tests/test_vf_demo_e2e.py` fails if they are
+stale). `.gitattributes` marks them `-text`, so a Windows checkout does not rewrite them.
+
+| Content | Description (raw text) |
+|---|---|
+| Monthly fee that rises from 5.00 to 6.50 on 2026-01-05 (22 charges) | `Comisión mantenimiento cuenta` |
+| Quarterly fee, 7 charges (Norma 43 common concept 16) | `Comisión custodia valores` |
+| Yearly fee, 2 charges 367 days apart | `Comisión anual tarjeta débito` |
+| Overdraft interest (4) and overdraft fees (3) | `Intereses deudores`, `Comisión por descubierto` |
+| Fees that must not become a series: four irregular, two 30 days apart | `Comisión transferencia inmediata`, `Comisión emisión cheque` |
+| One English commission | `Commission foreign payment` |
+| Hard negatives: `fee` inside a shop name, a refund of a fee, interest paid to the customer, a notary transfer, a monthly subscription | `Feelgood Market`, `Devolución comisión transferencia`, `Abono intereses`, `Transferencia gastos escritura`, `Monthly subscription` |
+| Payroll credits, one transfer from savings, six card purchases a month | various |
+
+The planted rows are literal tables; `--seed` only changes the day and amount of the card
+purchases.
 
 ## How the identifiers are made safe
 

@@ -136,7 +136,7 @@ pytest apps/zombie_subscriptions/tests/
 pytest --hypothesis-show-statistics
 
 # Coverage (80% minimum enforced in CI)
-pytest --cov=ledger_kit --cov=apps/zombie_subscriptions --cov=apps/phantom_invoices --cov-fail-under=80
+pytest --cov=ledger_kit --cov=apps/zombie_subscriptions --cov=apps/phantom_invoices --cov=apps/vampire_fees --cov-fail-under=80
 ```
 
 ## CI requirements

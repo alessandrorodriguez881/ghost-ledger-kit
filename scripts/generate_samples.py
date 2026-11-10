@@ -16,6 +16,11 @@ Modes (``--mode``):
   rows, 62 payment rows. The 16 planted cases are literal tables; ``--seed`` only drives the
   amounts, dates and payment delays of the nine clean suppliers, so the same seed always gives
   the same bytes.
+* ``vampire-demo``: the demo of the vampire-fees app
+  (``data/samples/vampire_demo_statement.csv`` and ``.n43``): 227 rows over
+  2025-01-02..2026-10-30. The planted fees and hard negatives are literal tables; ``--seed`` only
+  drives the day and amount of the six card purchases per month, so the same seed always gives
+  the same bytes.
 
 Both demo modes also write the real-format twins of the same rows (real-formats design section 8):
 a Norma 43 statement (``zombie_demo_statement.n43``, ``phantom_demo/payments.n43``; ISO-8859-1,
@@ -1065,6 +1070,17 @@ N43_CONCEPT_BY_DESCRIPTION: dict[str, str] = {
     PHANTOM_DEBIT_NOTE: "04",
     "Receipt": "04",
     "Card purchase": "12",
+    # vampire-fees demo: bank fees and interest are concept 17, custody is 16 (AEB Annex 2).
+    "Comisión mantenimiento cuenta": "17",
+    "Comisión anual tarjeta débito": "17",
+    "Comisión por descubierto": "17",
+    "Intereses deudores": "17",
+    "Comisión transferencia inmediata": "17",
+    "Comisión emisión cheque": "17",
+    "Commission foreign payment": "17",
+    "Devolución comisión transferencia": "17",
+    "Abono intereses": "17",
+    "Comisión custodia valores": "16",
 }
 
 
@@ -1580,6 +1596,163 @@ def write_real_files(out_dir: Path, files: Mapping[str, bytes]) -> list[Path]:
     return written
 
 
+# --- vampire-fees demo (vampire-fees design section 7) -------------------------------------------
+VAMPIRE_DEMO_FILE = "vampire_demo_statement.csv"
+VAMPIRE_DEMO_N43_FILE = "vampire_demo_statement.n43"
+VAMPIRE_DEMO_START = date(2025, 1, 2)  # the opening credit "Transfer from savings"
+VAMPIRE_DEMO_END = date(2026, 10, 30)  # the closing card purchase
+VAMPIRE_FIRST_YEAR = 2025
+VAMPIRE_MONTHS = 22  # 2025-01 to 2026-10
+VAMPIRE_NOISE_PER_MONTH = 6
+VAMPIRE_NOISE_DAYS: tuple[int, int] = (3, 27)  # inclusive; keeps the first and last day fixed
+VAMPIRE_NOISE_CENTS: tuple[int, int] = (300, 9500)  # 3.00 to 95.00 EUR, integer cents
+VAMPIRE_BANK = "BANCO FICTICIO"
+VAMPIRE_FEE = "Comisión mantenimiento cuenta"
+VAMPIRE_CUSTODY = "Comisión custodia valores"
+VAMPIRE_CARD_FEE = "Comisión anual tarjeta débito"
+VAMPIRE_INTEREST = "Intereses deudores"
+VAMPIRE_OVERDRAFT_FEE = "Comisión por descubierto"
+VAMPIRE_INSTANT_FEE = "Comisión transferencia inmediata"
+VAMPIRE_CHEQUE_FEE = "Comisión emisión cheque"
+VAMPIRE_FOREIGN_FEE = "Commission foreign payment"
+VAMPIRE_REFUND = "Devolución comisión transferencia"
+VAMPIRE_INTEREST_PAID = "Abono intereses"
+VAMPIRE_NOTARY_NOTE = "Transferencia gastos escritura"
+VAMPIRE_CARD = "Card purchase"
+VAMPIRE_SHOPS: tuple[str, ...] = (
+    "Mercado Central Demo",
+    "Café del Puerto",
+    "Tienda Luna",
+    "Farmacia Sol",
+    "Gasolinera Norte",
+    "Papelería Azul",
+    "Librería Poniente",
+)
+# Literal dates of the planted tables (design 7.2).
+VAMPIRE_CUSTODY_DAYS: tuple[date, ...] = (
+    date(2025, 3, 31),
+    date(2025, 6, 30),
+    date(2025, 9, 30),
+    date(2025, 12, 31),
+    date(2026, 3, 31),
+    date(2026, 6, 30),
+    date(2026, 9, 30),
+)
+VAMPIRE_CARD_FEE_DAYS: tuple[date, ...] = (date(2025, 2, 14), date(2026, 2, 16))
+VAMPIRE_INTEREST_ROWS: tuple[tuple[date, str], ...] = (
+    (date(2025, 6, 30), "12.40"),
+    (date(2025, 9, 30), "7.85"),
+    (date(2026, 3, 31), "22.10"),
+    (date(2026, 6, 30), "18.65"),
+)
+VAMPIRE_OVERDRAFT_FEE_DAYS: tuple[date, ...] = (
+    date(2025, 6, 18),
+    date(2026, 3, 20),
+    date(2026, 6, 15),
+)
+VAMPIRE_INSTANT_FEE_DAYS: tuple[date, ...] = (
+    date(2025, 4, 9),
+    date(2025, 7, 22),
+    date(2026, 2, 3),
+    date(2026, 8, 27),
+)
+VAMPIRE_CHEQUE_FEE_DAYS: tuple[date, ...] = (date(2025, 5, 2), date(2025, 6, 1))
+
+
+def _vampire_months() -> list[tuple[int, int]]:
+    """The 22 (year, month) pairs from 2025-01 to 2026-10."""
+    return [(VAMPIRE_FIRST_YEAR + i // 12, i % 12 + 1) for i in range(VAMPIRE_MONTHS)]
+
+
+def _vampire_debit(
+    day: date, amount: str, description: str, counterparty: str = VAMPIRE_BANK
+) -> BankRow:
+    """A debit row; `amount` is the unsigned text."""
+    return BankRow(day, f"-{amount}", counterparty, description, "")
+
+
+def _vampire_credit(day: date, amount: str, description: str, counterparty: str) -> BankRow:
+    """A credit row; `amount` is the unsigned text."""
+    return BankRow(day, amount, counterparty, description, "")
+
+
+def build_vampire_planted_rows() -> list[BankRow]:
+    """The 95 planted rows of design 7.2, from literal tables (the seed plays no part)."""
+    months = _vampire_months()
+    rows: list[BankRow] = []
+    # A: a monthly fee that rises from 5.00 to 6.50 on 2026-01-05.
+    rows += [_vampire_debit(date(y, m, 5), "5.00", VAMPIRE_FEE) for y, m in months if y == 2025]
+    rows += [_vampire_debit(date(y, m, 5), "6.50", VAMPIRE_FEE) for y, m in months if y == 2026]
+    # B quarterly custody fee, C yearly card fee.
+    rows += [_vampire_debit(day, "9.00", VAMPIRE_CUSTODY) for day in VAMPIRE_CUSTODY_DAYS]
+    rows += [_vampire_debit(day, "30.00", VAMPIRE_CARD_FEE) for day in VAMPIRE_CARD_FEE_DAYS]
+    # D: overdraft interest and fees.
+    rows += [_vampire_debit(day, amount, VAMPIRE_INTEREST) for day, amount in VAMPIRE_INTEREST_ROWS]
+    rows += [
+        _vampire_debit(day, "15.00", VAMPIRE_OVERDRAFT_FEE) for day in VAMPIRE_OVERDRAFT_FEE_DAYS
+    ]
+    # E1 irregular commissions, E2 two commissions 30 days apart, F one English commission.
+    rows += [_vampire_debit(day, "1.50", VAMPIRE_INSTANT_FEE) for day in VAMPIRE_INSTANT_FEE_DAYS]
+    rows += [_vampire_debit(day, "4.00", VAMPIRE_CHEQUE_FEE) for day in VAMPIRE_CHEQUE_FEE_DAYS]
+    rows.append(_vampire_debit(date(2025, 10, 14), "11.25", VAMPIRE_FOREIGN_FEE))
+    # Hard negatives H1 to H4.
+    rows.append(_vampire_debit(date(2025, 8, 19), "23.40", VAMPIRE_CARD, "Feelgood Market"))
+    rows.append(_vampire_credit(date(2025, 4, 10), "1.50", VAMPIRE_REFUND, VAMPIRE_BANK))
+    rows.append(_vampire_credit(date(2026, 6, 30), "0.84", VAMPIRE_INTEREST_PAID, VAMPIRE_BANK))
+    rows.append(
+        _vampire_debit(date(2026, 4, 17), "412.60", VAMPIRE_NOTARY_NOTE, "Notaría Ana García")
+    )
+    # S: a monthly subscription that is not a fee. P and O: the credits; Z: the last day.
+    rows += [
+        _vampire_debit(date(y, m, 10), "9.99", ZOMBIE_SUBSCRIPTION, "STREAMFLIX INTL")
+        for y, m in months
+    ]
+    rows += [
+        _vampire_credit(date(y, m, 28), "1850.00", "Payroll", "Luminar Estudio S.L.")
+        for y, m in months
+    ]
+    rows.append(
+        _vampire_credit(date(2025, 1, 2), "800.00", "Transfer from savings", "Ahorro Ana García")
+    )
+    rows.append(_vampire_debit(date(2026, 10, 30), "19.90", VAMPIRE_CARD, "Papelería Azul"))
+    return rows
+
+
+def build_vampire_noise_rows(seed: int = DEFAULT_SEED) -> list[BankRow]:
+    """Six card purchases a month at shops with no fee word; the seed drives only these rows."""
+    rng = random.Random(seed)
+    rows: list[BankRow] = []
+    for year, month in _vampire_months():
+        for _ in range(VAMPIRE_NOISE_PER_MONTH):
+            shop = rng.choice(VAMPIRE_SHOPS)
+            day = rng.randint(*VAMPIRE_NOISE_DAYS)
+            cents = rng.randint(*VAMPIRE_NOISE_CENTS)
+            amount = f"{cents // 100}.{cents % 100:02d}"
+            rows.append(_vampire_debit(date(year, month, day), amount, VAMPIRE_CARD, shop))
+    return rows
+
+
+def build_vampire_demo_rows(seed: int = DEFAULT_SEED) -> list[BankRow]:
+    """All demo rows in date order (stable: planted rows of one day come before noise rows)."""
+    rows = [*build_vampire_planted_rows(), *build_vampire_noise_rows(seed)]
+    return sorted(rows, key=lambda r: r.day)
+
+
+def build_vampire_demo_csv(seed: int = DEFAULT_SEED) -> str:
+    """The vampire demo statement as plain-dialect CSV text."""
+    return render_bank_csv(build_vampire_demo_rows(seed), "plain")
+
+
+def build_vampire_demo_n43(seed: int = DEFAULT_SEED) -> bytes:
+    """The vampire demo statement as Norma 43 (information mode 1, no SEPA records)."""
+    return render_norma43(build_vampire_demo_rows(seed))
+
+
+def build_vampire_demo_real(seed: int = DEFAULT_SEED) -> dict[str, bytes]:
+    """{file name: bytes} of the vampire demo's real-format file (relative to data/samples)."""
+    return {VAMPIRE_DEMO_N43_FILE: build_vampire_demo_n43(seed)}
+
+
 # --- demo modes owned by the app specs ----------------------------------------------------------
 def run_zombie_demo(args: argparse.Namespace) -> int:
     """Write the zombie demo statement as CSV and as Norma 43 (or into --out-dir) for --seed."""
@@ -1600,6 +1773,18 @@ def run_phantom_demo(args: argparse.Namespace) -> int:
     for name in PHANTOM_FILES:
         print(f"wrote {out_dir / name}")
     for written in write_real_files(out_dir, build_phantom_demo_real(args.seed)):
+        print(f"wrote {written}")
+    return 0
+
+
+def run_vampire_demo(args: argparse.Namespace) -> int:
+    """Write the vampire demo statement as CSV and as Norma 43 (or into --out-dir) for --seed."""
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / VAMPIRE_DEMO_FILE
+    path.write_bytes(build_vampire_demo_csv(args.seed).encode("utf-8"))
+    print(f"wrote {path}")
+    for written in write_real_files(out_dir, build_vampire_demo_real(args.seed)):
         print(f"wrote {written}")
     return 0
 
@@ -1627,6 +1812,7 @@ MODE_HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
     "bank": run_bank,
     "zombie-demo": run_zombie_demo,
     "phantom-demo": run_phantom_demo,
+    "vampire-demo": run_vampire_demo,
 }
 
 
@@ -1638,7 +1824,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--seed",
         type=int,
         default=DEFAULT_SEED,
-        help="random seed (bank, zombie-demo and phantom-demo modes)",
+        help="random seed (bank, zombie-demo, phantom-demo and vampire-demo modes)",
     )
     parser.add_argument("--rows", type=int, default=10, help="number of rows (bank mode)")
     parser.add_argument("--dialect", choices=("plain", "european"), default="plain")
@@ -1646,7 +1832,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out-dir",
         default=str(DEFAULT_OUT_DIR),
-        help="samples, zombie-demo and phantom-demo modes: directory",
+        help="samples, zombie-demo, phantom-demo and vampire-demo modes: directory",
     )
     return parser
 

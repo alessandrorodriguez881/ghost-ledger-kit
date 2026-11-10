@@ -2,7 +2,7 @@
 
 Run with: ``streamlit run streamlit_app.py``
 
-``st.navigation`` offers four pages: Home and Benchmark (functions written below) and the two
+``st.navigation`` offers five pages: Home and Benchmark (functions written below) and the three
 apps, whose ``app.py`` files run unchanged as pages. Each app still works alone with
 ``streamlit run apps/<name>/app.py``. This file imports neither app (spec: showcase) and none of
 the benchmark code: the Benchmark page only shows ``data/benchmark/results.json``.
@@ -35,6 +35,7 @@ PAGES: tuple[PageSpec, ...] = (
         "Zombie Subscriptions", "🪦", "zombie-subscriptions", "apps/zombie_subscriptions/app.py"
     ),
     PageSpec("Phantom Invoices", "👻", "phantom-invoices", "apps/phantom_invoices/app.py"),
+    PageSpec("Vampire Fees", "🧛", "vampire-fees", "apps/vampire_fees/app.py"),
     PageSpec("Benchmark", "📊", "benchmark", None),
 )
 
@@ -42,7 +43,7 @@ HOME_TITLE = "👻 Ghost Ledger Kit"
 
 PROMISE = (
     "**Financial apps that cannot make up a number.** Ghost Ledger Kit is a template with three "
-    "layers; the two apps in the menu are built on it."
+    "layers; the apps in the menu are built on it."
 )
 
 LAYERS = """
@@ -73,6 +74,12 @@ PHANTOM_BLURB = (
     "invoices."
 )
 
+VAMPIRE_BLURB = (
+    "**🧛 Vampire Fees** reads a bank statement and finds the bank fees that drain an account: "
+    "recurring maintenance and custody fees, fees that rise, the cost of an overdraft and the "
+    "total."
+)
+
 SYNTHETIC_NOTE = (
     "All demo data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
     "national check digits are deliberately wrong. Without an API key the explanations come from "
@@ -91,14 +98,15 @@ INE_NOTE = (
 
 
 def home() -> None:
-    """Render the Home page: what the kit guarantees and what the two apps do."""
+    """Render the Home page: what the kit guarantees and what the three apps do."""
     st.title(HOME_TITLE)
     st.markdown(PROMISE)
     st.markdown(LAYERS)
     st.info(TRY_IT, icon="🔦")
-    left, right = st.columns(2)
+    left, middle, right = st.columns(3)
     left.markdown(ZOMBIE_BLURB)
-    right.markdown(PHANTOM_BLURB)
+    middle.markdown(PHANTOM_BLURB)
+    right.markdown(VAMPIRE_BLURB)
     st.caption(SYNTHETIC_NOTE)
     st.caption(INE_NOTE)
 
