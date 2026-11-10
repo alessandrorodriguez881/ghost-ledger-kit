@@ -12,6 +12,8 @@ CONFIG = REPO_ROOT / ".streamlit" / "config.toml"
 APP_SOURCES = (
     REPO_ROOT / "apps" / "phantom_invoices" / "flashlight.py",
     REPO_ROOT / "apps" / "phantom_invoices" / "app.py",
+    # The shared look moved here in haunted-design: the palette is written in this module too.
+    REPO_ROOT / "ledger_kit" / "ui" / "theme.py",
 )
 
 THEME_KEYS = {
@@ -60,7 +62,7 @@ def test_theme_is_dark_with_hex_colours(config: dict[str, Any]) -> None:
 
 
 def test_theme_colours_come_from_the_existing_app_css(config: dict[str, Any]) -> None:
-    """Background, text and accent are the colours the phantom app already uses."""
+    """Background, text and accent are the colours the shared look and the phantom CSS use."""
     theme = config["theme"]
     css = "\n".join(path.read_text(encoding="utf-8") for path in APP_SOURCES).lower()
 

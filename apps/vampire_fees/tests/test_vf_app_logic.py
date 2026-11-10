@@ -129,7 +129,7 @@ def test_coffin_html_shows_the_card_text() -> None:
     html_text = vf_app.coffin_html(make_view())
     assert html_text.startswith('<div class="vf-coffin">')
     for part in (
-        "🧛 BANCO FICTICIO",
+        "BANCO FICTICIO",
         "Comisión mantenimiento cuenta",
         "every month",
         "Now 6,50 EUR",
@@ -193,7 +193,7 @@ def test_empty_state_shows_the_title_the_hint_and_no_coffin() -> None:
     """REQ-VF-48: with no statement the page explains how to load one."""
     at = _run()
     assert not at.exception
-    assert at.title[0].value == "🧛 Vampire Fees"
+    assert at.title[0].value == "Vampire Fees"
     assert any("Load demo data" in info.value for info in at.info)
     assert at.button(key="vf_load_demo").label == "Load demo data"
     assert at.toggle(key="vf_hallucinate").value is False

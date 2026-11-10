@@ -4,6 +4,7 @@
 reads the system clock or the network; the demo files are the committed synthetic ones.
 """
 
+import re
 import sys
 import types
 from collections.abc import Iterator
@@ -30,6 +31,9 @@ VAMPIRE_PAGE = "apps/vampire_fees/app.py"
 TIMEOUT_SECONDS = 60
 
 PAGE_TITLES = ["Home", "Zombie Subscriptions", "Phantom Invoices", "Vampire Fees", "Benchmark"]
+PAGE_ICONS = ["candle", "tombstone", "ghost", "coffin", "scales"]
+# A style block or a tag is markup; the words of the page are what is left (haunted-design).
+MARKUP = re.compile(r"<style.*?</style>|<[^>]+>", re.DOTALL)
 ZS_DETECTORS = 5  # zs.* detectors; the demo statement raises at least one alert for each
 ZS_DEMO_TOMBSTONES = 3
 ZS_DEMO_ALERTS = 19
@@ -118,7 +122,7 @@ def test_entry_page_starts_without_exception() -> None:
     at = _run()
 
     assert not at.exception
-    assert at.title[0].value == "👻 Ghost Ledger Kit"
+    assert at.title[0].value == "Ghost Ledger Kit"
     assert not at.error
 
 
@@ -129,7 +133,7 @@ def test_there_are_exactly_five_pages_in_order() -> None:
     assert [page.title for page in pages] == PAGE_TITLES
     assert [page.script for page in pages] == [None, ZOMBIE_PAGE, PHANTOM_PAGE, VAMPIRE_PAGE, None]
     assert [page.url_path for page in pages][3] == "vampire-fees"
-    assert pages[3].icon == "🧛"
+    assert [page.icon for page in pages] == PAGE_ICONS  # icon names, drawn by the theme's CSS
     assert len({page.url_path for page in pages}) == 5  # all app files are named app.py
     assert all(page.url_path and "/" not in page.url_path for page in pages)
     assert all(page.icon for page in pages)
@@ -143,17 +147,21 @@ def test_all_app_pages_are_registered_in_the_navigation() -> None:
     at = _run()
 
     _zombie(at)
-    assert at.title[0].value == "🪦 Zombie Subscriptions"
+    assert at.title[0].value == "Zombie Subscriptions"
     _phantom(at)
-    assert at.title[0].value == "👻 Phantom Invoices"
+    assert at.title[0].value == "Phantom Invoices"
     _vampire(at)
-    assert at.title[0].value == "🧛 Vampire Fees"
+    assert at.title[0].value == "Vampire Fees"
 
 
 def _home_text(at: AppTest) -> str:
-    """Every text value of the Home page body (markdown, info boxes and captions)."""
+    """Every visible text value of the Home page body: markdown, info boxes and captions.
+
+    Tags and the style block are markup, not text, so they are cut out before the words are
+    counted.
+    """
     values = [*_markdown(at), *(i.value for i in at.info), *(c.value for c in at.caption)]
-    return " ".join(values)
+    return " ".join(MARKUP.sub(" ", value) for value in values)
 
 
 def test_home_explains_the_kit() -> None:
@@ -169,7 +177,7 @@ def test_home_explains_the_kit() -> None:
     assert "Zombie Subscriptions" in text and "Phantom Invoices" in text
     assert "Vampire Fees" in text
     assert "synthetic" in text
-    assert len(text.split()) < 400  # a few lines, not a manual
+    assert len(text.split()) < 500  # a landing page with a proof strip, not a manual
 
 
 def test_home_has_no_real_looking_data() -> None:

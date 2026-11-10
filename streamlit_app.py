@@ -7,11 +7,16 @@ apps, whose ``app.py`` files run unchanged as pages. Each app still works alone 
 ``streamlit run apps/<name>/app.py``. This file imports neither app (spec: showcase) and none of
 the benchmark code: the Benchmark page only shows ``data/benchmark/results.json``.
 
+The look comes from ``ledger_kit/ui`` (spec haunted-design): the menu icons are drawn by the
+theme's CSS from the icon names in ``PAGES``, because ``st.Page`` accepts only an emoji or a
+Material icon.
+
 Facts checked in Streamlit 1.67: ``st.set_page_config`` may be called again by a page (the calls
 are additive, the page's title wins); a file page runs as ``__main__``, so the guard at the bottom
 of each app fires; both apps are named ``app.py``, so every page needs an explicit ``url_path``.
 """
 
+import html
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -19,31 +24,35 @@ from typing import Any, NamedTuple
 
 import streamlit as st
 
+from ledger_kit.ui import landing, theme
+
 
 class PageSpec(NamedTuple):
     """One entry of the navigation menu."""
 
     title: str
-    icon: str
+    icon: str  # name of a ledger_kit.ui.icons icon; the menu draws it with CSS, no emoji
     url_path: str  # explicit and unique: both app files are called app.py
     script: str | None  # path of an app's app.py relative to this file; None: a function page
 
 
 PAGES: tuple[PageSpec, ...] = (
-    PageSpec("Home", "🎃", "home", None),
+    PageSpec("Home", "candle", "home", None),
     PageSpec(
-        "Zombie Subscriptions", "🪦", "zombie-subscriptions", "apps/zombie_subscriptions/app.py"
+        "Zombie Subscriptions",
+        "tombstone",
+        "zombie-subscriptions",
+        "apps/zombie_subscriptions/app.py",
     ),
-    PageSpec("Phantom Invoices", "👻", "phantom-invoices", "apps/phantom_invoices/app.py"),
-    PageSpec("Vampire Fees", "🧛", "vampire-fees", "apps/vampire_fees/app.py"),
-    PageSpec("Benchmark", "📊", "benchmark", None),
+    PageSpec("Phantom Invoices", "ghost", "phantom-invoices", "apps/phantom_invoices/app.py"),
+    PageSpec("Vampire Fees", "coffin", "vampire-fees", "apps/vampire_fees/app.py"),
+    PageSpec("Benchmark", "scales", "benchmark", None),
 )
 
-HOME_TITLE = "👻 Ghost Ledger Kit"
+HOME_TITLE = "Ghost Ledger Kit"
 
 PROMISE = (
-    "**Financial apps that cannot make up a number.** Ghost Ledger Kit is a template with three "
-    "layers; the apps in the menu are built on it."
+    "Financial apps that cannot make up a number: every figure comes from a row you can check."
 )
 
 LAYERS = """
@@ -62,24 +71,6 @@ TRY_IT = (
     "and the alert card shows a warning badge."
 )
 
-ZOMBIE_BLURB = (
-    "**🪦 Zombie Subscriptions** is for individuals. It reads a bank statement and finds "
-    "forgotten recurring charges, price increases, duplicates, trials that turned into payments "
-    "and charges after a cancellation."
-)
-
-PHANTOM_BLURB = (
-    "**👻 Phantom Invoices** is for small businesses. It reads invoices, a supplier master and "
-    "bank payments and finds duplicate invoices, supplier IBAN changes, VAT errors and unpaid "
-    "invoices."
-)
-
-VAMPIRE_BLURB = (
-    "**🧛 Vampire Fees** reads a bank statement and finds the bank fees that drain an account: "
-    "recurring maintenance and custody fees, fees that rise, the cost of an overdraft and the "
-    "total."
-)
-
 SYNTHETIC_NOTE = (
     "All demo data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
     "national check digits are deliberately wrong. Without an API key the explanations come from "
@@ -96,25 +87,36 @@ INE_NOTE = (
     f"{INE_ATTRIBUTION}. Licence {INE_LICENCE}."
 )
 
+# The Benchmark page shows the committed results file and nothing else (REQ-BM-20, REQ-BM-21).
+# Home reads the same file for its proof strip, through the same (patchable) path.
+RESULTS_PATH = Path(__file__).parent / "data" / "benchmark" / "results.json"
+RESULTS_SCHEMA_VERSION = 1
+BENCHMARK_TITLE = "Benchmark"
+
+
+def _markdown(markup: str) -> None:
+    """Render a block of trusted HTML built by ledger_kit.ui (every inserted text is escaped)."""
+    st.markdown(markup, unsafe_allow_html=True)
+
 
 def home() -> None:
-    """Render the Home page: what the kit guarantees and what the three apps do."""
+    """Render the Home page: the promise, the proof strip, the three apps and the three layers."""
+    theme.apply_theme(theme.KIT)
+    theme.show_masthead(theme.KIT)
     st.title(HOME_TITLE)
-    st.markdown(PROMISE)
+    _markdown(f'<div class="gl-promise">{html.escape(PROMISE)}</div>')
+    theme.show_section("scales", "Proof, read from the committed files")
+    _markdown(landing.proof_strip_html(landing.proof_facts(results_path=RESULTS_PATH)))
+    theme.show_section("ghost", "Three apps, one contract")
+    _markdown(landing.tiles_html())
+    theme.show_section("candle", "How a figure reaches the screen")
+    _markdown(landing.diagram_html())
     st.markdown(LAYERS)
-    st.info(TRY_IT, icon="🔦")
-    left, middle, right = st.columns(3)
-    left.markdown(ZOMBIE_BLURB)
-    middle.markdown(PHANTOM_BLURB)
-    right.markdown(VAMPIRE_BLURB)
+    st.info(TRY_IT)
     st.caption(SYNTHETIC_NOTE)
     st.caption(INE_NOTE)
 
 
-# The Benchmark page shows the committed results file and nothing else (REQ-BM-20, REQ-BM-21).
-RESULTS_PATH = Path(__file__).parent / "data" / "benchmark" / "results.json"
-RESULTS_SCHEMA_VERSION = 1
-BENCHMARK_TITLE = "📊 Benchmark"
 NO_RESULTS = "No usable benchmark results. Run: python scripts/benchmark.py"
 BENCHMARK_APPS: tuple[tuple[str, str], ...] = (
     ("zombie", "Zombie Subscriptions"),
@@ -186,6 +188,8 @@ def _load_benchmark(path: Path) -> tuple[str, list[BenchmarkApp], list[str]] | N
 
 def benchmark() -> None:
     """Render the Benchmark page from results.json; show one error when it is not usable."""
+    theme.apply_theme(theme.BENCHMARK)
+    theme.show_masthead(theme.BENCHMARK)
     st.title(BENCHMARK_TITLE)
     loaded = _load_benchmark(RESULTS_PATH)
     if loaded is None:
@@ -209,11 +213,10 @@ FUNCTION_PAGES: dict[str, Callable[[], None]] = {"home": home, "benchmark": benc
 
 
 def _page(spec: PageSpec) -> st.Page:
-    """Build the st.Page of one spec; Home is the default page."""
+    """Build the st.Page of one spec; Home is the default page (its icon is drawn by CSS)."""
     return st.Page(
         spec.script or FUNCTION_PAGES[spec.url_path],
         title=spec.title,
-        icon=spec.icon,
         url_path=spec.url_path,
         default=spec.url_path == "home",
     )
@@ -221,7 +224,7 @@ def _page(spec: PageSpec) -> st.Page:
 
 def main() -> None:
     """Set the page defaults, build the menu and run the selected page."""
-    st.set_page_config(page_title="Ghost Ledger Kit", page_icon="👻", layout="wide")
+    theme.set_page("Ghost Ledger Kit", theme.KIT)
     st.navigation([_page(spec) for spec in PAGES]).run()
 
 

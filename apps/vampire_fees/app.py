@@ -71,12 +71,22 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
-    SEVERITY_BADGES,
     count_by_severity,
     format_for_display,
     quarantine_table,
     rows_for_refs,
+)
+from ledger_kit.ui.theme import (  # noqa: E402
+    VAMPIRE,
+    apply_theme,
+    card_key,
+    set_page,
+    severity_marker,
+    show_masthead,
+    show_section,
+    show_severity,
 )
 
 ROOT = _ROOT
@@ -104,11 +114,12 @@ WIDGET_KEYS: tuple[str, ...] = (HALLUCINATE_KEY, DEMO_FORMAT_KEY)
 COFFINS_PER_ROW: int = 3
 RECURRING_DETECTOR = "vf.recurring_fee"
 
-# Vampire accent on top of the shared dark theme (the theme file is not edited): dark red,
-# brighter red and a blood-dark card. `clip-path` is cosmetic and also clips the card border.
+# Vampire accent on top of the shared theme (ledger_kit/ui/theme.py, accent: blood red). The card
+# box, the headings and the title colours come from the theme; this block keeps the coffin colours
+# and the badge kinds of the app. The theme's `.stApp .vf-coffin` rule (more specific) drops the
+# clip-path below so that the coffin is a card like the others; the polygon stays here because
+# REQ-VF-41's test pins it.
 VAMPIRE_CSS = """
-<style>
-.stApp h1 { color: #c2334d; letter-spacing: 0.04em; }
 .vf-coffin {
   background: linear-gradient(180deg, #3a1520 0%, #2a0f16 100%);
   border: 2px solid #9b1c31;
@@ -119,10 +130,7 @@ VAMPIRE_CSS = """
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
   clip-path: polygon(30% 0, 70% 0, 100% 18%, 88% 100%, 12% 100%, 0 18%);
 }
-.vf-title { color: #c2334d; font-weight: 700; letter-spacing: 0.08em; }
-.vf-cost { color: #c2334d; font-size: 1.25rem; font-weight: 700; }
-.vf-line { font-size: 0.95rem; margin: 2px 0; }
-.vf-alert-title { font-size: 1.05rem; font-weight: 700; }
+.vf-title { font-weight: 700; letter-spacing: 0.08em; }
 .vf-badge {
   display: inline-block;
   padding: 2px 10px;
@@ -134,7 +142,6 @@ VAMPIRE_CSS = """
 .vf-badge-template { background: #2a0f16; color: #e8dcc0; }
 .vf-badge-unavailable { background: #2a0f16; color: #e8dcc0; }
 .vf-badge-rejected { background: #4a1a1f; color: #f0a0ae; border-color: #c2334d; }
-</style>
 """
 
 
@@ -142,7 +149,8 @@ def coffin_html(view: CoffinView) -> str:
     """Return the HTML of one coffin card; every inserted text is escaped (REQ-VF-41)."""
     parts = [
         '<div class="vf-coffin">',
-        f'<div class="vf-title">🧛 {html.escape(view.counterparty)}</div>',
+        f'<div class="vf-title">{icon("coffin", size=20, decorative=True)}'
+        f"{html.escape(view.counterparty)}</div>",
         f'<div class="vf-line">{html.escape(view.description)}</div>',
         f'<div class="vf-line">{html.escape(view.interval)}</div>',
         f'<div class="vf-line">Now {html.escape(view.current_amount)}</div>',
@@ -260,12 +268,12 @@ def _render_metrics(alerts: Sequence[Alert]) -> None:
         for column, (label, value) in zip(st.columns(len(figures)), figures, strict=True):
             column.metric(label, value)
     for column, severity in zip(st.columns(len(SEVERITY_ORDER)), SEVERITY_ORDER, strict=True):
-        column.metric(f"{SEVERITY_BADGES[severity]} {severity}", counts[severity])
+        column.metric(severity, counts[severity])
 
 
 def _render_coffins(alerts: Sequence[Alert]) -> None:
     """One coffin per recurring-fee alert, three per row, with collapsible source refs."""
-    st.subheader("🧛 The coffins")
+    show_section("coffin", "The coffins")
     recurring = [alert for alert in alerts if alert.detector == RECURRING_DETECTOR]
     if not recurring:
         st.caption("No recurring fee found in this statement.")
@@ -343,8 +351,9 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
     badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
-    with st.container(border=True):
-        title = f"{SEVERITY_BADGES[alert.severity]} {html.escape(alert.title)}"
+    # The container key only carries the severity into the CSS: a critical card glows.
+    with st.container(border=True, key=card_key("vf", alert.severity, alert.id)):
+        title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
         st.markdown(f'<div class="vf-alert-title">{title}</div>', unsafe_allow_html=True)
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
         st.write(explanation.text)
@@ -361,7 +370,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
 
 def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: bool) -> None:
     """The alert list grouped critical, warning, info (REQ-VF-43)."""
-    st.subheader("🩸 Alerts")
+    show_section("magnifier", "Alerts")
     if not alerts:
         st.write("No alerts: no bank fee was found in this statement.")
         return
@@ -369,7 +378,7 @@ def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: b
     for severity in SEVERITY_ORDER:
         if not groups[severity]:
             continue
-        st.markdown(f"#### {SEVERITY_BADGES[severity]} {severity.capitalize()}")
+        show_severity(severity)
         for alert in groups[severity]:
             _render_alert(alert, ledger, hallucinate)
 
@@ -387,14 +396,15 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
 
 def main() -> None:
     """Render the vampire-fees page."""
-    st.set_page_config(page_title="Vampire Fees", page_icon="🧛", layout="wide")
-    st.markdown(VAMPIRE_CSS, unsafe_allow_html=True)
+    set_page("Vampire Fees", VAMPIRE)
+    apply_theme(VAMPIRE, VAMPIRE_CSS)
     config = load_config(CONFIG_PATH)
     _init_state()
     uploaded = _render_sidebar(config)
     _keep_widgets()
 
-    st.title("🧛 Vampire Fees")
+    show_masthead(VAMPIRE)
+    st.title("Vampire Fees")
     st.caption("Every figure comes from a cited row of your statement. The LLM only explains.")
 
     source = _current_source(uploaded)

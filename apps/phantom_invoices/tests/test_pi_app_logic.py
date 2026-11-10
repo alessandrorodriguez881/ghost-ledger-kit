@@ -538,7 +538,7 @@ def test_app_starts_without_exception() -> None:
     at = _run()
 
     assert not at.exception
-    assert at.title[0].value == "👻 Phantom Invoices"
+    assert at.title[0].value == "Phantom Invoices"
     assert any("Load demo data" in info.value for info in at.info)
     assert at.sidebar.button[0].label == "Load demo data"
     assert at.toggle(key="pi_hallucinate").value is False

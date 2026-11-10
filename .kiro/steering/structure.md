@@ -26,6 +26,12 @@ ghost-ledger-kit/
 │   ├── public_data/
 │   │   ├── __init__.py             # public names only
 │   │   └── ine_cpi.py              # INE CPI snapshot reader and validator (stdlib only, no network)
+│   ├── ui/
+│   │   ├── __init__.py
+│   │   ├── reference_app.py        # Library reference page (Streamlit)
+│   │   ├── icons.py                # Six inline SVG line icons: tombstone, ghost, coffin, candle, magnifier, scales
+│   │   ├── theme.py                # Palette, one accent per app, the one CSS block, card and heading helpers
+│   │   └── landing.py              # Home page parts: proof strip read from committed files, tiles, diagram
 │   └── utils/
 │       ├── __init__.py
 │       ├── money.py                # Decimal arithmetic helpers, rounding, formatting

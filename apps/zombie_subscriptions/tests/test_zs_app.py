@@ -80,7 +80,7 @@ def test_app_starts_without_exception() -> None:
     at = _run()
 
     assert not at.exception
-    assert at.title[0].value == "🪦 Zombie Subscriptions"
+    assert at.title[0].value == "Zombie Subscriptions"
     assert any("Load demo data" in info.value for info in at.info)
     assert at.button(key="zs_load_demo").label == "Load demo data"
     assert at.toggle(key="zs_hallucinate").value is False
@@ -89,11 +89,11 @@ def test_app_starts_without_exception() -> None:
 
 
 def test_app_has_the_graveyard_theme() -> None:
-    """The dark background and the tombstone class are injected as CSS."""
+    """The night background and the tombstone class are injected as CSS, once."""
     css = [value for value in _markdown(_run()) if value.lstrip().startswith("<style>")]
 
     assert len(css) == 1
-    assert "#1a1a2e" in css[0]
+    assert "#12101a" in css[0]  # the shared night background (was #1a1a2e before haunted-design)
     assert ".zs-tombstone" in css[0]
 
 

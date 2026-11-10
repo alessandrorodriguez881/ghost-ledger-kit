@@ -2,7 +2,8 @@
 
 The page only reads ``data/benchmark/results.json`` and shows it; it recomputes nothing. The
 tests point ``streamlit_app.RESULTS_PATH`` at synthetic results files and run the page function
-headless. No test reads the committed results, the clock or the network.
+headless. No test reads the clock or the network; only the entry run reads the committed results,
+because the Home page shows them in its proof strip (haunted-design).
 """
 
 import ast
@@ -120,7 +121,7 @@ def test_the_five_pages_in_order() -> None:
         "Benchmark",
     ]
     assert pages[-1].url_path == "benchmark"
-    assert pages[-1].icon == "📊"
+    assert pages[-1].icon == "scales"  # an icon name; the theme's CSS draws it
     assert pages[-1].script is None  # a function page: it has no app.py
     assert len({page.url_path for page in pages}) == 5
 
@@ -139,7 +140,7 @@ def test_the_entry_runs_without_exception() -> None:
     at = AppTest.from_file(ENTRY, default_timeout=TIMEOUT_SECONDS).run()
 
     assert not at.exception
-    assert at.title[0].value == "👻 Ghost Ledger Kit"
+    assert at.title[0].value == "Ghost Ledger Kit"
 
 
 # --- the page shows the file --------------------------------------------------------------------
@@ -149,7 +150,7 @@ def test_the_page_shows_the_seed_line_and_the_synthetic_note(results_path: Path)
     at = _page(results_path, _results())
 
     captions = [caption.value for caption in at.caption]
-    assert at.title[0].value == "📊 Benchmark"
+    assert at.title[0].value == "Benchmark"
     assert "Seed 4242; 123 scenarios per app." in captions
     assert any("synthetic" in text and "labelled" in text for text in captions)
     assert not at.error

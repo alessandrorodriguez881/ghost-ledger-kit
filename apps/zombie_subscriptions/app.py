@@ -82,12 +82,22 @@ from ledger_kit.live_guard import (  # noqa: E402
 )
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.public_data import CpiSeries  # noqa: E402
+from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
-    SEVERITY_BADGES,
     count_by_severity,
     format_for_display,
     quarantine_table,
     rows_for_refs,
+)
+from ledger_kit.ui.theme import (  # noqa: E402
+    ZOMBIE,
+    apply_theme,
+    card_key,
+    set_page,
+    severity_marker,
+    show_masthead,
+    show_section,
+    show_severity,
 )
 
 ROOT = _ROOT
@@ -120,45 +130,10 @@ TOMBSTONES_PER_ROW: int = 3
 
 _T = TypeVar("_T")
 
-# Halloween graveyard theme (REQ-ZS-35): dark background, pale stone text, muted green and amber.
-GRAVEYARD_CSS = """
-<style>
-.stApp { background-color: #1a1a2e; color: #d9d6c7; }
-[data-testid="stSidebar"] { background-color: #14142a; }
-.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp p, .stApp li, .stApp label,
-.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stCaptionContainer"],
-.stApp [data-testid="stMetricLabel"], .stApp [data-testid="stMetricValue"],
-.stApp [data-testid="stExpander"] summary { color: #d9d6c7; }
-.stApp h1 { color: #9fbf8f; letter-spacing: 0.04em; }
-.stApp h2, .stApp h3 { color: #c9b27a; }
-.stApp textarea, .stApp input { background-color: #232347; color: #d9d6c7; }
-[data-testid="stVerticalBlockBorderWrapper"] { border-color: #3d3d63; }
-.zs-tombstone {
-  background: linear-gradient(180deg, #4a4a6a 0%, #34344f 100%);
-  border: 2px solid #6b6b8c;
-  border-radius: 90px 90px 8px 8px;
-  padding: 22px 18px 16px 18px;
-  margin-bottom: 8px;
-  text-align: center;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
-}
-.zs-rip { color: #9fbf8f; font-weight: 700; letter-spacing: 0.2em; font-size: 0.9rem; }
-.zs-name { color: #ece8d8; font-size: 1.35rem; font-weight: 700; margin: 6px 0 10px 0; }
-.zs-line { color: #d9d6c7; font-size: 0.95rem; margin: 2px 0; }
-.zs-amber { color: #e0a43a; }
-.zs-alert-title { font-size: 1.05rem; font-weight: 700; color: #ece8d8; }
-.zs-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  border: 1px solid #6b6b8c;
-}
-.zs-badge-llm { background: #25402f; color: #b9e0a8; border-color: #5f8f5a; }
-.zs-badge-template { background: #2d2d4d; color: #d9d6c7; }
-.zs-badge-unavailable { background: #2d2d4d; color: #d9d6c7; }
-.zs-badge-rejected { background: #4a3517; color: #f0c26a; border-color: #e0a43a; }
-</style>
+# Halloween graveyard theme (REQ-ZS-35). The colours, the card box and the badges come from the
+# shared theme (ledger_kit/ui/theme.py, accent: moss green); only tombstone details stay here.
+ZOMBIE_CSS = """
+.zs-tombstone .zs-rip svg { flex: none; }
 """
 
 
@@ -315,9 +290,9 @@ def _render_summary(alerts: Sequence[Alert], tombstones: int) -> None:
     """Metrics row: tombstones and alerts per severity."""
     counts = count_by_severity(alerts)
     columns = st.columns(len(SEVERITY_ORDER) + 1)
-    columns[0].metric("🪦 tombstones", tombstones)
+    columns[0].metric("tombstones", tombstones)
     for column, severity in zip(columns[1:], SEVERITY_ORDER, strict=True):
-        column.metric(f"{SEVERITY_BADGES[severity]} {severity}", counts[severity])
+        column.metric(severity, counts[severity])
 
 
 def _tombstone_line(label: str, value: str) -> str:
@@ -329,7 +304,7 @@ def _tombstone_html(name: str, died_on: str, cost_since: str, yearly_cost: str) 
     """Return the HTML of one tombstone card; every value is escaped."""
     parts = [
         '<div class="zs-tombstone">',
-        '<div class="zs-rip">R.I.P.</div>',
+        f'<div class="zs-rip">{icon("tombstone", size=20, decorative=True)}R.I.P.</div>',
         f'<div class="zs-name">{html.escape(name)}</div>',
         _tombstone_line("Died on", died_on),
         _tombstone_line("Cost since then", cost_since),
@@ -341,7 +316,7 @@ def _tombstone_html(name: str, died_on: str, cost_since: str, yearly_cost: str) 
 
 def _render_graveyard(zombies: Sequence[Any], currency: str) -> None:
     """One tombstone per zombie service, with its yearly cost and collapsible source refs."""
-    st.subheader("🪦 The graveyard")
+    show_section("tombstone", "The graveyard")
     if not zombies:
         st.caption("Add last-used dates in the sidebar to bury a subscription here.")
         return
@@ -438,8 +413,9 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
     badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
-    with st.container(border=True):
-        title = f"{SEVERITY_BADGES[alert.severity]} {html.escape(alert.title)}"
+    # The container key only carries the severity into the CSS: a critical card glows.
+    with st.container(border=True, key=card_key("zs", alert.severity, alert.id)):
+        title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
         st.markdown(f'<div class="zs-alert-title">{title}</div>', unsafe_allow_html=True)
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
         st.write(explanation.text)
@@ -457,7 +433,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
 
 def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: bool) -> None:
     """The alert list grouped critical, warning, info (REQ-ZS-37)."""
-    st.subheader("👻 Alerts")
+    show_section("magnifier", "Alerts")
     if not alerts:
         st.write("No alerts: nothing in this statement looks like a zombie.")
         return
@@ -465,7 +441,7 @@ def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: b
     for severity in SEVERITY_ORDER:
         if not groups[severity]:
             continue
-        st.markdown(f"#### {SEVERITY_BADGES[severity]} {severity.capitalize()}")
+        show_severity(severity)
         for alert in groups[severity]:
             _render_alert(alert, ledger, hallucinate)
 
@@ -492,13 +468,14 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
 
 def main() -> None:
     """Render the zombie-subscriptions page."""
-    st.set_page_config(page_title="Zombie Subscriptions", page_icon="🪦", layout="wide")
-    st.markdown(GRAVEYARD_CSS, unsafe_allow_html=True)
+    set_page("Zombie Subscriptions", ZOMBIE)
+    apply_theme(ZOMBIE, ZOMBIE_CSS)
     _init_state()
     uploaded = _render_sidebar()
     _keep_widgets()
 
-    st.title("🪦 Zombie Subscriptions")
+    show_masthead(ZOMBIE)
+    st.title("Zombie Subscriptions")
     st.caption("Every figure comes from a cited row of your statement. The LLM only explains.")
 
     source = _current_source(uploaded)

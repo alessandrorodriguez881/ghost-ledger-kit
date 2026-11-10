@@ -39,7 +39,6 @@ from apps.phantom_invoices.settings import (  # noqa: E402
     DEMO_FORMATS,
     MULTI_RATE_NOTE,
     NO_FLASHLIGHT,
-    SEVERITY_ICONS,
     SEVERITY_ORDER,
     UI_DEFAULT_AS_OF,
     Pipeline,
@@ -91,6 +90,16 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.theme import (  # noqa: E402
+    PHANTOM,
+    apply_theme,
+    card_key,
+    set_page,
+    severity_marker,
+    show_masthead,
+    show_section,
+    show_severity,
+)
 
 ROOT = _ROOT
 CONFIG_PATH = Path(__file__).resolve().parent / "config.toml"
@@ -121,30 +130,14 @@ WIDGET_KEYS: tuple[str, ...] = ("use_as_of", "as_of_date", HALLUCINATE_KEY, DEMO
 KEPT_KEY = "pi_kept"
 
 # App-level additions to the haunted-ledger theme (REQ-PI-48): CSS only, no external resource.
+# The colours of headings, cards and badges come from the shared theme (spectral teal accent);
+# the rules below restate the pieces of HAUNTED_CSS that carried the old green and amber.
 APP_CSS = """
-[data-testid="stSidebar"] { background-color: #0d0b14; }
-.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp p, .stApp li, .stApp label,
-.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stCaptionContainer"],
-.stApp [data-testid="stMetricLabel"], .stApp [data-testid="stMetricValue"],
-.stApp [data-testid="stExpander"] summary { color: #e8dcc0; }
-.stApp h1 { color: #7cffb2; letter-spacing: 0.04em; }
-.stApp h2, .stApp h3 { color: #ffb347; }
-.stApp textarea, .stApp input { background-color: #1c1829; color: #e8dcc0; }
-[data-testid="stVerticalBlockBorderWrapper"] { border-color: #3a3350; }
 .ledger-wrap { overflow-x: auto; margin-bottom: 12px; }
 .ledger th, .ledger td { font-size: 0.85rem; white-space: nowrap; }
-.pi-alert-title { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
-.pi-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  border: 1px solid #3a3350;
-}
-.pi-badge-llm { background: #17352a; color: #7cffb2; border-color: #7cffb2; }
-.pi-badge-template { background: #241f33; color: #e8dcc0; }
-.pi-badge-unavailable { background: #241f33; color: #e8dcc0; }
-.pi-badge-rejected { background: #3d2a12; color: #ffd166; border-color: #ffb347; }
+.ledger th { color: var(--gl-accent-text); border-bottom-color: var(--gl-accent); }
+.ledger tr.lit td { box-shadow: inset 0 0 14px 2px var(--gl-accent); }
+.ledger tr.lit td:first-child { border-left-color: var(--gl-accent); }
 """
 
 
@@ -299,7 +292,7 @@ def _render_summary(alerts: Sequence[Alert]) -> None:
     """Severity summary row: one metric per severity (REQ-PI-49 part 1)."""
     counts = severity_counts(alerts)
     for column, severity in zip(st.columns(2), ("critical", "warning"), strict=True):
-        column.metric(f"{SEVERITY_ICONS[severity]} {severity}", counts[severity])
+        column.metric(severity, counts[severity])
 
 
 def _render_cited_rows(pipeline: Pipeline, lit_refs: Sequence[str]) -> None:
@@ -316,7 +309,7 @@ def _render_cited_rows(pipeline: Pipeline, lit_refs: Sequence[str]) -> None:
 
 def _render_ledger(pipeline: Pipeline, alerts: Sequence[Alert]) -> None:
     """The haunted ledger with its flashlight: the cited rows of the selected alert are lit."""
-    st.subheader("📖 The haunted ledger")
+    show_section("candle", "The haunted ledger")
     options = flashlight_options(alerts)
     # Allowed here: the radio is not instantiated yet in this run (design 13.3).
     st.session_state["selected_alert"] = reset_selected(
@@ -324,7 +317,7 @@ def _render_ledger(pipeline: Pipeline, alerts: Sequence[Alert]) -> None:
     )
     labels = {alert.id: alert_option_label(alert) for alert in alerts}
     selected = st.radio(
-        "🔦 Flashlight: choose an alert to light the rows it cites",
+        "Flashlight: choose an alert to light the rows it cites",
         options,
         key="selected_alert",
         format_func=lambda option: labels.get(option, option),
@@ -405,8 +398,9 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
     has_key = bool(os.environ.get("OPENAI_API_KEY", ""))
     badge = guard_badge(explanation, has_key)
     kind = badge_kind(explanation, has_key)
-    with st.container(border=True):
-        title = f"{SEVERITY_ICONS[alert.severity]} {html.escape(alert.title)}"
+    # The container key only carries the severity into the CSS: a critical card glows.
+    with st.container(border=True, key=card_key("pi", alert.severity, alert.id)):
+        title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
         st.markdown(f'<div class="pi-alert-title">{title}</div>', unsafe_allow_html=True)
         label = LABELS.get(alert.detector, alert.detector)
         st.caption(f"{label} · `{alert.detector}` · severity: {alert.severity}")
@@ -417,7 +411,7 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         )
         message = verification_message(alert)
         if message is not None:
-            st.warning(message, icon="📞")
+            st.warning(message)
         for caption in alert_captions(alert):
             st.caption(caption)
         st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
@@ -426,7 +420,7 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
 
 def _render_alerts(alerts: Sequence[Alert], pipeline: Pipeline, hallucinate: bool) -> None:
     """The alert list grouped critical, then warning (REQ-PI-49 part 3)."""
-    st.subheader("👻 Alerts")
+    show_section("magnifier", "Alerts")
     if not alerts:
         st.write("No alerts: nothing in these files looks like a phantom invoice.")
         return
@@ -434,7 +428,7 @@ def _render_alerts(alerts: Sequence[Alert], pipeline: Pipeline, hallucinate: boo
     for severity in SEVERITY_ORDER:
         if not groups[severity]:
             continue
-        st.markdown(f"#### {SEVERITY_ICONS[severity]} {severity.capitalize()}")
+        show_severity(severity)
         for alert in groups[severity]:
             _render_alert(alert, pipeline, hallucinate)
 
@@ -453,13 +447,14 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
 
 def main() -> None:
     """Render the phantom-invoices page."""
-    st.set_page_config(page_title="Phantom Invoices", page_icon="👻", layout="wide")
-    st.markdown(f"<style>{HAUNTED_CSS}{APP_CSS}</style>", unsafe_allow_html=True)
+    set_page("Phantom Invoices", PHANTOM)
+    apply_theme(PHANTOM, f"{HAUNTED_CSS}{APP_CSS}")
     _init_state()
     uploads = _render_sidebar()
     _keep_widgets()
 
-    st.title("👻 Phantom Invoices")
+    show_masthead(PHANTOM)
+    st.title("Phantom Invoices")
     st.caption("Every figure comes from a cited row of your files. The LLM only explains.")
 
     sources = _current_sources(uploads)
