@@ -228,10 +228,11 @@ def _render_metrics(alerts: Sequence[Alert]) -> None:
             ("Yearly equivalent", summary.yearly_equivalent),
         ]
     )
-    columns = st.columns(len(figures) + len(SEVERITY_ORDER))
-    for column, (label, value) in zip(columns, figures, strict=False):
-        column.metric(label, value)
-    for column, severity in zip(columns[len(figures) :], SEVERITY_ORDER, strict=True):
+    # Two rows so that every value is shown in full: the figures, then the severity counts.
+    if figures:
+        for column, (label, value) in zip(st.columns(len(figures)), figures, strict=True):
+            column.metric(label, value)
+    for column, severity in zip(st.columns(len(SEVERITY_ORDER)), SEVERITY_ORDER, strict=True):
         column.metric(f"{SEVERITY_BADGES[severity]} {severity}", counts[severity])
 
 

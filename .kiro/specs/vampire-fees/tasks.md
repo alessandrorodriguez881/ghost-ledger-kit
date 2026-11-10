@@ -376,22 +376,24 @@ git diff --stat
 
 **Covers**: REQ-VF-59, REQ-VF-60
 
-The reviewer fills this table after the build session. The agent leaves it blank.
+Filled in by the reviewer (session 13e) with measured facts. Times are local, 10 November 2026.
 
 | Item | Value |
 |---|---|
-| Date and Kiro version | |
-| Agent used | `ghost-ledger-builder` |
-| Kiro calls (requests or credits, as the usage panel shows) | |
-| Elapsed time, first prompt to green `pytest` | |
-| Of which waiting for the human to run commands | |
-| Human interventions (each: what, why) | |
-| Files outside `apps/vampire_fees/` changed (count and list) | |
-| Edits in `ledger_kit/` (expected 0) | |
-| Edits in the other apps (expected 0) | |
-| Output of `git status --short ledger_kit apps/zombie_subscriptions apps/phantom_invoices` | |
-| Library decisions `DN-VF-L<n>` raised | |
-| Copied helpers (design §11.3), count at the end | |
-| Tests written (files, approximate count) | |
-| Result: did the template claim hold? | |
-| Comparison with the first two apps (if known) | |
+| Date and Kiro version | 10 November 2026; Kiro version not recorded |
+| Agent used | `ghost-ledger-builder` for the build; the spec (session 13a) was written by the default agent |
+| Kiro calls (requests or credits, as the usage panel shows) | 6 calls, 5 productive: spec (default agent), two short calls fixing the agent resource paths, one failed first build call, one build call, one fix call |
+| Elapsed time, first prompt to green `pytest` | About one hour from the first spec prompt to a working, tested app. Spec about 7 minutes (01:37 to 01:44); agent resource paths 01:45 to 01:56; build about 02:05 to 02:28; fix 02:30 to 02:34 |
+| Of which waiting for the human to run commands | Not measured |
+| Human interventions (each: what, why) | (1) Fixed the agent resource paths in two short calls: Kiro resolves the agent prompt from the agent folder and the resources from the workspace root. (2) The first build call with the custom agent failed because the per-call trusted tool names did not match the agent tool ids (`read_file` and others); fixed by passing them. (3) One fix call after review. |
+| Files outside `apps/vampire_fees/` changed (count and list) | Not counted here; the showcase, README, steering, samples and generator files named in the recipe, step 7 |
+| Edits in `ledger_kit/` (expected 0) | 0 (checked with `git diff`) |
+| Edits in the other apps (expected 0) | 0 (checked with `git diff`) |
+| Output of `git status --short ledger_kit apps/zombie_subscriptions apps/phantom_invoices` | Empty |
+| Library decisions `DN-VF-L<n>` raised | Not recorded here; see `design.md` |
+| Copied helpers (design §11.3), count at the end | Not recorded here; see `design.md` §11.3 |
+| Tests written (files, approximate count) | 19 test files with 3064 lines; the review run reported 2684 tests passing for the whole repository |
+| Result: did the template claim hold? | Yes: a third app was built from the template alone, with zero changes to `ledger_kit/` and to the other two apps |
+| Comparison with the first two apps (if known) | Not measured |
+
+Result of the code files: 11 code files with 1099 lines.

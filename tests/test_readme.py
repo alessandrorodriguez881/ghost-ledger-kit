@@ -13,7 +13,7 @@ REQUIRED_HEADINGS = (
     "Ghost Ledger Kit",
     "The problem",
     "How it works",
-    "The two apps",
+    "The three apps",
     "Try it",
     "Run the tests",
     "Project layout",
@@ -29,6 +29,7 @@ KIRO_FEATURES = (
     "mcp",
     "property-based testing",
     "powers",
+    "custom agent",
 )
 
 # Official documentation of the tools the README names; nothing else may be linked.
@@ -163,7 +164,7 @@ def _table_rows(section: str) -> list[list[str]]:
     return rows
 
 
-def test_kiro_table_header_and_six_feature_rows(text: str) -> None:
+def test_kiro_table_header_and_feature_rows(text: str) -> None:
     """The table has the agreed columns and one row per Kiro feature, in order."""
     rows = _table_rows(_kiro_section(text))
     assert rows[0] == ["Kiro feature", "What we did", "Why it mattered"]

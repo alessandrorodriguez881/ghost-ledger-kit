@@ -67,7 +67,7 @@ It found real weaknesses, which the `detector-fixes` spec then corrected without
 - **Limits.** The data is synthetic and the labels were written by the same team as the requirements, so a pattern nobody thought of is not planted. Only plain CSV is benchmarked. The 2 remaining zombie false alarms (both on `weekly_groceries_irregular`) are a documented limit: regular charges of one shop on one price level look like a subscription. The numbers describe this mix of scenarios, not real bank data.
 - **Reproduce.** `python scripts/benchmark.py` rewrites `data/benchmark/results.json` and `docs/benchmark.md` (under a minute); `python scripts/benchmark.py --check` reruns and compares them byte for byte with the committed files. The showcase has a Benchmark page that shows the results file.
 
-## The two apps
+## The three apps
 
 All three apps are built on the same `ledger_kit` library and share nothing else.
 
@@ -75,7 +75,13 @@ All three apps are built on the same `ledger_kit` library and share nothing else
 
 **Phantom Invoices** (`apps/phantom_invoices/`) is for small Spanish businesses. It reads invoices, a supplier master and bank payments and finds duplicate invoices (`pi.duplicate_invoice`), supplier IBAN changes and invalid IBANs (`pi.iban_change`), VAT errors (`pi.vat_error`), and overdue invoices or payments that match no invoice (`pi.reconciliation`). With the demo data loaded it shows 9 alerts: 3 critical and 6 warning. The end-to-end test `apps/phantom_invoices/tests/test_pi_demo_e2e.py` pins this split.
 
-**Vampire Fees** (`apps/vampire_fees/`) is for individuals and small businesses. It reads a bank statement (CSV or Norma 43) and finds the bank fees that drain an account: recurring fees (`vf.recurring_fee`), fees that rise (`vf.fee_increase`), the cost of an overdraft (`vf.overdraft_cost`) and the total (`vf.fee_summary`). Each recurring fee is drawn as a coffin card. It was built as the third app, only from the finished template and by the Kiro custom agent `ghost-ledger-builder`, with no change to `ledger_kit/` or to the other two apps; the one copy of code between apps is listed as a decision in `.kiro/specs/vampire-fees/design.md`. Refunds are not subtracted from its totals, and only EUR rows are analysed.
+**Vampire Fees** (`apps/vampire_fees/`) is for individuals and small businesses. It reads a bank statement and finds the bank fees that drain an account: recurring fees (`vf.recurring_fee`), fees that rise (`vf.fee_increase`), the cost of an overdraft (`vf.overdraft_cost`) and the total (`vf.fee_summary`). Each recurring fee is drawn as a coffin card. Refunds are not subtracted from its totals, and only EUR rows are analysed. The details are below.
+
+### Vampire Fees in detail
+
+- **What it reads.** A bank statement as CSV or as Norma 43; the content picks the reader. For Norma 43 it uses the common concepts 16 (stamp duty and brokerage) and 17 (interest, fees and taxes) that the bank writes on each movement, so a fee with an unusual wording is still found.
+- **Demo numbers.** With the Norma 43 demo (`data/samples/vampire_demo_statement.n43`) the page shows 45 fees, a total of 379,25 EUR and a yearly equivalent of 207,54 EUR, with the coffin cards and 45 cited rows from that file. The page was checked in the browser with no error. The matching CSV demo is `data/samples/vampire_demo_statement.csv`.
+- **Template proof.** It was built as the third app, only from the finished template, by the Kiro custom agent `ghost-ledger-builder` (`.kiro/agents/ghost-ledger-builder.json`), with no change to `ledger_kit/` or to the other two apps (checked with `git diff`). The spec took about 7 minutes; the build took one call with the custom agent and one fix call. In total it took 6 Kiro calls (5 productive) and about one hour from the first spec prompt to a working, tested app: 11 code files with 1099 lines and 19 test files with 3064 lines. The one copy of code between apps is listed as a decision in `.kiro/specs/vampire-fees/design.md`; the full record is task VF17 in `.kiro/specs/vampire-fees/tasks.md`.
 
 The demo numbers are pinned by tests: `apps/zombie_subscriptions/tests/test_zs_demo_e2e.py` and `apps/phantom_invoices/tests/test_pi_demo_e2e.py` run the demo end to end, and `tests/test_showcase_app.py` checks the alert counts shown in the showcase.
 
@@ -90,7 +96,7 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-`streamlit_app.py` is the showcase: a Home page plus the two apps in one menu, with the shared dark theme from `.streamlit/config.toml`. Each app also runs alone:
+`streamlit_app.py` is the showcase: a Home page plus the three apps and the Benchmark page in one menu, with the shared dark theme from `.streamlit/config.toml`. Each app also runs alone:
 
 ```powershell
 streamlit run apps/zombie_subscriptions/app.py
@@ -151,6 +157,7 @@ Kiro wrote every spec, every test and every line of code in this repository from
 | MCP | The context7 MCP server (remote, no API key) is configured in `.kiro/settings/mcp.json` after the developer approved it. The agent used it in two sessions: 5c, to check the Streamlit, pandas and Hypothesis behaviour the code relies on against the official docs (results in `docs/mcp-api-checks.md`, no mismatch), and 8a, to look up `defusedxml` and the Python 3.12 XML security notes before writing the Facturae reader (library notes in section 6 of `.kiro/specs/real-formats/design.md`). | Library APIs change between releases, so the assumptions behind the demo-loading callback, the AppTest tests, the property tests and the safe XML parsing were checked against current docs instead of memory. |
 | Property-based testing | Hypothesis tests with `max_examples=200` in `tests/` and in `apps/*/tests/`. The no-invention property uses `loaded_source_refs` from `ledger_kit/detectors/` and asserts that every cited `source_ref` belongs to a loaded input; see `apps/phantom_invoices/tests/test_pi_vat_error.py` and `apps/zombie_subscriptions/tests/test_zs_price_increase.py`. | It checks the core promise on generated inputs, including dirty cells, not only on hand-picked examples: no alert may cite a row that was not loaded. |
 | Powers | One local power, `powers/ghost-ledger-detector/`, with the `add-detector` skill in `powers/ghost-ledger-detector/skills/add-detector/SKILL.md`. It is imported from the folder in the Kiro Powers panel. | It teaches an agent to add a new detector the same way as the existing ones, with the namespaced registration, source refs and tests, so a new detector keeps the contract. |
+| Custom agent | `.kiro/agents/ghost-ledger-builder.json` with its prompt `.kiro/agents/ghost-ledger-builder.md`. It loads the five always-included steering files, `update-kiro-usage.md`, `README.md` and the `add-detector` skill, and may use the context7 MCP server. It reads and writes files only, so it cannot run commands. It built the Vampire Fees app (`apps/vampire_fees/`). | The agent starts with the finance rules in its context and a hard boundary (no edit of `ledger_kit/` or another app), so a new app inherits the no-invention contract; `git diff` showed zero changes to the library and the other two apps. |
 
 Kiro documentation: [kiro.dev/docs](https://kiro.dev/docs/).
 

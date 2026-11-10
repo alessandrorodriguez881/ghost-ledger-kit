@@ -333,7 +333,7 @@ def sorted_refs(fees: Iterable[Fee]) -> list[str]:
     return refs
 
 
-# --- Series and runs (design 4.3) -------------------------------------------------------------------
+# --- Series and runs (design 4.3) ---------------------------------------------------------
 
 
 def classify_gap(days: int) -> Interval | None:
