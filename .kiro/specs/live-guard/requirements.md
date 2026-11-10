@@ -369,3 +369,64 @@ amount `8.99` **(synthetic)**.
   and shall say that with a key every card of a page is explained once per browser session, so on a
   CPU the first load of a page takes minutes, and that `LEDGER_KIT_LLM_TIMEOUT` 90 suits a CPU.
   `.gitignore` shall track `data/live_runs/`.
+
+---
+
+## 7 — Amendment A-LG-02 (session 16c): dates written in words
+
+The second real run (`data/live_runs/2026-11-10_llama3.2-3b_run2.json`, 11 records, one run, not a
+rate), made after A-LG-01 and the short-answer prompt, gave answers of 9 to 42 seconds and none timed
+out. Z2b and P2b are accepted, Z4b still rejects the invented `539.40`, and Z5b is an honest refusal.
+One new false rejection came from the plain-prose style: the model writes dates in words, and the
+tokeniser knew only ISO (`2026-07-31`) and `dd/mm/yyyy`, so the parts of a date became numbers:
+Z1b rejected `31` and `2026` (`July 31, 2026`); P1b rejected `6` and `6` (`October 6, 2026`); V1b
+rejected `18`, `2025`, `30`, `2026` (`June 18, 2025`, `June 30, 2026`); V2b rejected `2026` and
+`2025` (`January 5, 2026`, `December 5, 2025`).
+
+The requirements below change `ledger_kit/explainer.py` only (tokeniser and system message). They
+add a way to *read* a date; the set of allowed dates, the allowed figures and the other guard rules
+are unchanged. REQ-LG-03 still holds: nothing is special-cased for a question.
+
+Shared fixture of the examples: alert `C` with `data = {"cancellation_date": "2026-07-31"}` and
+`source_refs = ["bank.csv:181"]` **(synthetic)**.
+
+- **REQ-LG-28** The tokeniser shall read an English date written with a month name as a date, and
+  the guard shall check it exactly like an ISO date: it must be among the allowed dates (the date
+  cells of the cited rows and the dates of the alert data). The accepted forms are `Month D, YYYY`,
+  `Month D YYYY` and `D Month YYYY`; the month is a full name or its three-letter abbreviation with an
+  optional dot; the day may carry an ordinal suffix (`st`, `nd`, `rd`, `th`); case does not matter.
+  The parts of such a date are not numbers.
+  - Example (accepted): `Cancelled on July 31, 2026.` for `C`; also `July 31 2026`, `31 July 2026`,
+    `Jul 31, 2026`, `Jul. 31, 2026`, `JULY 31, 2026`, `31st July 2026`.
+  - Example (accepted): `June 18th, 2025` for an alert whose data holds `2025-06-18`.
+
+- **REQ-LG-29** *If* a date written in words is not among the allowed dates, *then* the guard shall
+  reject the answer and report that date in ISO form, as it does for an ISO date. *If* the day does
+  not exist in that month and year, *then* the date is malformed: the guard shall reject the answer
+  and report the date as the model wrote it.
+  - Example (rejected, token `2027-07-31`): `Cancelled on July 31, 2027.` for `C`.
+  - Example (rejected, token `February 30, 2026`): `Charged on February 30, 2026.` for `C`.
+  - Example (rejected, token `539.40`): `On July 31, 2026 you pay 539.40.` for `C`: a date in words
+    hides no figure.
+
+- **REQ-LG-30** *When* a month name is not followed by a day and a year, or a day and a month by a
+  year (`in June`, `in June 2026`, `June 18`), it shall not be read as a date, and every number near
+  it keeps today's rule. A month name inside a longer word (`Marching`, `Mayor`) is not a month.
+  - Example: `It ran in June for 12 times.` for `C` → the only number is `12` (rejected, as today).
+
+- **REQ-LG-31** The system message shall also ask the model to write every date exactly as given, in
+  `YYYY-MM-DD` form, and shall keep every existing sentence. The request, the question, `max_tokens`,
+  `temperature=0` and the single attempt are unchanged.
+  - Example: `messages[0]["content"]` ends with `Write every date exactly as given, in YYYY-MM-DD
+    form.` and still contains the no-invention sentence and `Cite at least one source reference from:`.
+
+- **REQ-LG-32** The repository shall keep the run record
+  `data/live_runs/2026-11-10_llama3.2-3b_run2.json` and tests shall replay it through the guard, with
+  the demo data rebuilt as in REQ-LG-26: Z1b, Z2b, Z3b, Z5b, P1b, P2b, P3b, V1b and V2b are accepted
+  *only if every date they write in words is an allowed date*; one that names a date that is neither
+  in the alert data nor in the cited rows stays rejected, and the test names that date. Z4b stays
+  rejected with `539.40` among the tokens. For Z6b nothing is asserted about the verdict, only that
+  no date part is reported as a number. The run1 tests are unchanged.
+
+- **REQ-LG-33** `docs/live-guard.md` shall say in one line that dates written in words are checked
+  like ISO dates. No rate is claimed.

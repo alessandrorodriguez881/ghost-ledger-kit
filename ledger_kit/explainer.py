@@ -157,6 +157,36 @@ _IBAN_RE = re.compile(
 )
 _DATE_ISO_RE = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
 _DATE_EU_RE = re.compile(r"(?<!\d)(\d{2})/(\d{2})/(\d{4})(?!\d)")
+# English month names, full names before their three-letter forms (REQ-LG-28). The abbreviation
+# may end in a dot; the name must not be part of a longer word.
+_MONTH_NAMES: tuple[str, ...] = (
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+)
+_MONTH_NUMBER: dict[str, int] = {name[:3]: i for i, name in enumerate(_MONTH_NAMES, start=1)}
+_MONTH = (
+    r"(?<![A-Za-z])("
+    + "|".join(_MONTH_NAMES)
+    + "|"
+    + "|".join(name[:3] for name in _MONTH_NAMES)
+    + r")(?![A-Za-z])\.?"
+)
+_DAY = r"(?<![\d.,])(\d{1,2})(?:st|nd|rd|th)?(?!\d)"
+_YEAR = r"(?<!\d)(\d{4})(?!\d|[.,]\d)"
+# "June 18, 2025", "June 18 2025", "Jun. 18th, 2025"
+_DATE_MDY_RE = re.compile(_MONTH + r"\s+" + _DAY + r",?\s+" + _YEAR, re.IGNORECASE)
+# "18 June 2025", "18th Jun. 2025"
+_DATE_DMY_RE = re.compile(_DAY + r"\s+" + _MONTH + r",?\s+" + _YEAR, re.IGNORECASE)
 _NUM_EU_RE = re.compile(r"(?<!\d)(?:\d{1,3}(?:\.\d{3})+|\d+),\d+(?!\d)")
 _NUM_PLAIN_RE = re.compile(r"(?<!\d)\d+(?:\.\d+)?(?!\d)")
 
@@ -193,6 +223,20 @@ def _tokenise(text: str, known_refs: Iterable[str] = ()) -> _Tokens:
 
     text = _DATE_ISO_RE.sub(_date_sub((1, 2, 3)), text)
     text = _DATE_EU_RE.sub(_date_sub((3, 2, 1)), text)
+
+    def _words_sub(day_group: int, month_group: int):
+        def _sub(m: re.Match[str]) -> str:
+            month = _MONTH_NUMBER[m.group(month_group).lower()[:3]]
+            try:
+                dates.add(date(int(m.group(3)), month, int(m.group(day_group))))
+            except ValueError:
+                malformed.append(m.group(0))
+            return " "
+
+        return _sub
+
+    text = _DATE_MDY_RE.sub(_words_sub(2, 1), text)
+    text = _DATE_DMY_RE.sub(_words_sub(1, 2), text)
 
     refs = sorted({r for r in known_refs if r}, key=len, reverse=True)
     if refs:
@@ -447,7 +491,8 @@ def _call_llm(
         "those inputs. "
         f"Cite at least one source reference from: {alert.source_refs}. "
         "Answer in plain prose of at most three sentences: no lists, no JSON, no repetition "
-        "of the input. Write source references exactly as given."
+        "of the input. Write source references exactly as given. "
+        "Write every date exactly as given, in YYYY-MM-DD form."
     )
     # pandas date_format="iso" would render date cells as "...T00:00:00.000", so every
     # date-holding column is mapped to plain ISO strings first (missing values stay None).

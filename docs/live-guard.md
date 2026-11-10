@@ -104,6 +104,9 @@ What the guard does and does not do:
   `181 EUR` is still rejected.
 - It also rejects a currency symbol or code that the cited rows and the alert data do not name,
   for example `$` on a euro account. With no currency named anywhere, that check is skipped.
+- A date written in words (`July 31, 2026`, `31 July 2026`, `Jul. 31st, 2026`) is checked like an
+  ISO date: it must be one of the dates of the cited rows or the alert data, and `February 30, 2026`
+  is rejected as malformed.
 - It was changed only after a real run, never to make the demo look better: an invented amount is
   still caught wherever it stands in an answer.
 

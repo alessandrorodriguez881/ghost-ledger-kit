@@ -190,6 +190,38 @@ one pattern.
   *Limits*; the "strict by design" bullet now matches the guard. `tests/test_live_guard_docs.py` is
   not edited and still holds (five `##` sections, required phrases).
 
+## Task LG16 — Dates in words, tests (A-LG-02)
+
+**Covers**: REQ-LG-28 to REQ-LG-32, DN-LG-32 to DN-LG-34
+
+- [x] Tests first in `tests/test_explainer_dates_in_words.py` (own loader of the run2 record; the
+  run1 file `tests/test_explainer_live_run.py` is not edited): replay of Z1b, Z2b, Z3b, Z5b, P1b,
+  P2b, P3b, V1b, V2b (accepted only if every date in words is allowed, else rejected naming the
+  date), Z4b rejected with `539.40`, Z6b no date part reported as a number; negatives `February 30,
+  2026` malformed, `July 31, 2027` rejected when only `2026-07-31` is allowed, `31 July 2026`
+  accepted, bare `in June` leaves numbers untouched; Hypothesis round trip.
+
+## Task LG17 — Dates in words, tokeniser (A-LG-02)
+
+**Covers**: REQ-LG-28 to REQ-LG-30, DN-LG-32 to DN-LG-34
+
+- [x] In `ledger_kit/explainer.py`: `_MONTH_NAMES`, `_MONTH_NUMBER`, `_DATE_MDY_RE`, `_DATE_DMY_RE`
+  and the two passes in `_tokenise`, after the ISO and `dd/mm/yyyy` passes.
+
+## Task LG18 — System message asks for ISO dates (A-LG-02)
+
+**Covers**: REQ-LG-31, DN-LG-35
+
+- [x] Test first (last sentence present, every old sentence still present), then the sentence in
+  `_call_llm`.
+
+## Task LG19 — Documentation (A-LG-02)
+
+**Covers**: REQ-LG-33
+
+- [x] One bullet in `docs/live-guard.md` under *What to expect*; `tests/test_live_guard_docs.py` is
+  not edited and still holds (five `##` sections, required phrases).
+
 ## Not verified by the author
 
 The spec was written without running a command. Unverified on purpose: the `winget` package id

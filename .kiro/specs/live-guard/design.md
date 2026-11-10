@@ -208,3 +208,26 @@ alert and the cited rows from the committed demo files through each app's own `r
 one negative test per rule; Tier 3 a Hypothesis property (an invented amount inserted at any
 position of an accepted answer is rejected). A record that misses its verdict is `xfail` with the
 token, never a new rule.
+
+## §10 Amendment A-LG-02: dates written in words (REQ-LG-28 to REQ-LG-33)
+
+**What was read.** The run2 record `data/live_runs/2026-11-10_llama3.2-3b_run2.json` (raw answers as
+received), `_tokenise`, `_allowed_dates` and `_passes_number_guard` in `ledger_kit/explainer.py`.
+The four false rejections (Z1b, P1b, V1b, V2b) share one cause: `July 31, 2026` is split by
+`_NUM_PLAIN_RE` into `31` and `2026`.
+
+| # | Decision | Reason |
+|---|---|---|
+| DN-LG-32 | Two regexes, `_DATE_MDY_RE` (`Month D, YYYY`, `Month D YYYY`) and `_DATE_DMY_RE` (`D Month YYYY`), run in `_tokenise` right after the ISO and `dd/mm/yyyy` passes and before the source-ref and number passes. A match is replaced by a space, like every other token. A month name alone, or with only a day or only a year, matches neither regex. | A date must be taken out of the text before the number passes, or its parts become numbers. Requiring day and year together keeps `in June` and `June 2026` out (REQ-LG-30). |
+| DN-LG-33 | A written date is built with `date(year, month, day)`: a `ValueError` (`February 30`, `31 April`, day `0`) appends the text as written to `malformed_dates`; a valid one joins `dates` and is judged against `_allowed_dates` like an ISO date, so `_passes_number_guard` is unchanged and a rejected written date is reported through the existing `isoformat()` path. | One rule for every date notation; the set of allowed dates is not widened. |
+| DN-LG-34 | Month names are the twelve English names plus their first three letters (`May` is both), matched case-insensitively, with an optional dot after the abbreviation, not inside a longer word (`(?<![A-Za-z])` and `(?![A-Za-z])`); the day takes an optional `st`/`nd`/`rd`/`th`; the year is exactly four digits. No `Sept`, no `of`, no Spanish month names. | The brief lists these forms; the model wrote English. A narrower set cannot hide a figure: anything not matched keeps the strict number rule. |
+| DN-LG-35 | The system message gets one more sentence at the end: `Write every date exactly as given, in YYYY-MM-DD form.` No other sentence changes. | It reduces dates in words at the source; the guard rule above is still needed because a 3B model does not always obey. |
+| DN-LG-36 | Known limit, not fixed: `highlight_segments` (REQ-LG-08) marks a rejected date in its ISO and `dd/mm/yyyy` forms only, so a rejected date in words is named in the verdict line (in ISO) but not marked in the raw answer. | The brief limits the change to `explainer.py`, its tests, this spec and one line of `docs/live-guard.md`. Same kind of limit as DN-LG-31. |
+
+**Test plan.** `tests/test_explainer_dates_in_words.py`: Tier 1 the replay of run2 (alert and cited
+rows rebuilt from the committed demo files; a record with a date in words is accepted only if every
+such date is allowed, else rejected and the date named; Z4b rejected with `539.40`; Z6b only
+"no date part reported as a number"); Tier 2 every written form, all twelve months in full, short and
+dotted forms, the negative examples of REQ-LG-29 and REQ-LG-30, the system message; Tier 3 a
+Hypothesis property (any valid date from year 1000 written in any of the forms is read back exactly,
+with no leftover number).
