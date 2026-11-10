@@ -68,6 +68,28 @@ from apps.phantom_invoices.settings import (  # noqa: E402
 )
 from ledger_kit.explainer import Explanation, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
+from ledger_kit.live_guard import (  # noqa: E402
+    ASK_LABEL,
+    LIVE_ASKS_PER_SESSION_LIMIT,
+    MSG_LIMIT,
+    NOTE_GUARD_SCOPE,
+    PANEL_TITLE,
+    RAW_LABEL,
+    TEMPLATE_LABEL,
+    TRICK_QUESTIONS,
+    Counts,
+    LiveStatus,
+    ProbeResult,
+    TrickQuestion,
+    counter_caption,
+    highlight_html,
+    intro_line,
+    live_status,
+    no_answer_message,
+    probe_result,
+    tally,
+    verdict_line,
+)
 from ledger_kit.models import Alert  # noqa: E402
 
 ROOT = _ROOT
@@ -88,6 +110,9 @@ DEMO_FORMAT_KEY = "pi_demo_format"
 UPLOAD_INVOICES_KEY = "pi_upload_invoices"
 UPLOAD_SUPPLIERS_KEY = "pi_upload_suppliers"
 UPLOAD_PAYMENTS_KEY = "pi_upload_payments"
+# Live-guard panel: plain session values (probe results and the counter), not widgets.
+LG_RESULTS_KEY = "pi_lg_results"
+LG_COUNTS_KEY = "pi_lg_counts"
 
 # Widget state is dropped when a run does not render the widget (the user visited another page of
 # the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
@@ -158,6 +183,8 @@ def _init_state() -> None:
     st.session_state.setdefault("selected_alert", NO_FLASHLIGHT)
     st.session_state.setdefault("pipeline_cache", {})
     st.session_state.setdefault(EXPLANATIONS_KEY, {})
+    st.session_state.setdefault(LG_RESULTS_KEY, {})
+    st.session_state.setdefault(LG_COUNTS_KEY, Counts(0, 0, 0))
 
 
 def _render_sidebar() -> dict[str, Any]:
@@ -310,6 +337,68 @@ def _render_ledger(pipeline: Pipeline, alerts: Sequence[Alert]) -> None:
         _render_cited_rows(pipeline, lit_refs)
 
 
+def _ask_model(alert: Alert, pipeline: Pipeline, question: TrickQuestion) -> None:
+    """on_click of Ask the model: one real call, kept apart from the card text (DN-LG-07)."""
+    meta = explain_alert(
+        alert,
+        pipeline.invoices,
+        pipeline.suppliers,
+        pipeline.payments,
+        client=None,
+        question=question.text,
+    )
+    result = probe_result(question, meta, fill_fallback(template_for(alert), alert))
+    st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
+    st.session_state[LG_COUNTS_KEY] = tally(st.session_state[LG_COUNTS_KEY], result)
+
+
+def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
+    """Show the raw answer, the guard verdict and the fixed template of one probe."""
+    if result.verdict == "unavailable":
+        st.warning(no_answer_message(status.timeout_seconds))
+    else:
+        st.markdown(f"**{RAW_LABEL}**")
+        st.markdown(
+            highlight_html(result.raw_answer, result.rejected_numbers), unsafe_allow_html=True
+        )
+        st.markdown(verdict_line(result))
+        st.caption(NOTE_GUARD_SCOPE)
+    st.markdown(f"**{TEMPLATE_LABEL}**")
+    st.markdown(markdown_safe(result.template_text))
+
+
+def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
+    """Provoke the LLM: three preset questions to the configured real model (never the stub)."""
+    status = live_status(os.environ)
+    labels = [q.label for q in TRICK_QUESTIONS]
+    counts = st.session_state[LG_COUNTS_KEY]
+    with st.expander(PANEL_TITLE):
+        st.caption(intro_line(status.model))
+        label = st.radio(
+            "Trick question",
+            labels,
+            key=f"pi_lg_q_{alert.id}",
+            disabled=not status.enabled,
+            label_visibility="collapsed",
+        )
+        question = TRICK_QUESTIONS[labels.index(label)]
+        st.button(
+            ASK_LABEL,
+            key=f"pi_lg_ask_{alert.id}",
+            disabled=not (status.enabled and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            on_click=_ask_model,
+            args=(alert, pipeline, question),
+        )
+        result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
+        if result is not None:
+            _render_probe_result(result, status)
+        if not status.enabled:
+            st.caption(status.caption)
+        elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
+            st.caption(MSG_LIMIT)
+        st.caption(counter_caption(counts))
+
+
 def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
     """One alert card: title, detector label, explanation, guard badge, refs and captions."""
     explanation = _explain(alert, pipeline, hallucinate)
@@ -332,6 +421,7 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         for caption in alert_captions(alert):
             st.caption(caption)
         st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
+        _render_live_panel(alert, pipeline)
 
 
 def _render_alerts(alerts: Sequence[Alert], pipeline: Pipeline, hallucinate: bool) -> None:

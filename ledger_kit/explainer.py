@@ -4,8 +4,8 @@ import logging
 import os
 import re
 import string
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Literal
@@ -16,7 +16,10 @@ from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount, format_index, format_percent
 
 # Streamlit renders alerts synchronously: keep the LLM call short.
-LLM_TIMEOUT_SECONDS: int = 10  # seconds before giving up
+LLM_TIMEOUT_SECONDS: int = 10  # default seconds before giving up
+LLM_TIMEOUT_MIN_SECONDS: int = 1  # smallest accepted LEDGER_KIT_LLM_TIMEOUT
+LLM_TIMEOUT_MAX_SECONDS: int = 120  # largest accepted LEDGER_KIT_LLM_TIMEOUT
+LLM_TIMEOUT_ENV: str = "LEDGER_KIT_LLM_TIMEOUT"  # optional override, whole seconds
 LLM_MAX_RETRIES: int = 1  # one attempt; callers cache per alert.id
 
 # Default columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-11).
@@ -27,6 +30,17 @@ _NEVER_SENT_COLUMNS = frozenset({"id", "description", "iban"})
 _log = logging.getLogger(__name__)
 
 
+def llm_timeout_seconds(env: Mapping[str, str] | None = None) -> int:
+    """Return the effective call timeout: LEDGER_KIT_LLM_TIMEOUT if valid, else the default."""
+    source = os.environ if env is None else env
+    text = str(source.get(LLM_TIMEOUT_ENV, "")).strip()
+    if text.isascii() and text.isdigit():
+        value = int(text)
+        if LLM_TIMEOUT_MIN_SECONDS <= value <= LLM_TIMEOUT_MAX_SECONDS:
+            return value
+    return LLM_TIMEOUT_SECONDS
+
+
 @dataclass(frozen=True)
 class Explanation:
     """Result of explain_with_meta(). `source` is 'llm' or 'fallback'."""
@@ -34,6 +48,8 @@ class Explanation:
     text: str
     source: Literal["llm", "fallback"]
     rejected_numbers: tuple[str, ...]  # tokens the guard found and rejected
+    # The model's text as received (accepted or rejected); "" when it did not answer.
+    raw_answer: str = field(default="", compare=False, repr=False)
 
 
 def explain(
@@ -43,6 +59,7 @@ def explain(
     fallback_template: str,
     client=None,
     row_columns: Sequence[str] | None = None,
+    question: str | None = None,
 ) -> str:
     """Return a plain-English explanation for `alert` (guarded text only)."""
     return explain_with_meta(
@@ -51,6 +68,7 @@ def explain(
         fallback_template=fallback_template,
         client=client,
         row_columns=row_columns,
+        question=question,
     ).text
 
 
@@ -61,6 +79,7 @@ def explain_with_meta(
     fallback_template: str,
     client=None,
     row_columns: Sequence[str] | None = None,
+    question: str | None = None,
 ) -> Explanation:
     """Return an Explanation; falls back to the filled template on any error or rejection."""
     narrow_rows = _select_llm_columns(rows, row_columns)
@@ -70,16 +89,18 @@ def explain_with_meta(
     if not api_key and client is None:
         return Explanation(text=fallback, source="fallback", rejected_numbers=())
 
-    raw = _call_llm(alert, narrow_rows, client=client)
+    raw = _call_llm(alert, narrow_rows, client=client, question=question)
     if raw is None:
         return Explanation(text=fallback, source="fallback", rejected_numbers=())
 
     ok, rejected = _passes_number_guard(raw, alert, narrow_rows, row_columns)
     if not ok:
         _log.warning("Number guard rejected LLM response for alert %s: %s", alert.id, rejected)
-        return Explanation(text=fallback, source="fallback", rejected_numbers=rejected)
+        return Explanation(
+            text=fallback, source="fallback", rejected_numbers=rejected, raw_answer=raw
+        )
 
-    return Explanation(text=raw, source="llm", rejected_numbers=())
+    return Explanation(text=raw, source="llm", rejected_numbers=(), raw_answer=raw)
 
 
 def _select_llm_columns(
@@ -279,7 +300,9 @@ def _passes_number_guard(
 # --- LLM call -----------------------------------------------------------------------------
 
 
-def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
+def _call_llm(
+    alert: Alert, rows: pd.DataFrame, *, client=None, question: str | None = None
+) -> str | None:
     """Call the LLM once; any failure returns None so the caller uses the fallback."""
     model = os.environ.get("LEDGER_KIT_LLM_MODEL", "gpt-4o-mini")
     system_prompt = (
@@ -298,6 +321,8 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
             rows[col] = rows[col].map(lambda d: d.isoformat() if isinstance(d, date) else None)
     rows_json = rows.to_json(orient="records", default_handler=str)
     user_content = f"Alert: {alert.model_dump_json()}\n\nSource rows:\n{rows_json}"
+    if question:
+        user_content += "\n\nQuestion from the user: " + question
 
     for attempt in range(LLM_MAX_RETRIES):
         try:
@@ -307,7 +332,7 @@ def _call_llm(alert: Alert, rows: pd.DataFrame, *, client=None) -> str | None:
                 client = openai.OpenAI(
                     base_url=os.environ.get("OPENAI_BASE_URL") or None,
                     api_key=os.environ["OPENAI_API_KEY"],
-                    timeout=LLM_TIMEOUT_SECONDS,
+                    timeout=llm_timeout_seconds(),
                     max_retries=0,  # SDK default is 2; LLM_MAX_RETRIES is the only retry knob
                 )
             response = client.chat.completions.create(

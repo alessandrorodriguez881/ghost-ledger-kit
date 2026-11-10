@@ -160,8 +160,12 @@ def explain_alert(
     payments: pd.DataFrame,
     *,
     client: Any = None,
+    question: str | None = None,
 ) -> Explanation:
-    """Explain one alert from its cited rows; falls back to the filled template on any problem."""
+    """Explain one alert from its cited rows; falls back to the filled template on any problem.
+
+    `question` is the optional trick question of the live-guard panel; None leaves the call as is.
+    """
     rows = build_explain_rows(alert, invoices, suppliers, payments)
     return explain_with_meta(
         alert,
@@ -169,6 +173,7 @@ def explain_alert(
         fallback_template=template_for(alert),
         client=client,
         row_columns=ROW_COLUMNS,
+        question=question,
     )
 
 

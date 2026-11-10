@@ -97,7 +97,8 @@ and does no I/O. All its public names have annotations and a one-line docstring.
   - `CAPTION_OFF` (no key, no base URL):
     `Live model off. To try a real model set OPENAI_API_KEY; for a local model with Ollama also set OPENAI_BASE_URL=http://localhost:11434/v1 and LEDGER_KIT_LLM_MODEL to the model you pulled. Steps: docs/live-guard.md. The "Simulate a hallucinating LLM" switch in the sidebar works without any of this.`
   - `CAPTION_URL_WITHOUT_KEY` (base URL set, key not):
-    `OPENAI_BASE_URL is set but OPENAI_API_KEY is not. Set OPENAI_API_KEY to any value (Ollama ignores it) to turn the live model on. Steps: docs/live-guard.md.`
+    `OPENAI_BASE_URL is set but OPENAI_API_KEY is not. Set OPENAI_API_KEY to any non-empty value to turn the live model on: local servers such as Ollama accept any non-empty key. Steps: docs/live-guard.md.`
+  - `LiveStatus` has a fourth field `timeout_seconds: int` (default 10), the effective call timeout from the optional `LEDGER_KIT_LLM_TIMEOUT` (whole seconds, 1 to 120; anything else gives 10, DN-LG-18). `live_status` reads that variable too.
   - Example: `live_status({})` → `LiveStatus(False, "gpt-4o-mini", CAPTION_OFF)`.
   - Example: `live_status({"OPENAI_API_KEY": "ollama", "OPENAI_BASE_URL": "http://localhost:11434/v1",
     "LEDGER_KIT_LLM_MODEL": "llama3.2:1b"})` → `LiveStatus(True, "llama3.2:1b", "")`.
@@ -196,7 +197,7 @@ never share one (REQ-SC-04).
 - **REQ-LG-12** *If* the model does not answer (provider error, timeout, empty answer, missing
   `openai` package), *then* the panel shall show exactly
   `The model did not answer (error, empty answer or no reply within 10 seconds). The card keeps the fixed template. Nothing was counted as checked.`
-  (the number is `LLM_TIMEOUT_SECONDS`), show the fixed template, and never show the exception text,
+  (the number is the effective timeout, 10 by default, `LLM_TIMEOUT_SECONDS`; `LEDGER_KIT_LLM_TIMEOUT` can change it, DN-LG-18), show the fixed template, and never show the exception text,
   the base URL or the key. `asked` still increases (REQ-LG-07); `checked` and `rejected` do not.
   - Example: fake client raises `RuntimeError("connect to http://localhost:11434 failed")` → the
     page text contains the sentence above and does not contain `localhost`.

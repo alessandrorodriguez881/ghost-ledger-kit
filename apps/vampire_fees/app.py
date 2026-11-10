@@ -46,8 +46,30 @@ from apps.vampire_fees.settings import (  # noqa: E402
     summary_view,
     vocabulary_lines,
 )
-from ledger_kit.explainer import Explanation, explain_with_meta  # noqa: E402
+from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
+from ledger_kit.live_guard import (  # noqa: E402
+    ASK_LABEL,
+    LIVE_ASKS_PER_SESSION_LIMIT,
+    MSG_LIMIT,
+    NOTE_GUARD_SCOPE,
+    PANEL_TITLE,
+    RAW_LABEL,
+    TEMPLATE_LABEL,
+    TRICK_QUESTIONS,
+    Counts,
+    LiveStatus,
+    ProbeResult,
+    TrickQuestion,
+    counter_caption,
+    highlight_html,
+    intro_line,
+    live_status,
+    no_answer_message,
+    probe_result,
+    tally,
+    verdict_line,
+)
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     SEVERITY_BADGES,
@@ -69,6 +91,9 @@ DEMO_FORMAT_KEY = "vf_demo_format"
 UPLOAD_STATEMENT_KEY = "vf_upload_statement"
 INGESTION_CACHE_KEY = "vf_ingestion_cache"
 KEPT_KEY = "vf_kept"
+# Live-guard panel: plain session values (probe results and the counter), not widgets.
+LG_RESULTS_KEY = "vf_lg_results"
+LG_COUNTS_KEY = "vf_lg_counts"
 
 # Widget state is dropped when a run does not render the widget (the user visited another page of
 # the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
@@ -155,6 +180,8 @@ def _init_state() -> None:
     st.session_state.setdefault(DEMO_FORMAT_KEY, next(iter(DEMO_FORMATS)))
     st.session_state.setdefault(INGESTION_CACHE_KEY, {})
     st.session_state.setdefault(EXPLANATIONS_KEY, {})
+    st.session_state.setdefault(LG_RESULTS_KEY, {})
+    st.session_state.setdefault(LG_COUNTS_KEY, Counts(0, 0, 0))
 
 
 def _render_sidebar(config: dict[str, Any]) -> Any:
@@ -253,6 +280,65 @@ def _render_coffins(alerts: Sequence[Alert]) -> None:
                     st.markdown(_refs_markdown(view.source_refs))
 
 
+def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> None:
+    """on_click of Ask the model: one real call, kept apart from the card text (DN-LG-07)."""
+    rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
+    template = template_for(alert)
+    meta = explain_with_meta(
+        alert, rows, fallback_template=template, client=None, question=question.text
+    )
+    result = probe_result(question, meta, fill_fallback(template, alert))
+    st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
+    st.session_state[LG_COUNTS_KEY] = tally(st.session_state[LG_COUNTS_KEY], result)
+
+
+def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
+    """Show the raw answer, the guard verdict and the fixed template of one probe."""
+    if result.verdict == "unavailable":
+        st.warning(no_answer_message(status.timeout_seconds))
+    else:
+        st.markdown(f"**{RAW_LABEL}**")
+        st.markdown(
+            highlight_html(result.raw_answer, result.rejected_numbers), unsafe_allow_html=True
+        )
+        st.markdown(verdict_line(result))
+        st.caption(NOTE_GUARD_SCOPE)
+    st.markdown(f"**{TEMPLATE_LABEL}**")
+    st.write(result.template_text)
+
+
+def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
+    """Provoke the LLM: three preset questions to the configured real model (never the stub)."""
+    status = live_status(os.environ)
+    labels = [q.label for q in TRICK_QUESTIONS]
+    counts = st.session_state[LG_COUNTS_KEY]
+    with st.expander(PANEL_TITLE):
+        st.caption(intro_line(status.model))
+        label = st.radio(
+            "Trick question",
+            labels,
+            key=f"vf_lg_q_{alert.id}",
+            disabled=not status.enabled,
+            label_visibility="collapsed",
+        )
+        question = TRICK_QUESTIONS[labels.index(label)]
+        st.button(
+            ASK_LABEL,
+            key=f"vf_lg_ask_{alert.id}",
+            disabled=not (status.enabled and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            on_click=_ask_model,
+            args=(alert, ledger, question),
+        )
+        result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
+        if result is not None:
+            _render_probe_result(result, status)
+        if not status.enabled:
+            st.caption(status.caption)
+        elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
+            st.caption(MSG_LIMIT)
+        st.caption(counter_caption(counts))
+
+
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
@@ -270,6 +356,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
             st.dataframe(format_for_display(cited), hide_index=True, width="stretch")
+        _render_live_panel(alert, ledger)
 
 
 def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: bool) -> None:

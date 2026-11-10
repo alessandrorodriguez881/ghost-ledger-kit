@@ -58,10 +58,18 @@ TEST_MODULES = (
     "structure_steering",
     "demo_e2e",
     "real_formats",
+    "live_guard",
 )
 # conftest.py and pi_checkers.py are in the spec; pi_builders.py and pi_strategies.py hold the
-# builders and strategies that conftest.py re-exports.
-TEST_HELPERS = {"conftest.py", "pi_builders.py", "pi_checkers.py", "pi_strategies.py"}
+# builders and strategies that conftest.py re-exports; pi_live_fakes.py is the fake `openai`
+# module of the live-guard tests (live-guard LG5).
+TEST_HELPERS = {
+    "conftest.py",
+    "pi_builders.py",
+    "pi_checkers.py",
+    "pi_strategies.py",
+    "pi_live_fakes.py",
+}
 HELPER_PATHS = {f"tests/{name}" for name in TEST_HELPERS}
 MODULE_PATHS = {f"tests/test_pi_{module}.py" for module in TEST_MODULES}
 SPEC_FILES = APP_FILES | DETECTOR_FILES | HELPER_PATHS | MODULE_PATHS
@@ -106,7 +114,7 @@ def test_phantom_block_lists_exactly_the_spec_files() -> None:
     listed = {path for path in _tree_files() if path.startswith(PHANTOM)}
 
     assert listed == EXPECTED_PHANTOM_FILES
-    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 7 + 6 + 4 + 24
+    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 7 + 6 + 5 + 25
 
 
 def test_phantom_block_has_no_requirements_txt() -> None:

@@ -4,6 +4,8 @@
 reads the system clock or the network; the demo files are the committed synthetic ones.
 """
 
+import sys
+import types
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -14,7 +16,10 @@ import apps.phantom_invoices.detectors  # noqa: F401  (registers the pi.* detect
 import apps.vampire_fees.detectors  # noqa: F401  (registers the vf.* detectors)
 import apps.zombie_subscriptions.detectors  # noqa: F401  (registers the zs.* detectors)
 import streamlit_app
+from apps.phantom_invoices import app as pi_app
 from apps.phantom_invoices.settings import SIGNATURE_NOTE
+from apps.vampire_fees import app as vf_app
+from apps.zombie_subscriptions import app as zs_app
 from ledger_kit.detectors import _restore_registry, _snapshot_registry, registered_names
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -385,3 +390,74 @@ def test_registries_are_untouched_by_a_showcase_session() -> None:
     _vampire_demo(_vampire(at))
 
     assert [sorted(registered_names(namespace)) for namespace in names] == before
+
+
+# --- live-guard: keys and counters stay per app (REQ-LG-17) ---------------------------------------
+
+
+def _install_plain_fake_openai(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Install a fake `openai` whose every answer is a figure-free sentence; return its calls."""
+    calls: list[dict] = []
+
+    class _Completions:
+        def create(self, **kwargs):
+            calls.append(kwargs)
+            message = types.SimpleNamespace(content="Nothing here is a figure.")
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=message)])
+
+    class _Client:
+        def __init__(self, **_kwargs):
+            self.chat = types.SimpleNamespace(completions=_Completions())
+
+    module = types.ModuleType("openai")
+    module.OpenAI = _Client  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "openai", module)
+    return calls
+
+
+def _counter_captions(at: AppTest) -> list[str]:
+    """The live-guard counter lines of the page."""
+    return [c.value for c in at.caption if c.value.startswith("Answers checked:")]
+
+
+def test_live_guard_session_keys_are_distinct_per_app_and_not_widget_keys() -> None:
+    """The result and counter keys carry one prefix each and are not in any WIDGET_KEYS."""
+    keys = {
+        "zs": (zs_app.LG_RESULTS_KEY, zs_app.LG_COUNTS_KEY, zs_app.WIDGET_KEYS),
+        "pi": (pi_app.LG_RESULTS_KEY, pi_app.LG_COUNTS_KEY, pi_app.WIDGET_KEYS),
+        "vf": (vf_app.LG_RESULTS_KEY, vf_app.LG_COUNTS_KEY, vf_app.WIDGET_KEYS),
+    }
+    session_keys = []
+    for prefix, (results, counts, widget_keys) in keys.items():
+        assert results == f"{prefix}_lg_results"
+        assert counts == f"{prefix}_lg_counts"
+        assert results not in widget_keys and counts not in widget_keys
+        assert not any("_lg_" in key for key in widget_keys)
+        session_keys += [results, counts]
+    assert len(set(session_keys)) == 6
+
+
+def test_live_guard_counters_are_kept_apart_inside_the_showcase(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A probe on the zombie page leaves the vampire counter at zero, and survives navigation."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-real")
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    calls = _install_plain_fake_openai(monkeypatch)
+
+    at = _zombie_demo(_zombie(_run()))
+    ask = [b for b in at.button if (b.key or "").startswith("zs_lg_ask_")]
+    ask[0].click().run()
+    assert not at.exception
+    assert set(_counter_captions(at)) == {"Answers checked: 1 · rejected: 0"}
+    question_calls = [c for c in calls if "Question from the user:" in c["messages"][1]["content"]]
+    assert len(question_calls) == 1
+
+    _vampire(at)
+    _vampire_demo(at)
+    assert set(_counter_captions(at)) == {"Answers checked: 0 · rejected: 0"}
+    assert at.session_state["vf_lg_counts"].asked == 0
+
+    _zombie(at)
+    assert set(_counter_captions(at)) == {"Answers checked: 1 · rejected: 0"}
+    assert at.session_state["zs_lg_counts"].asked == 1

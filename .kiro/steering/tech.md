@@ -60,13 +60,14 @@ class Alert(BaseModel):
 ## LLM integration constraints
 - The explanation layer must call the LLM with a **system prompt** that includes the phrase: *"You must not invent any number, date, name, or amount. Every figure you mention must appear verbatim either in the source rows provided or in the structured fields of the alert (such as yearly_cost). Do not derive, round, or estimate any figure not explicitly present in those inputs."*
 - The LLM is called with `temperature=0` to maximise determinism.
-- The result is an `Explanation(text, source, rejected_numbers)`. `source` is `"llm"` or `"fallback"`; a rejected answer is discarded, not stored (the offending tokens are kept in `rejected_numbers`).
-- A single attempt per call: `LLM_MAX_RETRIES = 1`, `LLM_TIMEOUT_SECONDS = 10` (Streamlit renders synchronously). There is no back-off loop. The auto-created `openai.OpenAI` client uses `max_retries=0` so the SDK does not retry on top of this. Apps cache explanations by `(alert.id, client_mode)`.
+- The result is an `Explanation(text, source, rejected_numbers)`. `source` is `"llm"` or `"fallback"`; a rejected answer never becomes `text` (the offending tokens are kept in `rejected_numbers`). The optional field `raw_answer` (excluded from comparison and `repr`) keeps the model's text as received so the live-guard panel can show it next to the verdict; `explain_with_meta(..., question=...)` appends a user question to the user message only and never changes the system prompt or the guard.
+- A single attempt per call: `LLM_MAX_RETRIES = 1`, `LLM_TIMEOUT_SECONDS = 10` (Streamlit renders synchronously). The optional environment variable `LEDGER_KIT_LLM_TIMEOUT` overrides the 10 seconds with a whole number from `LLM_TIMEOUT_MIN_SECONDS = 1` to `LLM_TIMEOUT_MAX_SECONDS = 120`; any other value, or none, falls back to 10 without an error (`llm_timeout_seconds()` in `explainer.py`). There is no back-off loop. The auto-created `openai.OpenAI` client uses `max_retries=0` so the SDK does not retry on top of this. Apps cache explanations by `(alert.id, client_mode)`.
 - Any error, timeout, missing key/package or number-guard rejection returns the filled fallback template; the exception never propagates.
 
 ## Configuration
 - App-level configuration (thresholds, currency, locale) lives in `config.toml` at the app root.
 - Secrets (API keys) are loaded from environment variables only; never committed to source.
+- Optional LLM environment variables: `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `LEDGER_KIT_LLM_MODEL`, `LEDGER_KIT_LLM_TIMEOUT` (see `.env.example` and `docs/live-guard.md`).
 - Use `python-dotenv` for local development `.env` files.
 
 ## Code style

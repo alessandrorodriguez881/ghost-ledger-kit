@@ -23,6 +23,8 @@ The explanation is decorative. It never feeds back into the alert logic, and it 
 
 **The proof is a switch.** Both apps have a sidebar toggle, *Simulate a hallucinating LLM*. It replaces the model with a stub that always answers with an invented figure (99999.99). The number guard rejects that answer, the card shows the fixed template, and the alert card shows a warning badge. You can watch the guard work without an API key.
 
+**The proof, live.** Every alert card of the three apps also has a *Provoke the LLM* panel: three preset questions that tempt a real model to state a figure that is not in the cited rows. It uses the model set through `OPENAI_API_KEY` (a local model through Ollama works too) and is off while no key is set. The panel shows the raw answer before the guard, marks the rejected tokens and shows the fixed template next to it. In general, small local models invent figures more often than large hosted ones, so on a local model a rejection is the likely outcome, and that is the point of the demo. The guard checks figures, dates and IBAN-shaped tokens only and does not judge wording: an accepted answer is not a statement that it is true, and a harmless count such as `3 months` is rejected too. The first call to a local model can take longer than the 10 seconds allowed, so warm it up first. Steps for Windows with Ollama are in `docs/live-guard.md`.
+
 ### Real Spanish formats
 
 Both apps read the formats Spanish banks and invoicing software actually produce, not only CSV. The two readers live in `ledger_kit/ingestion/`, and the router in `sniffer.py` picks the reader from the file content.
