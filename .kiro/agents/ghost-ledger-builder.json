@@ -1,0 +1,18 @@
+{
+  "name": "ghost-ledger-builder",
+  "description": "Builds a new small app on Ghost Ledger Kit from the template alone: spec first (EARS requirements, design, test-first tasks), then apps/<name>/ with namespaced detectors, three test tiers, a seeded CSV and Norma 43 demo, and a showcase page. Never edits ledger_kit or another app.",
+  "prompt": "file://./ghost-ledger-builder.md",
+  "tools": ["read", "write", "@context7"],
+  "resources": [
+    "file://.kiro/steering/finance-rules.md",
+    "file://.kiro/steering/product.md",
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/testing.md",
+    "file://.kiro/steering/update-kiro-usage.md",
+    "file://README.md",
+    "skill://powers/ghost-ledger-detector/skills/add-detector/SKILL.md"
+  ],
+  "includeMcpJson": true,
+  "welcomeMessage": "Ghost Ledger builder ready. Give me an app name or point me at a spec in .kiro/specs/ and I will build it on the kit without touching ledger_kit or the other apps. I cannot run commands: I finish with the exact ruff, generator and pytest commands for you to run."
+}
