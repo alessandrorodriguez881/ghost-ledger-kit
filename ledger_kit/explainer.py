@@ -184,9 +184,27 @@ _MONTH = (
 _DAY = r"(?<![\d.,])(\d{1,2})(?:st|nd|rd|th)?(?!\d)"
 _YEAR = r"(?<!\d)(\d{4})(?!\d|[.,]\d)"
 # "June 18, 2025", "June 18 2025", "Jun. 18th, 2025"
-_DATE_MDY_RE = re.compile(_MONTH + r"\s+" + _DAY + r",?\s+" + _YEAR, re.IGNORECASE)
+_DATE_MDY = _MONTH + r"\s+" + _DAY + r",?\s+" + _YEAR
 # "18 June 2025", "18th Jun. 2025"
-_DATE_DMY_RE = re.compile(_DAY + r"\s+" + _MONTH + r",?\s+" + _YEAR, re.IGNORECASE)
+_DATE_DMY = _DAY + r"\s+" + _MONTH + r",?\s+" + _YEAR
+_DATE_MDY_RE = re.compile(_DATE_MDY, re.IGNORECASE)
+_DATE_DMY_RE = re.compile(_DATE_DMY, re.IGNORECASE)
+# A day of a partial date is not part of a decimal, a time or a code ("August 9.99" is no date).
+_DAY_PARTIAL = _DAY + r"(?![.,]\d|[/:-]\d)"
+# Partial dates, without a year (REQ-LG-34): "August 9", "9th Aug."
+_DATE_MD_PART = _MONTH + r"\s+" + _DAY_PARTIAL
+_DATE_DM_PART = _DAY_PARTIAL + r"\s+" + _MONTH
+_DATE_MD_PART_RE = re.compile(_DATE_MD_PART, re.IGNORECASE)
+_DATE_DM_PART_RE = re.compile(_DATE_DM_PART, re.IGNORECASE)
+# Group numbers of _WORDS_ITEM_RE: MDY 1-3 (month, day, year), DMY 4-6 (day, month, year),
+# month-day 7-8 (month, day), day-month 9-10 (day, month). Full forms come first.
+_WORDS_ITEM_RE = re.compile(
+    "|".join((_DATE_MDY, _DATE_DMY, _DATE_MD_PART, _DATE_DM_PART)), re.IGNORECASE
+)
+# What may stand between two dates of one list: ", ", ", and ", " and ", " & ".
+_DATE_LIST_SEP_RE = re.compile(
+    r"(?:,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s*&\s*)", re.IGNORECASE
+)
 _NUM_EU_RE = re.compile(r"(?<!\d)(?:\d{1,3}(?:\.\d{3})+|\d+),\d+(?!\d)")
 _NUM_PLAIN_RE = re.compile(r"(?<!\d)\d+(?:\.\d+)?(?!\d)")
 
@@ -199,6 +217,52 @@ class _Tokens:
     malformed_dates: tuple[str, ...]
     ibans: tuple[str, ...]
     numbers: tuple[str, ...]
+    # month-day dates written without a year anywhere: (as written, month, day)
+    partial_dates: tuple[tuple[str, int, int], ...] = ()
+
+
+def _words_parts(m: re.Match[str]) -> tuple[int, int]:
+    """Month number and day of a _WORDS_ITEM_RE match (any of its four forms)."""
+    if m.group(1) is not None:
+        month, day = m.group(1), m.group(2)
+    elif m.group(5) is not None:
+        month, day = m.group(5), m.group(4)
+    elif m.group(7) is not None:
+        month, day = m.group(7), m.group(8)
+    else:
+        month, day = m.group(10), m.group(9)
+    return _MONTH_NUMBER[month.lower()[:3]], int(day)
+
+
+def _year_lists(text: str, dates: set[date], malformed: list[str]) -> str:
+    """Give each partial date of a list the year of the dated item that ends the list.
+
+    "August 9, September 8, and October 8, 2026": the first two items take 2026 and join `dates`
+    (or `malformed` when the day does not exist); they are blanked. The last item is left for the
+    full-date passes. A partial date with no dated item after it in its list is left untouched.
+    """
+    taken: list[re.Match[str]] = []
+    pending: list[re.Match[str]] = []
+    last_end: int | None = None
+    for m in _WORDS_ITEM_RE.finditer(text):
+        if last_end is not None and not _DATE_LIST_SEP_RE.fullmatch(text[last_end : m.start()]):
+            pending = []  # something else stands between the items: not one list
+        last_end = m.end()
+        year = m.group(3) or m.group(6)
+        if year is None:
+            pending.append(m)
+            continue
+        for item in pending:
+            month, day = _words_parts(item)
+            try:
+                dates.add(date(int(year), month, day))
+            except ValueError:
+                malformed.append(item.group(0).strip().rstrip("."))
+        taken.extend(pending)
+        pending = []
+    for m in reversed(taken):
+        text = text[: m.start()] + " " + text[m.end() :]
+    return text
 
 
 def _tokenise(text: str, known_refs: Iterable[str] = ()) -> _Tokens:
@@ -235,6 +299,7 @@ def _tokenise(text: str, known_refs: Iterable[str] = ()) -> _Tokens:
 
         return _sub
 
+    text = _year_lists(text, dates, malformed)
     text = _DATE_MDY_RE.sub(_words_sub(2, 1), text)
     text = _DATE_DMY_RE.sub(_words_sub(1, 2), text)
 
@@ -243,11 +308,24 @@ def _tokenise(text: str, known_refs: Iterable[str] = ()) -> _Tokens:
         ref_re = re.compile(r"(?<![\w.])(?:" + "|".join(re.escape(r) for r in refs) + r")(?!\d)")
         text = ref_re.sub(" ", text)
 
+    partial: list[tuple[str, int, int]] = []
+
+    def _partial_sub(month_group: int, day_group: int):
+        def _sub(m: re.Match[str]) -> str:
+            month = _MONTH_NUMBER[m.group(month_group).lower()[:3]]
+            partial.append((m.group(0).strip().rstrip("."), month, int(m.group(day_group))))
+            return " "
+
+        return _sub
+
+    text = _DATE_MD_PART_RE.sub(_partial_sub(1, 2), text)
+    text = _DATE_DM_PART_RE.sub(_partial_sub(2, 1), text)
+
     for pattern in (_NUM_EU_RE, _NUM_PLAIN_RE):
         numbers.extend(pattern.findall(text))
         text = pattern.sub(" ", text)
 
-    return _Tokens(frozenset(dates), tuple(malformed), ibans, tuple(numbers))
+    return _Tokens(frozenset(dates), tuple(malformed), ibans, tuple(numbers), tuple(partial))
 
 
 def _parse_decimal(token: str) -> Decimal | None:
@@ -330,9 +408,16 @@ def _passes_number_guard(
         return False, tokens.ibans
     if tokens.malformed_dates:
         return False, tokens.malformed_dates
-    bad_dates = tokens.dates - _allowed_dates(alert, rows, row_columns)
+    allowed_dates = _allowed_dates(alert, rows, row_columns)
+    bad_dates = [d.isoformat() for d in sorted(tokens.dates - allowed_dates)]
+    # A date with no year anywhere is judged by month and day alone (REQ-LG-36).
+    allowed_days = {(d.month, d.day) for d in allowed_dates}
+    unknown_partial = (
+        written for written, month, day in tokens.partial_dates if (month, day) not in allowed_days
+    )
+    bad_dates += dict.fromkeys(unknown_partial)
     if bad_dates:
-        return False, tuple(sorted(d.isoformat() for d in bad_dates))
+        return False, tuple(bad_dates)
 
     allowed = _allowed_decimals(alert, rows, row_columns)
     rejected: list[str] = []
@@ -350,11 +435,21 @@ def _passes_number_guard(
 
 # A whole integer: not part of a longer number, a date, a ref or a hyphenated code.
 _INT = r"(?<![\d.,:/-])\d+(?!\d|[.,]\d|[/-]\d)"
-_INT_RE = re.compile(_INT)
-# "rows 181, 236, and 292": a list of integers after the keyword.
+# "rows 181, 236, and 292": a list of integers after the keyword. A range of two integers
+# ("9 to 312", "9 through 312", "9-312" with a hyphen or an en dash) is one member of the list
+# (REQ-LG-37).
 _CITE_SEPARATOR = r"(?:,\s+(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s*&\s*)"
+_RANGE_SEPARATOR = r"(?:\s+(?:to|through)\s+|\s*[-\u2013]\s*)"
+_RANGE_START = r"(?<![\d.,:/-])(\d+)(?!\d|[.,]\d)"
+_RANGE_END = r"(\d+)(?!\d|[.,]\d|[/-]\d)"
+_CITE_ITEM = "(?:" + _RANGE_START + _RANGE_SEPARATOR + _RANGE_END + "|" + _INT + ")"
 _ROW_CITATION_RE = re.compile(
-    r"\b(?:rows?|lines?)\s+(" + _INT + "(?:" + _CITE_SEPARATOR + _INT + ")*)", re.IGNORECASE
+    r"\b(?:rows?|lines?)\s+(" + _CITE_ITEM + "(?:" + _CITE_SEPARATOR + _CITE_ITEM + ")*)",
+    re.IGNORECASE,
+)
+# One member of the list above: groups 1 and 2 are the ends of a range, group 3 a single integer.
+_CITE_ITEM_RE = re.compile(
+    _RANGE_START + _RANGE_SEPARATOR + _RANGE_END + "|(" + _INT + ")", re.IGNORECASE
 )
 # "the 8th row": an ordinal right before row or line.
 _ORDINAL_ROW_RE = re.compile(
@@ -393,9 +488,21 @@ def _without_non_figures(text: str, alert: Alert) -> str:
     def _blank_cited(match: re.Match[str]) -> str:
         return " " if _as_int(match.group(0)) in lines else match.group(0)
 
+    def _blank_item(match: re.Match[str]) -> str:
+        if match.group(3) is not None:  # a single integer: judged on its own
+            return _blank_cited(match)
+        start, end = _as_int(match.group(1)), _as_int(match.group(2))
+        if start in lines and end in lines:  # a range between two cited lines: both are citations
+            return " "
+        # Any other range keeps today's rule: only its first number, right after the keyword or a
+        # separator, is a citation when it is a cited line; the end is a figure like any other.
+        if start in lines:
+            return " " + match.group(0)[match.end(1) - match.start(0) :]
+        return match.group(0)
+
     def _row_citation(match: re.Match[str]) -> str:
         head = match.group(0)[: match.start(1) - match.start(0)]
-        return head + _INT_RE.sub(_blank_cited, match.group(1))
+        return head + _CITE_ITEM_RE.sub(_blank_item, match.group(1))
 
     def _ordinal_row(match: re.Match[str]) -> str:
         if _as_int(match.group(1)) not in lines:

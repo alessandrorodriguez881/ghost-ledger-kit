@@ -231,3 +231,30 @@ such date is allowed, else rejected and the date named; Z4b rejected with `539.4
 dotted forms, the negative examples of REQ-LG-29 and REQ-LG-30, the system message; Tier 3 a
 Hypothesis property (any valid date from year 1000 written in any of the forms is read back exactly,
 with no leftover number).
+
+## §11 Amendment A-LG-03: dates without a year and row ranges (REQ-LG-34 to REQ-LG-39)
+
+**What was read.** The run3 record `data/live_runs/2026-11-10_llama3.2-3b_run3.json` (raw answers as
+received), `_tokenise`, `_passes_number_guard` and `_without_non_figures` in
+`ledger_kit/explainer.py`. Z1c and Z5c share one cause: after `_DATE_MDY_RE` took `October 8, 2026`,
+`August 9` and `September 8` were plain text and their days became the numbers `9` and `8`. Z2c has
+another: `_ROW_CITATION_RE` listed integers only, so the end of `rows 9 to 312` was never reached.
+
+| # | Decision | Reason |
+|---|---|---|
+| DN-LG-37 | `_WORDS_ITEM_RE` joins the four shapes (`Month D, YYYY`, `D Month YYYY`, `Month D`, `D Month`, full forms first) in one alternation. `_year_lists` runs it over the text **before** the full-date passes, walks the matches left to right, and a partial item waits in a `pending` list until a dated item follows with only a list separator (`_DATE_LIST_SEP_RE`) in between; then every pending item takes that year. Anything else between two items empties `pending`. | A list that shares one year can only be read as a list, so the walk needs the order of the items. Items that took a year are blanked; the dated item itself is left to the unchanged `_DATE_MDY_RE` / `_DATE_DMY_RE` passes, so a text with no partial date is tokenised as before. |
+| DN-LG-38 | An item that took a year goes through `date(year, month, day)`; a `ValueError` adds the item **as written** to `malformed_dates`, like REQ-LG-29. | One rule for every date notation; the guard already rejects `malformed_dates` first. |
+| DN-LG-39 | A partial date with no year in its list is found by `_DATE_MD_PART_RE` / `_DATE_DM_PART_RE` after the full-date and source-ref passes and kept in a **new field** `_Tokens.partial_dates` (as written, month, day, default `()`), not in `dates`. | `dates` means a full, checkable date. A separate field keeps every existing use of `_Tokens` and every old assertion on `dates` unchanged. |
+| DN-LG-40 | `_DAY_PARTIAL` adds `(?![.,]\d\|[/:-]\d)` after the day. | `August 9.99`, `June 5,50`, `May 3/4` or `9:30` must not hide a figure behind a month name. A day followed by `, 2026` is fine: the comma is followed by a space. |
+| DN-LG-41 | In `_passes_number_guard` the allowed dates are computed once. ISO rejections come first (sorted, as before), then the partial dates whose `(month, day)` is in no allowed date, as written, once each (`dict.fromkeys`). | The set of allowed dates is not widened: a partial date only has to match the month and day of a date that is already allowed. The report keeps the model's words, as REQ-LG-29 does for malformed dates. |
+| DN-LG-42 | `_ROW_CITATION_RE` takes a list whose members are a range or a single integer (`_CITE_ITEM`); `_CITE_ITEM_RE` judges each member. A range blanks both ends only when both are cited lines. Any other range blanks its first number if that is a cited line and leaves the end: exactly what `rows 9` followed by the text `to 999` did before. | The brief: otherwise every number keeps today's rule. `rows 9 to 999` keeps `999` rejected and `rows 999 to 312` keeps both. A range member can now be followed by more list members (`rows 9 to 312, 400`), which each get the same single-integer judgement; before, the list ended at the range. |
+| DN-LG-43 | The range separators are `to`, `through` (with spaces), and a hyphen or an en dash (written `\u2013` in the pattern) with optional spaces. The start has the lookbehind of `_INT`; the end must not be followed by a decimal or `/` or `-` and a digit. | `rows 2026-08-09` stays an ISO date (the end `08` is followed by `-0`), and `rows 9 to 312.50` leaves `312.50` a figure. |
+| DN-LG-44 | Known limits, not fixed: `May` is also a modal verb, so `12 may` reads as 12 May and is judged as a partial date (it is rejected unless an allowed date is 12 May, which is stricter than before only in that the report names `12 may` instead of `12`); `highlight_segments` marks a rejected partial date only if the written text is a token it searches for, so the panel names it in the verdict line but may not mark it in the raw answer (same kind of limit as DN-LG-31 and DN-LG-36). | The brief limits the change to `explainer.py`, its tests, this spec and one line of `docs/live-guard.md`. |
+
+**Test plan.** `tests/test_explainer_partial_dates.py`: Tier 1 the replay of run3 (alert and cited
+rows rebuilt from the committed demo files; Z1c, Z2c, Z5c accepted only if every date and number
+they write is allowed, else rejected with the token named; P1c, P2c, P3c, V1c, V2c accepted; Z3c with
+`$` and Z4c with `539.40` rejected; Z6c the recorded verdict); Tier 2 the list forms, the year of the
+list, the negative examples of REQ-LG-35 to REQ-LG-37; Tier 3 two Hypothesis properties (a range is a
+citation only between two cited lines; a partial date is judged by month and day alone). The run1
+and run2 test files are not edited.

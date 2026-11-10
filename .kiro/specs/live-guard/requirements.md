@@ -430,3 +430,80 @@ Shared fixture of the examples: alert `C` with `data = {"cancellation_date": "20
 
 - **REQ-LG-33** `docs/live-guard.md` shall say in one line that dates written in words are checked
   like ISO dates. No rate is claimed.
+
+---
+
+## 8 — Amendment A-LG-03 (session 16d): dates without a year and row ranges
+
+The third real run (`data/live_runs/2026-11-10_llama3.2-3b_run3.json`, 11 records, one run, not a
+rate), made after A-LG-02, accepted P1c, P2c, P3c, V1c and V2c, kept Z4c rejected for the invented
+`539.40`, and rejected Z3c for `$359.76` on a euro account, which is right. Two false rejections
+remained, of the same family as A-LG-02 (the parts of a phrase read as figures):
+
+- Z1c wrote `August 9, September 8, and October 8, 2026`: a list of dates that shares one year. Only
+  the last item carries it, so `August 9` and `September 8` were left as the numbers `9` and `8`.
+  Z5c, an honest refusal, wrote `August 9, September 8, and October 8` with no year at all and was
+  rejected for `9`, `8`, `8`.
+- Z2c wrote `rows 9 to 312`. Both ends are lines of its cited refs, but only the number right after
+  `rows` was a citation, so `312` was rejected.
+
+The requirements below change `ledger_kit/explainer.py` only (tokeniser, guard and the row-citation
+blanking). The allowed dates, the allowed figures, the system message, `max_tokens` and the other
+guard rules are unchanged. REQ-LG-03 still holds: nothing is special-cased for a question.
+
+Shared fixture of the examples: alert `D` with `data = {"d1": "2026-08-09", "d2": "2026-09-08",
+"d3": "2026-10-08"}` and `source_refs = ["bank.csv:9", "bank.csv:312"]` **(synthetic)**.
+
+- **REQ-LG-34** A month-name date written as `Month D` or `D Month`, with the same month forms
+  (full name, or three letters with an optional dot), ordinal suffixes and case rules as REQ-LG-28,
+  and with no year of its own, is a **partial date**. The day of a partial date is never counted as
+  a number. A day that is part of a decimal, a time or a code (`August 9.99`, `May 3/4`) does not
+  make a partial date. A month name alone (`in June`, `June 2026`) stays as REQ-LG-30 says.
+  - Example: `charged on August 9` for `D`: no number is reported for `9`.
+  - Example: `It cost August 9.99.`: the number `9.99` is judged as before.
+
+- **REQ-LG-35** *When* partial dates are followed, in one list, by a date with a year
+  (`Month D, Month D, and Month D, YYYY`; the items are joined by `,`, `, and`, `and`, `or` or `&`,
+  and may use either order of day and month), every partial item of that list shall take that year
+  and be checked as a full date, exactly like REQ-LG-28 and REQ-LG-29. An item that does not exist in
+  that year is malformed and reported as written. *If* anything other than a list separator stands
+  between a partial date and the next dated item, *then* they are not one list and the partial date
+  is judged by REQ-LG-36.
+  - Example (accepted): `They occurred on August 9, September 8, and October 8, 2026.` for `D`.
+  - Example (accepted): `9 August, 8 September and 8 October 2026.` for `D`.
+  - Example (rejected, tokens `2025-08-09`, `2025-09-08`): `August 9 and September 8, 2025.` when
+    only the 2026 dates are allowed.
+  - Example (rejected, token `February 30`): `February 30, March 8, 2026.` (malformed, as written).
+
+- **REQ-LG-36** A partial date that is not part of such a list is accepted *when at least one
+  allowed date has that month and day*, in any year, and rejected otherwise. The rejected token is
+  the date as written, without a trailing dot (for example `August 10`, `10th Aug`), once per
+  distinct text, after the rejected ISO dates. A month and day that never exist (`February 30`) are
+  rejected the same way.
+  - Example (accepted): `charged on August 9` and `9th Aug.` for `D`.
+  - Example (rejected, token `August 10`): `charged on August 10` when only 2026-08-09 is allowed.
+  - Example (rejected, token `539.40`): `On August 9 you pay 539.40.` A partial date hides no
+    figure.
+
+- **REQ-LG-37** In a row or line citation (the keyword of REQ-LG-21), a range of two integers
+  written `A to B`, `A through B`, `A-B` or `A` en dash `B` (spaces around the dash allowed; any
+  case) is a member of the list and counts as a citation of **both ends** *when both A and B are
+  line numbers of the alert's own source refs*. *Otherwise* every number keeps today's rule: the
+  first number is blanked when it is a cited line, the end is a figure like any other.
+  - Example (accepted): `specifically from rows 9 to 312.` for `D`; also `rows 9-312`,
+    `lines 9 through 312`, `rows 9 - 312`.
+  - Example (rejected, token `999`): `rows 9 to 999` for `D`.
+  - Example (rejected, tokens `999`, `312`): `rows 999 to 312` for `D`.
+  - Example (rejected, tokens `9`, `312`): `It cost 9 to 312 EUR.` (no citation keyword).
+
+- **REQ-LG-38** The repository shall keep the run record
+  `data/live_runs/2026-11-10_llama3.2-3b_run3.json` and tests shall replay it through the guard, with
+  the demo data rebuilt as in REQ-LG-26: Z1c, Z2c and Z5c are accepted *only if every date and number
+  they write is allowed*; one that is not stays rejected and the test names the token. P1c, P2c,
+  P3c, V1c and V2c stay accepted. Z3c stays rejected with `$`, Z4c with `539.40`. Z6c keeps the
+  verdict recorded for it. Negative tests: `August 10` without a year when only 2026-08-09 is
+  allowed, `August 9 and September 8, 2025` when only 2026 dates are allowed, and `rows 9 to 999`.
+  The run1 and run2 tests are unchanged.
+
+- **REQ-LG-39** `docs/live-guard.md` shall say in one line that dates without a year and row ranges
+  are checked as described. No rate is claimed.

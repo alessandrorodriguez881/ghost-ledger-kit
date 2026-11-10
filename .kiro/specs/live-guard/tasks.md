@@ -222,6 +222,46 @@ one pattern.
 - [x] One bullet in `docs/live-guard.md` under *What to expect*; `tests/test_live_guard_docs.py` is
   not edited and still holds (five `##` sections, required phrases).
 
+## Task LG20 — Dates without a year and row ranges, tests (A-LG-03)
+
+**Covers**: REQ-LG-34 to REQ-LG-38, DN-LG-37 to DN-LG-43
+
+- [x] Tests first in `tests/test_explainer_partial_dates.py` (own loader of the run3 record; the run1
+  and run2 test files are not edited): replay of Z1c, Z2c, Z5c (accepted only if every date and
+  number they write is allowed, else rejected naming the token), P1c, P2c, P3c, V1c, V2c accepted,
+  Z3c rejected with `$`, Z4c with `539.40`, Z6c the recorded verdict; negatives `August 10` with only
+  2026-08-09 allowed, `August 9 and September 8, 2025` with only 2026 dates allowed, `rows 9 to 999`;
+  every list form, every range separator; two Hypothesis properties.
+
+## Task LG21 — Partial dates in the tokeniser (A-LG-03)
+
+**Covers**: REQ-LG-34, REQ-LG-35, DN-LG-37 to DN-LG-40
+
+- [x] In `ledger_kit/explainer.py`: `_DAY_PARTIAL`, `_DATE_MD_PART_RE`, `_DATE_DM_PART_RE`,
+  `_WORDS_ITEM_RE`, `_DATE_LIST_SEP_RE`, `_Tokens.partial_dates`, `_year_lists`, and the partial pass
+  in `_tokenise`.
+
+## Task LG22 — Partial dates in the guard (A-LG-03)
+
+**Covers**: REQ-LG-36, DN-LG-41
+
+- [x] In `_passes_number_guard`: judge each partial date by the month and day of the allowed dates and
+  report the rejected ones as written, after the ISO dates.
+
+## Task LG23 — Row ranges (A-LG-03)
+
+**Covers**: REQ-LG-37, DN-LG-42, DN-LG-43
+
+- [x] In `_without_non_figures`: `_RANGE_SEPARATOR`, `_CITE_ITEM`, `_CITE_ITEM_RE`, and the range
+  judgement in the row-citation pass.
+
+## Task LG24 — Documentation (A-LG-03)
+
+**Covers**: REQ-LG-39
+
+- [x] One bullet in `docs/live-guard.md` under *What to expect*; `tests/test_live_guard_docs.py` is
+  not edited and still holds (five `##` sections, required phrases).
+
 ## Not verified by the author
 
 The spec was written without running a command. Unverified on purpose: the `winget` package id

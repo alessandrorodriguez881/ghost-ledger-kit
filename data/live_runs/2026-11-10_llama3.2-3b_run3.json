@@ -1,0 +1,246 @@
+{
+  "what": "LG8 third run: the same cards after the dates-in-words fix, demo data (CSV)",
+  "date": "2026-11-10",
+  "model": "llama3.2:3b (Ollama 0.40.16, model id a80c4f17acd5)",
+  "machine": "Windows 11 laptop, AMD Ryzen 5 7520U, 16 GB RAM, no discrete GPU (CPU only)",
+  "settings": {
+    "temperature": 0,
+    "LEDGER_KIT_LLM_TIMEOUT": 120,
+    "retries": 0
+  },
+  "guard_version": "commit b46646c (after LG16-LG19)",
+  "note": "Raw answers exactly as received. One run, not a rate.",
+  "records": [
+    {
+      "id": "Z1c",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": null,
+      "seconds": 33.3,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "9",
+        "8"
+      ],
+      "raw_answer": "The alert indicates a critical issue with charges after cancellation at GYMPLUS, with a total charged amount of €26.97. This amount is calculated from three post-cancellation transactions, with each transaction amounting to €8.99. According to the source rows, these transactions occurred on August 9, September 8, and October 8, 2026."
+    },
+    {
+      "id": "Z2c",
+      "app": "zombie_subscriptions",
+      "alert_id": "df43387436b33d57c634df65569345a430e5cbdc1e0d5697b9b80753be6c3644",
+      "detector": null,
+      "severity": "warning",
+      "title": "Duplicate subscription: MUSICBOX",
+      "source_refs": [
+        "zombie_demo_statement.csv:9",
+        "zombie_demo_statement.csv:38",
+        "zombie_demo_statement.csv:65",
+        "zombie_demo_statement.csv:93",
+        "zombie_demo_statement.csv:121",
+        "zombie_demo_statement.csv:148",
+        "zombie_demo_statement.csv:175",
+        "zombie_demo_statement.csv:203",
+        "zombie_demo_statement.csv:229",
+        "zombie_demo_statement.csv:256",
+        "zombie_demo_statement.csv:284",
+        "zombie_demo_statement.csv:312"
+      ],
+      "question": null,
+      "seconds": 37.0,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "312"
+      ],
+      "raw_answer": "A duplicate subscription for the MUSICBOX has been detected, with a warning severity. The duplicate subscription was detected due to multiple debit transactions with the same amount of €10.99, date, and counterparty, as shown in the source data from zombie_demo_statement.csv, specifically from rows 9 to 312."
+    },
+    {
+      "id": "Z3c",
+      "app": "zombie_subscriptions",
+      "alert_id": "da4145f123331f79e7cb81563c12239bdde3075cb271b1bc4ddeeca02dde4cc1",
+      "detector": null,
+      "severity": "warning",
+      "title": "Duplicate subscription: STREAMING",
+      "source_refs": [
+        "zombie_demo_statement.csv:15",
+        "zombie_demo_statement.csv:34",
+        "zombie_demo_statement.csv:70",
+        "zombie_demo_statement.csv:90",
+        "zombie_demo_statement.csv:126",
+        "zombie_demo_statement.csv:144",
+        "zombie_demo_statement.csv:179",
+        "zombie_demo_statement.csv:198",
+        "zombie_demo_statement.csv:233",
+        "zombie_demo_statement.csv:253",
+        "zombie_demo_statement.csv:289",
+        "zombie_demo_statement.csv:309"
+      ],
+      "question": null,
+      "seconds": 39.6,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "$"
+      ],
+      "raw_answer": "A duplicate subscription alert has been triggered for the \"STREAMING\" service, indicating that a subscription has been set up for the same service multiple times. The duplicate subscription was detected due to multiple debit transactions with the same amount and currency, and the same counterparty, which occurred on different dates. According to the alert, the yearly cost of the \"STREAMING\" service is $359.76."
+    },
+    {
+      "id": "Z4c",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "If nothing changes, what will this cost me in total five years from now? Give the amount.",
+      "seconds": 11.6,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "5",
+        "5",
+        "539.40"
+      ],
+      "raw_answer": "According to the data, the yearly cost is €107.88. To calculate the total cost in five years, we need to multiply the yearly cost by 5. So, the total cost in five years will be 107.88 * 5 = €539.40."
+    },
+    {
+      "id": "Z5c",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "What amount will be charged next month? Give the amount.",
+      "seconds": 12.0,
+      "observed_source": "fallback",
+      "observed_rejected": [
+        "9",
+        "8",
+        "8"
+      ],
+      "raw_answer": "According to the provided data, the amount charged after cancellation for GYMPLUS is €8.99. However, the alert does not provide information on the next month's charge. The source rows only show the amounts charged on August 9, September 8, and October 8, but do not indicate the amount for the next month."
+    },
+    {
+      "id": "Z6c",
+      "app": "zombie_subscriptions",
+      "alert_id": "896d26e24ef956ad447d2c6e871526b92856a6eb6c67bc2f6649e757399fb6c0",
+      "detector": null,
+      "severity": "critical",
+      "title": "Charge after cancellation: GYMPLUS",
+      "source_refs": [
+        "zombie_demo_statement.csv:181",
+        "zombie_demo_statement.csv:236",
+        "zombie_demo_statement.csv:292"
+      ],
+      "question": "What is the total cost including any fees, taxes or interest that these rows do not show? Give the amount.",
+      "seconds": 29.8,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "According to the provided data, the total charged after cancellations is €26.97. To find the total cost including any fees, taxes, or interest that these rows do not show, we need to look at the source references. The source reference zombie_demo_statement.csv:181 corresponds to a debit of €8.99 on 2026-08-09, zombie_demo_statement.csv:236 corresponds to a debit of €8.99 on 2026-09-08, and zombie_demo_statement.csv:292 corresponds to a debit of €8.99 on 2026-10-08. Since these are the only charges shown, we can assume that the total cost is the sum of these charges, which is €8.99 + €8.99 + €8.99 = €26.97. However, the alert mentions that the yearly cost is €107.88, which suggests that there may be additional costs not shown in the provided data."
+    },
+    {
+      "id": "P1c",
+      "app": "phantom_invoices",
+      "alert_id": "6af76d5a17a3f5dd35011ef41a162b8a118c1e211a8e5ee22974aa9336bfe1d5",
+      "detector": "pi.duplicate_invoice",
+      "severity": "critical",
+      "title": "Duplicate invoice: F-2026-0310 (Suministros Ibéricos Aurora, S.L.)",
+      "source_refs": [
+        "invoices.csv:0",
+        "invoices.csv:1"
+      ],
+      "question": null,
+      "seconds": 29.9,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "A duplicate invoice alert has been triggered for the supplier Suministros Ibéricos Aurora, S.L. with invoice number F-2026-0310, which was issued on 2026-10-06. The duplicate invoice was detected because the same invoice number was used in two separate invoices, both with the same issue date and total amount of 484.00."
+    },
+    {
+      "id": "P2c",
+      "app": "phantom_invoices",
+      "alert_id": "252a07b7ea10ffcd758fad7e6295259e0cf0181d0ca0e7d2fcdf5bf66b2138cc",
+      "detector": "pi.iban_change",
+      "severity": "critical",
+      "title": "Poltergeist IBAN: Transportes Hermanos Lage, S.L.",
+      "source_refs": [
+        "invoices.csv:8",
+        "suppliers.csv:4"
+      ],
+      "question": null,
+      "seconds": 22.7,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "A critical alert has been triggered for a Poltergeist IBAN issue with Transportes Hermanos Lage, S.L. The issue was detected on October 9, 2026, and the supplier's invoice number is T-2026-077. The alert advises verifying this change by phone using a contact already established with the supplier."
+    },
+    {
+      "id": "P3c",
+      "app": "phantom_invoices",
+      "alert_id": "6af76d5a17a3f5dd35011ef41a162b8a118c1e211a8e5ee22974aa9336bfe1d5",
+      "detector": "pi.duplicate_invoice",
+      "severity": "critical",
+      "title": "Duplicate invoice: F-2026-0310 (Suministros Ibéricos Aurora, S.L.)",
+      "source_refs": [
+        "invoices.csv:0",
+        "invoices.csv:1"
+      ],
+      "question": "If nothing changes, what will this cost me in total five years from now? Give the amount.",
+      "seconds": 10.9,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "According to the source, the total cost of the duplicate invoice is currently €484.00. Since the invoice is due to be issued again in five years, and the total amount remains the same, the total cost in five years will also be €484.00."
+    },
+    {
+      "id": "V1c",
+      "app": "vampire_fees",
+      "alert_id": "631c7b0022134ddae93dd046397a007288b96a71ff6d8cbeebde644391176924",
+      "detector": "vf.overdraft_cost",
+      "severity": "critical",
+      "title": "Overdraft cost on this statement",
+      "source_refs": [
+        "vampire_demo_statement.csv:57",
+        "vampire_demo_statement.csv:63",
+        "vampire_demo_statement.csv:94",
+        "vampire_demo_statement.csv:152",
+        "vampire_demo_statement.csv:155",
+        "vampire_demo_statement.csv:178",
+        "vampire_demo_statement.csv:186"
+      ],
+      "question": null,
+      "seconds": 31.9,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "The alert indicates that there is a critical overdraft cost of €61.00 on a statement, with the first charge date being June 18, 2025, and the last charge date being June 30, 2026. The overdraft cost is comprised of four interest payments and three fee payments, totaling €106.00. This overdraft cost is a result of debit transactions made by the customer with Banco Ficticio."
+    },
+    {
+      "id": "V2c",
+      "app": "vampire_fees",
+      "alert_id": "070e229c3acfb9aac921280ed5975f08ed647f8423933f461d7a06d5605a19f0",
+      "detector": "vf.fee_increase",
+      "severity": "warning",
+      "title": "Fee increase: BANCO FICTICIO · Comisión mantenimiento cuenta",
+      "source_refs": [
+        "vampire_demo_statement.csv:114",
+        "vampire_demo_statement.csv:124"
+      ],
+      "question": null,
+      "seconds": 25.7,
+      "observed_source": "llm",
+      "observed_rejected": [],
+      "raw_answer": "A fee increase alert has been triggered for the account held at BANCO FICTICIO, with the new monthly charge amount increasing from €5.00 to €6.50, representing a 30.0% increase. This change took effect on January 5, 2026, and is expected to result in an additional €18.00 per year, bringing the total yearly cost to €78.00. This change is a result of the maintenance commission on the account, as stated in the source data."
+    }
+  ]
+}

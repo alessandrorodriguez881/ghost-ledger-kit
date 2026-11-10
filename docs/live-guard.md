@@ -107,6 +107,10 @@ What the guard does and does not do:
 - A date written in words (`July 31, 2026`, `31 July 2026`, `Jul. 31st, 2026`) is checked like an
   ISO date: it must be one of the dates of the cited rows or the alert data, and `February 30, 2026`
   is rejected as malformed.
+- A date with a month name but no year (`August 9`, `9 Aug.`) is accepted only if an allowed date has
+  that month and day; in a list that ends with one year (`August 9, September 8, and October 8,
+  2026`) every item takes that year. A range such as `rows 9 to 312` cites both ends when both are
+  lines of the alert's own refs.
 - It was changed only after a real run, never to make the demo look better: an invented amount is
   still caught wherever it stands in an answer.
 
