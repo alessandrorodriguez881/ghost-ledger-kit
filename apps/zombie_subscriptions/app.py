@@ -55,6 +55,7 @@ from apps.zombie_subscriptions.settings import (  # noqa: E402
     statement_caption,
     tombstone_view,
 )
+from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.ingestion.sniffer import sniff_format  # noqa: E402
@@ -82,6 +83,7 @@ from ledger_kit.live_guard import (  # noqa: E402
 )
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.public_data import CpiSeries  # noqa: E402
+from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     count_by_severity,
@@ -110,6 +112,8 @@ HALLUCINATE_KEY = "zs_hallucinate"
 EXPLANATIONS_KEY = "zs_explanations"
 DEMO_FORMAT_KEY = "zs_demo_format"
 UPLOAD_STATEMENT_KEY = "zs_upload_statement"
+# Plain session key (not a widget): the demo was already loaded by itself once in this session.
+AUTOLOAD_KEY = "zs_autoloaded"
 # Live-guard panel: plain session values (probe results and the counter), not widgets.
 LG_RESULTS_KEY = "zs_lg_results"
 LG_COUNTS_KEY = "zs_lg_counts"
@@ -151,6 +155,15 @@ def load_demo() -> None:
     )
 
 
+def _autoload_demo() -> None:
+    """First run of a session with nothing loaded: load the CSV demo as the button would.
+
+    Runs before any widget is built, so the widget keys may be written here. The button stays.
+    """
+    if should_autoload(st.session_state, AUTOLOAD_KEY, bool(st.session_state.get("source"))):
+        apply_demo(st.session_state, demo_inputs(load_config(CONFIG_PATH), ROOT, "csv"))
+
+
 def _restore_widgets() -> None:
     """Put back the widget values kept from the previous visit, before any widget is built."""
     for key, value in st.session_state.get(KEPT_KEY, {}).items():
@@ -188,24 +201,26 @@ def _render_sidebar() -> Any:
             help="CSV: the CSV demo statement. Real formats: the same statement as Norma 43.",
         )
         st.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
-        st.text_area(
-            "Aliases",
-            key="aliases_text",
-            height=110,
-            help="One service per line: streaming = STREAMFLIX INTL, STREAMFLIXCOM",
-        )
-        st.text_area(
-            "Last-used dates",
-            key="last_used_text",
-            height=110,
-            help="One per line: BEATSTREAM = 2026-07-15 (turns the service into a tombstone)",
-        )
-        st.text_area(
-            "Cancellation dates",
-            key="cancel_text",
-            height=110,
-            help="One per line: GYMPLUS = 2026-07-31",
-        )
+        # Developer inputs: one collapsed expander, the widget keys are unchanged.
+        with st.expander("Advanced inputs", expanded=False):
+            st.text_area(
+                "Aliases",
+                key="aliases_text",
+                height=110,
+                help="One service per line: streaming = STREAMFLIX INTL, STREAMFLIXCOM",
+            )
+            st.text_area(
+                "Last-used dates",
+                key="last_used_text",
+                height=110,
+                help="One per line: BEATSTREAM = 2026-07-15 (turns the service into a tombstone)",
+            )
+            st.text_area(
+                "Cancellation dates",
+                key="cancel_text",
+                height=110,
+                help="One per line: GYMPLUS = 2026-07-31",
+            )
         st.toggle(
             "Simulate a hallucinating LLM",
             key=HALLUCINATE_KEY,
@@ -249,13 +264,34 @@ def _ingest(
     return ingest_statement(name, data, cache)
 
 
+def _card_recording(alert: Alert, hallucinate: bool) -> replay.Recording | None:
+    """Return the recorded card answer to replay, or None.
+
+    None while the stub is on (it wins), while a key is set (live calls) and when the alert has
+    no recording or the run file is off.
+    """
+    if hallucinate or os.environ.get("OPENAI_API_KEY", ""):
+        return None
+    return replay.card_recording(alert.id)
+
+
 def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanation:
-    """Explain one alert; cached per (alert.id, client mode) across reruns (design §7)."""
+    """Explain one alert; cached per (alert.id, client mode) across reruns (design §7).
+
+    The mode is `replay` when a recorded answer goes through the guard instead of a live call.
+    """
     cache = st.session_state[EXPLANATIONS_KEY]
-    key = (alert.id, "hallucinate" if hallucinate else "real")
+    recording = _card_recording(alert, hallucinate)
+    client: Any = None
+    if hallucinate:
+        mode, client = "hallucinate", HallucinatingStubClient()
+    elif recording is not None:
+        mode, client = "replay", replay.ReplayClient(recording.raw_answer)
+    else:
+        mode = "real"
+    key = (alert.id, mode)
     if key not in cache:
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
-        client = HallucinatingStubClient() if hallucinate else None
         cache[key] = explain_with_meta(
             alert, rows, fallback_template=template_for(alert), client=client
         )
@@ -318,7 +354,9 @@ def _render_graveyard(zombies: Sequence[Any], currency: str) -> None:
     """One tombstone per zombie service, with its yearly cost and collapsible source refs."""
     show_section("tombstone", "The graveyard")
     if not zombies:
-        st.caption("Add last-used dates in the sidebar to bury a subscription here.")
+        st.caption(
+            "Add last-used dates under Advanced inputs in the sidebar to bury a subscription here."
+        )
         return
     views = [tombstone_view(result, currency) for result in zombies]
     for start in range(0, len(views), TOMBSTONES_PER_ROW):
@@ -349,11 +387,20 @@ def _render_cpi_lines(alert: Alert, explanation: Explanation) -> None:
 
 
 def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> None:
-    """on_click of Ask the model: one real call, kept apart from the card text (DN-LG-07)."""
+    """on_click of Ask the model: one real call, or the replay of a recorded answer.
+
+    With a key set the call is today's. With no key and a recording, the recorded text goes
+    through the same call and the same guard; no model is called (DN-LG-07, DN-JP-06).
+    """
     rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
     template = template_for(alert)
+    client: Any = None
+    if not live_status(os.environ).enabled:
+        recording = replay.probe_recording(alert.id, question.id)
+        if recording is not None:
+            client = replay.ReplayClient(recording.raw_answer)
     meta = explain_with_meta(
-        alert, rows, fallback_template=template, client=None, question=question.text
+        alert, rows, fallback_template=template, client=client, question=question.text
     )
     result = probe_result(question, meta, fill_fallback(template, alert))
     st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
@@ -376,33 +423,46 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
 
 
 def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
-    """Provoke the LLM: three preset questions to the configured real model (never the stub)."""
+    """Provoke the LLM: three preset questions to the real model, or a replay of recorded ones.
+
+    With no key, a question that has a recorded answer is enabled and replays it under a caption
+    that says so; a question without one stays disabled with today's caption.
+    """
     status = live_status(os.environ)
+    run = None if status.enabled else replay.load_run()
+    replayable = run is not None and run.has_probe(alert.id)
     labels = [q.label for q in TRICK_QUESTIONS]
     counts = st.session_state[LG_COUNTS_KEY]
     with st.expander(PANEL_TITLE):
-        st.caption(intro_line(status.model))
+        intro = intro_line(status.model)
+        if run is not None and replayable:
+            intro = replay.panel_intro(run)
+        st.caption(intro)
         # Not written as `st.radio(`: test_zs_real_formats pins the sidebar radio as the only one.
         pick_question = st.radio
         label = pick_question(
             "Trick question",
             labels,
             key=f"zs_lg_q_{alert.id}",
-            disabled=not status.enabled,
+            disabled=not (status.enabled or replayable),
             label_visibility="collapsed",
         )
         question = TRICK_QUESTIONS[labels.index(label)]
+        recorded = None if run is None else run.probe(alert.id, question.id)
+        can_ask = status.enabled or recorded is not None
         st.button(
             ASK_LABEL,
             key=f"zs_lg_ask_{alert.id}",
-            disabled=not (status.enabled and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
             on_click=_ask_model,
             args=(alert, ledger, question),
         )
+        if recorded is not None:
+            st.caption(replay.panel_caption(recorded))
         result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
         if result is not None:
             _render_probe_result(result, status)
-        if not status.enabled:
+        if not can_ask:
             st.caption(status.caption)
         elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
             st.caption(MSG_LIMIT)
@@ -412,7 +472,12 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
-    badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
+    recording = _card_recording(alert, hallucinate)
+    if recording is not None:
+        badge_kind, badge_label = replay.card_badge(recording, explanation)
+    else:
+        badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
+        badge_kind, badge_label = badge.kind, badge.label
     # The container key only carries the severity into the CSS: a critical card glows.
     with st.container(border=True, key=card_key("zs", alert.severity, alert.id)):
         title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
@@ -420,7 +485,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
         st.write(explanation.text)
         st.markdown(
-            f'<span class="zs-badge zs-badge-{badge.kind}">{html.escape(badge.label)}</span>',
+            f'<span class="zs-badge zs-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,
         )
         _render_cpi_lines(alert, explanation)
@@ -471,6 +536,7 @@ def main() -> None:
     set_page("Zombie Subscriptions", ZOMBIE)
     apply_theme(ZOMBIE, ZOMBIE_CSS)
     _init_state()
+    _autoload_demo()
     uploaded = _render_sidebar()
     _keep_widgets()
 

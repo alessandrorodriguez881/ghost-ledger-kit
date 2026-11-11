@@ -28,6 +28,7 @@ from ledger_kit.ui.landing import (
     cpi_fact,
     diagram_html,
     facturae_fact,
+    percent_text,
     proof_facts,
     proof_strip_html,
     tiles_html,
@@ -53,8 +54,11 @@ def test_the_benchmark_facts_are_the_committed_totals() -> None:
     for fact, (key, title) in zip(facts, BENCHMARK_APPS, strict=True):
         totals = data["apps"][key]["totals"]
         assert title in fact.label
-        assert fact.figure == totals["precision"]
-        assert f"Recall {totals['recall']} on {data['scenarios_per_app']} " in fact.note
+        # judge-path (REQ-JP-16): a percentage with one decimal, never the raw 0.9980
+        assert fact.figure == percent_text(totals["precision"])
+        assert re.fullmatch(r"\d{1,3}\.\d %", fact.figure)
+        recall = percent_text(totals["recall"])
+        assert f"Recall {recall} on {data['scenarios_per_app']} " in fact.note
         assert fact.source == "data/benchmark/results.json"
 
 
@@ -65,8 +69,8 @@ def test_the_benchmark_facts_agree_with_the_generated_benchmark_document() -> No
         section = document.split(f"## {title}", 1)[1].split("###", 1)[0]
         match = re.search(r"precision `([0-9.]+)`, recall `([0-9.]+)`", section)
         assert match is not None
-        assert fact.figure == match.group(1)
-        assert f"Recall {match.group(2)} " in fact.note
+        assert fact.figure == percent_text(match.group(1))
+        assert f"Recall {percent_text(match.group(2))} " in fact.note
 
 
 def test_the_facturae_fact_counts_the_committed_sample_files() -> None:
@@ -133,7 +137,7 @@ def test_a_null_ratio_in_the_results_is_shown_as_na(tmp_path: Path) -> None:
     facts = benchmark_facts(path)
 
     assert [f.figure for f in facts] == [NOT_AVAILABLE, NOT_AVAILABLE]
-    assert all("Recall 0.5000 on 7 synthetic scenarios." == f.note for f in facts)
+    assert all("Recall 50.0 % on 7 synthetic scenarios." == f.note for f in facts)
 
 
 def test_a_changed_sample_folder_is_flagged(tmp_path: Path) -> None:

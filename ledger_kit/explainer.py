@@ -141,8 +141,21 @@ class _AlertFormatter(string.Formatter):
         return str(value)
 
 
+def format_times(count: Decimal) -> str:
+    """Write a whole count as '1 time' or '3 times'; any other number is shown as is."""
+    if count != count.to_integral_value():
+        return str(count)
+    number = int(count)
+    return f"{number} time" if number == 1 else f"{number} times"
+
+
 # European display of the numeric format specs; a value that is not a number is shown as is.
-_FORMAT_SPECS = {"money": format_amount, "pct": format_percent, "idx": format_index}
+_FORMAT_SPECS = {
+    "money": format_amount,
+    "pct": format_percent,
+    "idx": format_index,
+    "times": format_times,
+}
 
 
 def fill_fallback(template: str, alert: Alert) -> str:

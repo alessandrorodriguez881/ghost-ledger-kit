@@ -1,16 +1,19 @@
 """Building blocks of the Home landing page (haunted-design, REQ-HD-09 to REQ-HD-11).
 
-Pure module: no Streamlit. It reads three committed files and nothing else, never the network:
+Pure module: no Streamlit. It reads four committed files and nothing else, never the network:
 
 - ``data/benchmark/results.json``: precision and recall of Zombie Subscriptions and of Phantom
-  Invoices, copied from the ``totals`` block of each app (nothing is recomputed);
+  Invoices, copied from the ``totals`` block of each app and written as percentages with one
+  decimal (``0.9980`` is shown as ``99.8 %``); nothing is recomputed;
 - ``data/samples/phantom_demo/facturae/``: the sample invoices that the reviewer validated once
   against the official Facturae XSD (25 of 25, DN-RF-23). The check is not part of CI, so the
   card says so, and it prints the number of files now in the folder next to the 25 checked;
-- ``data/public/ine_cpi_ipc290751.json``: the INE consumer price index snapshot.
+- ``data/public/ine_cpi_ipc290751.json``: the INE consumer price index snapshot;
+- the recorded run of ``ledger_kit/replay.py`` (judge-path): the one recorded answer that the
+  guard rejected, shown as the example under the story.
 
-A file that is missing or malformed gives ``n/a`` for its fact and never an exception. The number
-of tests is not shown anywhere: it changes with every session.
+A file that is missing or malformed gives ``n/a`` for its fact (or no example) and never an
+exception. The number of tests is not shown anywhere: it changes with every session.
 """
 
 from __future__ import annotations
@@ -18,9 +21,11 @@ from __future__ import annotations
 import html
 import json
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 
 from ledger_kit.public_data import DEFAULT_SNAPSHOT_PATH, SnapshotError, load_snapshot
+from ledger_kit.replay import ReplayRun
 from ledger_kit.ui.icons import icon
 from ledger_kit.ui.theme import PHANTOM, VAMPIRE, ZOMBIE, Accent, card_html
 
@@ -103,9 +108,21 @@ def _read_json(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def _text(value: object) -> str:
-    """Return a ratio of the results file as text; null in the file is shown as n/a."""
-    return NOT_AVAILABLE if value is None else str(value)
+def percent_text(ratio: object) -> str:
+    """Write a ratio text of the results file as a percentage: '0.9980' gives '99.8 %'.
+
+    One decimal, rounded half up; null or a text that is not a finite number gives n/a.
+    """
+    if ratio is None:
+        return NOT_AVAILABLE
+    try:
+        value = Decimal(str(ratio))
+        if not value.is_finite():
+            return NOT_AVAILABLE
+        percent = (value * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    except InvalidOperation:
+        return NOT_AVAILABLE
+    return f"{percent} %"
 
 
 def benchmark_facts(path: Path = RESULTS_PATH) -> list[Fact]:
@@ -116,7 +133,7 @@ def benchmark_facts(path: Path = RESULTS_PATH) -> list[Fact]:
         label = f"Benchmark precision · {title}"
         try:
             totals = data["apps"][key]["totals"]
-            precision, recall = _text(totals["precision"]), _text(totals["recall"])
+            precision, recall = percent_text(totals["precision"]), percent_text(totals["recall"])
             scenarios = int(data["scenarios_per_app"])
         except (KeyError, TypeError, ValueError):
             unusable = "The committed benchmark results are not usable."
@@ -217,4 +234,34 @@ def diagram_html() -> str:
         '<div class="gl-diagram">'
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 150" role="img">'
         f"<title>{html.escape(DIAGRAM_TITLE)}</title>{''.join(shapes)}</svg></div>"
+    )
+
+
+def story_html(lines: tuple[str, ...]) -> str:
+    """Return the short story under the promise: one paragraph per line, every text escaped."""
+    paragraphs = "".join(f"<p>{html.escape(line)}</p>" for line in lines)
+    return f'<div class="gl-story">{paragraphs}</div>'
+
+
+def example_html(run: ReplayRun | None) -> str:
+    """Return the recorded example of Home, or '' when the run has no usable rejected answer.
+
+    It is the first recorded answer to a trick question that the guard rejected: the question
+    (from the preset), the invented figure and the word rejected. The label says it is one
+    recorded answer of the named model on the recorded date; nothing here is a live result.
+    """
+    recording = None if run is None else run.first_rejected_probe()
+    if run is None or recording is None:
+        return ""
+    figure, question = recording.invented_token, recording.question_text
+    if figure is None or question is None:
+        return ""
+    label = f"One recorded answer of {run.model_name}, {run.date}."
+    return (
+        '<div class="gl-example">'
+        f'<div class="gl-example-label">{html.escape(label)}</div>'
+        f"<div>You asked: {html.escape(question)}</div>"
+        f"<div>The model answered with <b>{html.escape(figure)}</b>, a figure that is not in "
+        "the cited rows or the alert data. The number guard: <b>rejected</b>.</div>"
+        "</div>"
     )

@@ -292,6 +292,16 @@ BASE_CSS: str = """
   color: #e8dcc0;
   margin: 0.8rem 0 1.2rem;
 }
+.stApp .gl-story { font-size: 1.05rem; line-height: 1.6; color: #e8dcc0; margin: 0 0 0.9rem; }
+.stApp .gl-story p { margin: 0 0 0.35rem; }
+.stApp .gl-example {
+  border-left: 3px solid #ffb347;
+  padding: 0.5rem 0.9rem;
+  margin: 0 0 0.9rem;
+  color: #e8dcc0;
+}
+.stApp .gl-example-label { font-size: 0.9rem; color: #b9ae95; margin-bottom: 0.3rem; }
+.stApp .gl-example b { color: #ffd166; }
 .stApp .gl-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));

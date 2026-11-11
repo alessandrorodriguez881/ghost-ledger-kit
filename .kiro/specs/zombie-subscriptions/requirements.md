@@ -471,7 +471,7 @@ acceptance example.
   | `zs.price_increase` | `"The {counterparty} charge increased from {old_median_amount:money} to {new_amount:money}, adding {extra_cost_per_year:money} to your yearly cost. Source: {source_refs}."` |
   | `zs.duplicate_subscription` | `"You are paying for {canonical_name} through {series_count} separate accounts, totalling {yearly_cost:money} per year. Source: {source_refs}."` |
   | `zs.free_trial_to_paid` | `"Your {counterparty} free trial ({trial_amount:money}) converted to a paid subscription at {first_paid_amount:money}. Yearly cost: {yearly_cost:money}. Source: {source_refs}."` |
-  | `zs.charges_after_cancellation` | `"{counterparty} charged you {post_cancellation_count} time(s) totalling {total_charged_after:money} after your cancellation on {cancellation_date}. Source: {source_refs}."` |
+  | `zs.charges_after_cancellation` | `"{counterparty} charged you {post_cancellation_count:times} totalling {total_charged_after:money} after your cancellation on {cancellation_date}. Source: {source_refs}."` |
 
 ---
 

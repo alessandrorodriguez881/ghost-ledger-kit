@@ -1,4 +1,7 @@
-"""Checks .streamlit/config.toml: a theme and nothing else (showcase REQ-SC-06)."""
+"""Checks .streamlit/config.toml: a theme, one client display key and nothing else (REQ-SC-06).
+
+judge-path (REQ-JP-13) adds ``[client] toolbarMode = "viewer"`` so the Deploy button is gone.
+"""
 
 import re
 import tomllib
@@ -37,10 +40,11 @@ def config() -> dict[str, Any]:
         return tomllib.load(handle)
 
 
-def test_config_parses_and_holds_only_the_theme_table(config: dict[str, Any]) -> None:
+def test_config_parses_and_holds_only_the_theme_and_client_tables(config: dict[str, Any]) -> None:
     """No [server], [browser], [global] or other table that could upset Community Cloud."""
-    assert set(config) == {"theme"}
+    assert set(config) == {"theme", "client"}
     assert isinstance(config["theme"], dict)
+    assert config["client"] == {"toolbarMode": "viewer"}  # REQ-JP-13: no Deploy button
 
 
 def test_theme_holds_only_known_flat_keys(config: dict[str, Any]) -> None:

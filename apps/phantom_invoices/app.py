@@ -65,6 +65,7 @@ from apps.phantom_invoices.settings import (  # noqa: E402
     severity_counts,
     verification_message,
 )
+from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.live_guard import (  # noqa: E402
@@ -90,6 +91,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.theme import (  # noqa: E402
     PHANTOM,
     apply_theme,
@@ -119,6 +121,8 @@ DEMO_FORMAT_KEY = "pi_demo_format"
 UPLOAD_INVOICES_KEY = "pi_upload_invoices"
 UPLOAD_SUPPLIERS_KEY = "pi_upload_suppliers"
 UPLOAD_PAYMENTS_KEY = "pi_upload_payments"
+# Plain session key (not a widget): the demo was already loaded by itself once in this session.
+AUTOLOAD_KEY = "pi_autoloaded"
 # Live-guard panel: plain session values (probe results and the counter), not widgets.
 LG_RESULTS_KEY = "pi_lg_results"
 LG_COUNTS_KEY = "pi_lg_counts"
@@ -151,6 +155,16 @@ def load_demo() -> None:
         st.session_state,
         demo_inputs(CONFIG, ROOT, DEMO_FORMATS[st.session_state[DEMO_FORMAT_KEY]]),
     )
+
+
+def _autoload_demo() -> None:
+    """First run of a session with nothing loaded: load the CSV demo as the button would.
+
+    Runs before any widget is built, so the widget keys may be written here. The button stays.
+    """
+    loaded = any(source is not None for source in st.session_state["sources"].values())
+    if should_autoload(st.session_state, AUTOLOAD_KEY, loaded):
+        apply_demo(st.session_state, demo_inputs(CONFIG, ROOT, "csv"))
 
 
 def _restore_widgets() -> None:
@@ -207,18 +221,20 @@ def _render_sidebar() -> dict[str, Any]:
             key=UPLOAD_PAYMENTS_KEY,
         ),
     }
-    st.sidebar.checkbox(
-        "Fix the as-of date",
-        key="use_as_of",
-        help="Off: the latest date in the data is used to decide which invoices are overdue.",
-    )
-    st.sidebar.date_input(
-        "As-of date",
-        key="as_of_date",
-        min_value=AS_OF_MIN,
-        max_value=AS_OF_MAX,
-        disabled=not st.session_state["use_as_of"],
-    )
+    # Developer inputs: one collapsed expander, the widget keys are unchanged.
+    with st.sidebar.expander("Advanced inputs", expanded=False):
+        st.checkbox(
+            "Fix the as-of date",
+            key="use_as_of",
+            help="Off: the latest date in the data is used to decide which invoices are overdue.",
+        )
+        st.date_input(
+            "As-of date",
+            key="as_of_date",
+            min_value=AS_OF_MIN,
+            max_value=AS_OF_MAX,
+            disabled=not st.session_state["use_as_of"],
+        )
     st.sidebar.toggle(
         "Simulate a hallucinating LLM",
         key=HALLUCINATE_KEY,
@@ -264,14 +280,31 @@ def _pipeline(sources: dict[str, Any], as_of: date | None) -> Pipeline | None:
     return cache[key]
 
 
+def _card_recording(alert: Alert, hallucinate: bool) -> replay.Recording | None:
+    """Return the recorded card answer to replay, or None.
+
+    None while the stub is on (it wins), while a key is set (live calls) and when the alert has
+    no recording or the run file is off.
+    """
+    if hallucinate or os.environ.get("OPENAI_API_KEY", ""):
+        return None
+    return replay.card_recording(alert.id)
+
+
 def _explain(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> Explanation:
-    """Explain one alert; cached per (alert.id, client mode) across reruns (REQ-PI-47)."""
+    """Explain one alert; cached per (alert.id, client mode) across reruns (REQ-PI-47).
+
+    The mode is `replay` when a recorded answer goes through the guard instead of a live call.
+    """
     cache = st.session_state[EXPLANATIONS_KEY]
-    key = explanation_key(alert, hallucinate)
+    recording = _card_recording(alert, hallucinate)
+    key = explanation_key(alert, hallucinate) if recording is None else (alert.id, "replay")
     if key not in cache:
-        client = None
+        client: Any = None
         if hallucinate:
             client = HallucinatingStubClient(fill_fallback(template_for(alert), alert))
+        elif recording is not None:
+            client = replay.ReplayClient(recording.raw_answer)
         cache[key] = explain_alert(
             alert, pipeline.invoices, pipeline.suppliers, pipeline.payments, client=client
         )
@@ -331,13 +364,22 @@ def _render_ledger(pipeline: Pipeline, alerts: Sequence[Alert]) -> None:
 
 
 def _ask_model(alert: Alert, pipeline: Pipeline, question: TrickQuestion) -> None:
-    """on_click of Ask the model: one real call, kept apart from the card text (DN-LG-07)."""
+    """on_click of Ask the model: one real call, or the replay of a recorded answer.
+
+    With a key set the call is today's. With no key and a recording, the recorded text goes
+    through the same call and the same guard; no model is called (DN-LG-07, DN-JP-06).
+    """
+    client: Any = None
+    if not live_status(os.environ).enabled:
+        recording = replay.probe_recording(alert.id, question.id)
+        if recording is not None:
+            client = replay.ReplayClient(recording.raw_answer)
     meta = explain_alert(
         alert,
         pipeline.invoices,
         pipeline.suppliers,
         pipeline.payments,
-        client=None,
+        client=client,
         question=question.text,
     )
     result = probe_result(question, meta, fill_fallback(template_for(alert), alert))
@@ -361,31 +403,44 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
 
 
 def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
-    """Provoke the LLM: three preset questions to the configured real model (never the stub)."""
+    """Provoke the LLM: three preset questions to the real model, or a replay of recorded ones.
+
+    With no key, a question that has a recorded answer is enabled and replays it under a caption
+    that says so; a question without one stays disabled with today's caption.
+    """
     status = live_status(os.environ)
+    run = None if status.enabled else replay.load_run()
+    replayable = run is not None and run.has_probe(alert.id)
     labels = [q.label for q in TRICK_QUESTIONS]
     counts = st.session_state[LG_COUNTS_KEY]
     with st.expander(PANEL_TITLE):
-        st.caption(intro_line(status.model))
+        intro = intro_line(status.model)
+        if run is not None and replayable:
+            intro = replay.panel_intro(run)
+        st.caption(intro)
         label = st.radio(
             "Trick question",
             labels,
             key=f"pi_lg_q_{alert.id}",
-            disabled=not status.enabled,
+            disabled=not (status.enabled or replayable),
             label_visibility="collapsed",
         )
         question = TRICK_QUESTIONS[labels.index(label)]
+        recorded = None if run is None else run.probe(alert.id, question.id)
+        can_ask = status.enabled or recorded is not None
         st.button(
             ASK_LABEL,
             key=f"pi_lg_ask_{alert.id}",
-            disabled=not (status.enabled and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
             on_click=_ask_model,
             args=(alert, pipeline, question),
         )
+        if recorded is not None:
+            st.caption(replay.panel_caption(recorded))
         result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
         if result is not None:
             _render_probe_result(result, status)
-        if not status.enabled:
+        if not can_ask:
             st.caption(status.caption)
         elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
             st.caption(MSG_LIMIT)
@@ -395,9 +450,13 @@ def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
 def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
     """One alert card: title, detector label, explanation, guard badge, refs and captions."""
     explanation = _explain(alert, pipeline, hallucinate)
-    has_key = bool(os.environ.get("OPENAI_API_KEY", ""))
-    badge = guard_badge(explanation, has_key)
-    kind = badge_kind(explanation, has_key)
+    recording = _card_recording(alert, hallucinate)
+    if recording is not None:
+        kind, badge = replay.card_badge(recording, explanation)
+    else:
+        has_key = bool(os.environ.get("OPENAI_API_KEY", ""))
+        badge = guard_badge(explanation, has_key)
+        kind = badge_kind(explanation, has_key)
     # The container key only carries the severity into the CSS: a critical card glows.
     with st.container(border=True, key=card_key("pi", alert.severity, alert.id)):
         title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
@@ -450,6 +509,7 @@ def main() -> None:
     set_page("Phantom Invoices", PHANTOM)
     apply_theme(PHANTOM, f"{HAUNTED_CSS}{APP_CSS}")
     _init_state()
+    _autoload_demo()
     uploads = _render_sidebar()
     _keep_widgets()
 

@@ -46,6 +46,7 @@ from apps.vampire_fees.settings import (  # noqa: E402
     summary_view,
     vocabulary_lines,
 )
+from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.live_guard import (  # noqa: E402
@@ -71,6 +72,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     count_by_severity,
@@ -101,6 +103,8 @@ DEMO_FORMAT_KEY = "vf_demo_format"
 UPLOAD_STATEMENT_KEY = "vf_upload_statement"
 INGESTION_CACHE_KEY = "vf_ingestion_cache"
 KEPT_KEY = "vf_kept"
+# Plain session key (not a widget): the demo was already loaded by itself once in this session.
+AUTOLOAD_KEY = "vf_autoloaded"
 # Live-guard panel: plain session values (probe results and the counter), not widgets.
 LG_RESULTS_KEY = "vf_lg_results"
 LG_COUNTS_KEY = "vf_lg_counts"
@@ -170,6 +174,15 @@ def load_demo() -> None:
     )
 
 
+def _autoload_demo() -> None:
+    """First run of a session with nothing loaded: load the CSV demo as the button would.
+
+    Runs before any widget is built. The button stays and works as before.
+    """
+    if should_autoload(st.session_state, AUTOLOAD_KEY, bool(st.session_state.get(SOURCE_KEY))):
+        apply_demo(st.session_state, demo_inputs(load_config(CONFIG_PATH), ROOT, "csv"))
+
+
 def _restore_widgets() -> None:
     """Put back the widget values kept from the previous visit, before any widget is built."""
     for key, value in st.session_state.get(KEPT_KEY, {}).items():
@@ -214,8 +227,10 @@ def _render_sidebar(config: dict[str, Any]) -> Any:
             type=["csv", "n43", "txt", "aeb", "csb43"],
             key=UPLOAD_STATEMENT_KEY,
         )
-        with st.expander("Fee vocabulary in use"):
-            st.caption("Read-only. Edit apps/vampire_fees/config.toml to change it.")
+        # Developer inputs: one collapsed expander (expanders do not nest, so the read-only
+        # vocabulary list sits in it directly).
+        with st.expander("Advanced inputs", expanded=False):
+            st.caption("Fee vocabulary in use. Read-only: edit apps/vampire_fees/config.toml.")
             lines = vocabulary_lines(config["vocabulary"])
             st.markdown("\n".join(f"- {markdown_safe(line)}" for line in lines))
         return uploaded
@@ -232,13 +247,34 @@ def _current_source(uploaded: Any) -> tuple[str, bytes] | None:
     return None
 
 
+def _card_recording(alert: Alert, hallucinate: bool) -> replay.Recording | None:
+    """Return the recorded card answer to replay, or None.
+
+    None while the stub is on (it wins), while a key is set (live calls) and when the alert has
+    no recording or the run file is off.
+    """
+    if hallucinate or os.environ.get("OPENAI_API_KEY", ""):
+        return None
+    return replay.card_recording(alert.id)
+
+
 def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanation:
-    """Explain one alert; cached per (alert.id, client mode) across reruns."""
+    """Explain one alert; cached per (alert.id, client mode) across reruns.
+
+    The mode is `replay` when a recorded answer goes through the guard instead of a live call.
+    """
     cache = st.session_state[EXPLANATIONS_KEY]
-    key = (alert.id, "hallucinate" if hallucinate else "real")
+    recording = _card_recording(alert, hallucinate)
+    client: Any = None
+    if hallucinate:
+        mode, client = "hallucinate", HallucinatingStubClient()
+    elif recording is not None:
+        mode, client = "replay", replay.ReplayClient(recording.raw_answer)
+    else:
+        mode = "real"
+    key = (alert.id, mode)
     if key not in cache:
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
-        client = HallucinatingStubClient() if hallucinate else None
         cache[key] = explain_with_meta(
             alert, rows, fallback_template=template_for(alert), client=client
         )
@@ -289,11 +325,20 @@ def _render_coffins(alerts: Sequence[Alert]) -> None:
 
 
 def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> None:
-    """on_click of Ask the model: one real call, kept apart from the card text (DN-LG-07)."""
+    """on_click of Ask the model: one real call, or the replay of a recorded answer.
+
+    With a key set the call is today's. With no key and a recording, the recorded text goes
+    through the same call and the same guard; no model is called (DN-LG-07, DN-JP-06).
+    """
     rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
     template = template_for(alert)
+    client: Any = None
+    if not live_status(os.environ).enabled:
+        recording = replay.probe_recording(alert.id, question.id)
+        if recording is not None:
+            client = replay.ReplayClient(recording.raw_answer)
     meta = explain_with_meta(
-        alert, rows, fallback_template=template, client=None, question=question.text
+        alert, rows, fallback_template=template, client=client, question=question.text
     )
     result = probe_result(question, meta, fill_fallback(template, alert))
     st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
@@ -316,31 +361,44 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
 
 
 def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
-    """Provoke the LLM: three preset questions to the configured real model (never the stub)."""
+    """Provoke the LLM: three preset questions to the real model, or a replay of recorded ones.
+
+    With no key, a question that has a recorded answer is enabled and replays it under a caption
+    that says so; a question without one stays disabled with today's caption.
+    """
     status = live_status(os.environ)
+    run = None if status.enabled else replay.load_run()
+    replayable = run is not None and run.has_probe(alert.id)
     labels = [q.label for q in TRICK_QUESTIONS]
     counts = st.session_state[LG_COUNTS_KEY]
     with st.expander(PANEL_TITLE):
-        st.caption(intro_line(status.model))
+        intro = intro_line(status.model)
+        if run is not None and replayable:
+            intro = replay.panel_intro(run)
+        st.caption(intro)
         label = st.radio(
             "Trick question",
             labels,
             key=f"vf_lg_q_{alert.id}",
-            disabled=not status.enabled,
+            disabled=not (status.enabled or replayable),
             label_visibility="collapsed",
         )
         question = TRICK_QUESTIONS[labels.index(label)]
+        recorded = None if run is None else run.probe(alert.id, question.id)
+        can_ask = status.enabled or recorded is not None
         st.button(
             ASK_LABEL,
             key=f"vf_lg_ask_{alert.id}",
-            disabled=not (status.enabled and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
             on_click=_ask_model,
             args=(alert, ledger, question),
         )
+        if recorded is not None:
+            st.caption(replay.panel_caption(recorded))
         result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
         if result is not None:
             _render_probe_result(result, status)
-        if not status.enabled:
+        if not can_ask:
             st.caption(status.caption)
         elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
             st.caption(MSG_LIMIT)
@@ -350,7 +408,12 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
-    badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
+    recording = _card_recording(alert, hallucinate)
+    if recording is not None:
+        badge_kind, badge_label = replay.card_badge(recording, explanation)
+    else:
+        badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
+        badge_kind, badge_label = badge.kind, badge.label
     # The container key only carries the severity into the CSS: a critical card glows.
     with st.container(border=True, key=card_key("vf", alert.severity, alert.id)):
         title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
@@ -358,7 +421,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
         st.write(explanation.text)
         st.markdown(
-            f'<span class="vf-badge vf-badge-{badge.kind}">{html.escape(badge.label)}</span>',
+            f'<span class="vf-badge vf-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,
         )
         st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
@@ -400,6 +463,7 @@ def main() -> None:
     apply_theme(VAMPIRE, VAMPIRE_CSS)
     config = load_config(CONFIG_PATH)
     _init_state()
+    _autoload_demo()
     uploaded = _render_sidebar(config)
     _keep_widgets()
 

@@ -21,7 +21,7 @@ import apps.zombie_subscriptions.detectors  # noqa: F401  (registers the zs.* de
 import streamlit_app
 from ledger_kit.detectors import _restore_registry, _snapshot_registry
 from ledger_kit.ui.icons import ICON_NAMES
-from ledger_kit.ui.landing import TILES
+from ledger_kit.ui.landing import TILES, percent_text
 from ledger_kit.ui.theme import KIT, PHANTOM, VAMPIRE, ZOMBIE, Accent
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -184,9 +184,14 @@ def test_home_proof_strip_shows_the_numbers_of_the_committed_files() -> None:
     zombie = results["apps"]["zombie"]["totals"]
     phantom = results["apps"]["phantom"]["totals"]
 
-    assert figures == [zombie["precision"], phantom["precision"], "25 of 25", "IPC290751"]
-    assert f"Recall {zombie['recall']} on 200" in strip
-    assert f"Recall {phantom['recall']} on 200" in strip
+    assert figures == [
+        percent_text(zombie["precision"]),
+        percent_text(phantom["precision"]),
+        "25 of 25",
+        "IPC290751",
+    ]
+    assert f"Recall {percent_text(zombie['recall'])} on 200" in strip
+    assert f"Recall {percent_text(phantom['recall'])} on 200" in strip
     assert "Checked once by the reviewer" in strip and "not part of CI" in strip
     assert "licence CC BY 4.0" in strip
 

@@ -32,7 +32,7 @@ TEMPLATES: dict[str, str] = {
         "at {first_paid_amount:money}. Yearly cost: {yearly_cost:money}. Source: {source_refs}."
     ),
     "zs.charges_after_cancellation": (
-        "{counterparty} charged you {post_cancellation_count} time(s) totalling "
+        "{counterparty} charged you {post_cancellation_count:times} totalling "
         "{total_charged_after:money} after your cancellation on {cancellation_date}. "
         "Source: {source_refs}."
     ),

@@ -23,6 +23,7 @@ ghost-ledger-kit/
 │   │   └── base.py                 # DetectorResult type, detector registry
 │   ├── explainer.py                # LLM explanation layer; only file that calls an LLM
 │   ├── live_guard.py               # Pure helpers of the Provoke-the-LLM panel (no Streamlit, no model call)
+│   ├── replay.py                   # Replay of a recorded real-model run through today's guard (no model, no network)
 │   ├── public_data/
 │   │   ├── __init__.py             # public names only
 │   │   └── ine_cpi.py              # INE CPI snapshot reader and validator (stdlib only, no network)
@@ -31,6 +32,7 @@ ghost-ledger-kit/
 │   │   ├── reference_app.py        # Library reference page (Streamlit)
 │   │   ├── icons.py                # Six inline SVG line icons: tombstone, ghost, coffin, candle, magnifier, scales
 │   │   ├── theme.py                # Palette, one accent per app, the one CSS block, card and heading helpers
+│   │   ├── first_run.py            # Pure switch of the demo that loads by itself on the first run of a session
 │   │   └── landing.py              # Home page parts: proof strip read from committed files, tiles, diagram
 │   └── utils/
 │       ├── __init__.py
@@ -196,6 +198,10 @@ ghost-ledger-kit/
 │   ├── test_explainer_timeout.py   # optional LEDGER_KIT_LLM_TIMEOUT (1 to 120, default 10)
 │   ├── test_explainer_live_run.py  # first real-model run replayed through the guard; guard rules
 │   ├── test_live_guard.py          # pure helpers of the Provoke-the-LLM panel
+│   ├── judge_path_support.py       # real demo alerts and a small recorded run for the judge-path tests
+│   ├── test_judge_path_replay.py   # replay loader, re-check by today's guard, no network
+│   ├── test_judge_path_pages.py    # headless AppTest runs: recorded cards, replayed panel, auto-load, Home
+│   ├── test_judge_path_misc.py     # plurals, percentages, first-run switch, config key
 │   ├── test_live_guard_docs.py     # docs/live-guard.md, README paragraph, .env.example
 │   ├── test_money.py
 │   └── test_anonymise.py
@@ -230,6 +236,7 @@ ghost-ledger-kit/
 │           ├── payments.n43        # the same payments as Norma 43 (mode 1)
 │           └── facturae/           # one Facturae 3.2.2 file per supplier: <kk>-<case>.xml
 ├── streamlit_app.py                # Showcase entry (st.navigation: Home + the three apps + Benchmark); Community Cloud default
+├── conftest.py                     # Root fixture: replay and auto-load off for every test written before judge-path
 ├── .streamlit/
 │   └── config.toml                 # Shared dark Halloween theme: [theme] keys only, no secrets
 ├── .gitattributes                  # demo CSV, .n43 and .xml samples are byte-compared: no line-ending conversion
@@ -287,6 +294,7 @@ files with the generator (`scripts/generate_samples.py`).
 - The zombie app receives the CPI series through `context["cpi"]`; the detectors do no I/O.
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `live_guard.py` is pure: no Streamlit, no model call; the explainer stays the only module that calls a model.
+- `replay.py` is pure too: it reads one committed run file and hands recorded text to the same call and the same guard as a live answer, through an OpenAI-shaped client that opens no connection.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
 
 ## Data directory rules

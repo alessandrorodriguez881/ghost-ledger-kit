@@ -24,6 +24,7 @@ from typing import Any, NamedTuple
 
 import streamlit as st
 
+from ledger_kit import replay
 from ledger_kit.ui import landing, theme
 
 
@@ -55,6 +56,15 @@ PROMISE = (
     "Financial apps that cannot make up a number: every figure comes from a row you can check."
 )
 
+# The story under the promise (judge-path, REQ-JP-14): three short lines, no figure.
+STORY: tuple[str, ...] = (
+    "Bank statements and invoices hide money leaks.",
+    "A language model can explain them, but it makes up numbers.",
+    "Here, plain rules find every figure, and a guard throws out any figure the model invents.",
+)
+START_HERE = "Start here: Zombie Subscriptions"
+START_HERE_FALLBACK = "Start here: open Zombie Subscriptions from the menu."
+
 LAYERS = """
 1. **Deterministic detectors find the figures.** Plain Python rules, no machine learning, read the
    files and raise the alerts.
@@ -66,15 +76,17 @@ LAYERS = """
 """
 
 TRY_IT = (
-    "**Try it:** open an app, click *Load demo data* and switch on **Simulate a hallucinating "
-    "LLM** in the sidebar. A stub model then invents a figure, 99999.99 EUR; the guard rejects it "
-    "and the alert card shows a warning badge."
+    "**Try it:** open an app, where the demo data is already loaded, and switch on **Simulate a "
+    "hallucinating LLM** in the sidebar. A stub model then invents a figure, 99999.99 EUR; the "
+    "guard rejects it and the alert card shows a warning badge. The *Provoke the LLM* panel of "
+    "each card replays recorded answers of a real model when no API key is set."
 )
 
 SYNTHETIC_NOTE = (
     "All demo data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
-    "national check digits are deliberately wrong. Without an API key the explanations come from "
-    "fixed templates; the number guard works the same way."
+    "national check digits are deliberately wrong. Without an API key a card shows either a "
+    "recorded answer of a real model, checked now by the number guard (the badge says so; no "
+    "model is called), or a fixed template."
 )
 
 # Zombie Subscriptions compares price increases with a committed snapshot of the INE consumer
@@ -99,12 +111,26 @@ def _markdown(markup: str) -> None:
     st.markdown(markup, unsafe_allow_html=True)
 
 
+def _start_here() -> None:
+    """The Start here link to Zombie Subscriptions; a plain sentence if it cannot be drawn."""
+    zombie = next(spec for spec in PAGES if spec.url_path == "zombie-subscriptions")
+    try:
+        st.page_link(_page(zombie), label=START_HERE)
+    except Exception:  # a link that cannot be drawn must never take Home down
+        st.markdown(START_HERE_FALLBACK)
+
+
 def home() -> None:
-    """Render the Home page: the promise, the proof strip, the three apps and the three layers."""
+    """Render Home: promise, story, recorded example, Start here, proof strip, apps, layers."""
     theme.apply_theme(theme.KIT)
     theme.show_masthead(theme.KIT)
     st.title(HOME_TITLE)
     _markdown(f'<div class="gl-promise">{html.escape(PROMISE)}</div>')
+    _markdown(landing.story_html(STORY))
+    example = landing.example_html(replay.load_run())
+    if example:
+        _markdown(example)
+    _start_here()
     theme.show_section("scales", "Proof, read from the committed files")
     _markdown(landing.proof_strip_html(landing.proof_facts(results_path=RESULTS_PATH)))
     theme.show_section("ghost", "Three apps, one contract")

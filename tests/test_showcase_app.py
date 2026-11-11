@@ -177,7 +177,9 @@ def test_home_explains_the_kit() -> None:
     assert "Zombie Subscriptions" in text and "Phantom Invoices" in text
     assert "Vampire Fees" in text
     assert "synthetic" in text
-    assert len(text.split()) < 500  # a landing page with a proof strip, not a manual
+    # a landing page with a story, an example and a proof strip, not a manual (judge-path: 500
+    # became 650 for the story, the recorded example and the Start here link)
+    assert len(text.split()) < 650
 
 
 def test_home_has_no_real_looking_data() -> None:
