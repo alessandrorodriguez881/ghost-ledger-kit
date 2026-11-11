@@ -1,0 +1,9 @@
+Session 10b. I reviewed the benchmark spec: it is good. First apply these answers to requirements.md, design.md and tasks.md (move each open question into the decisions table with its answer), then implement tasks BM1 to BM5 test-first in this same call and tick them. BM6 to BM9 come in the next session, after my first run.
+Answers:
+1. Annual subscription: yes, exactly as you wrote. Two yearly charges are a recurring-charge positive; a single annual charge is the hard negative; every other detector stays silent on both.
+2. Zombie pipeline: do not duplicate it in the runner. Extract the existing read, normalise, debit-filter and detector steps of apps/zombie_subscriptions/app.py into one small public function (for example run_pipeline in apps/zombie_subscriptions/settings.py, next to the existing helpers, mirroring the phantom app), make app.py call it, and make the runner call the same function, so the benchmark measures exactly what the app runs. This is a refactor with no behaviour change: every existing test stays green, and the demo counts stay 3 tombstones and 19 alerts. Record it as an amendment of the zombie spec.
+3. Exactly +5.00 percent: the code fires, so label it positive and keep FU-P3 for the wording.
+4. Scenario count as the tuning knob: accepted.
+5. Navigation: accepted as written.
+The two predicted follow-ups (a supplier with two legitimate IBANs, groceries forming a weekly series by chance) stay predictions until the first run; do not change any detector in this spec.
+Environment: Windows, Python 3.12 venv. You cannot run commands: after you stop I run ruff check ., ruff format --check . and pytest and send you any failures. When done, stop and list the files you changed.

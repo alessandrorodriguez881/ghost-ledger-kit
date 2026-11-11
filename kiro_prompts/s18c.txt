@@ -1,0 +1,4 @@
+Session 18c, two accuracy fixes in kiro_prompts/README.md only, nothing else:
+1. Remove the fixed count (There are 53 of them) and the fixed last name (s5a to s18a): new prompt files keep being added, so say instead that the s series runs from s5a to the latest s file in the folder, and give no total.
+2. Not every call is here: the first calls (the ledger-core spec and most of the zombie-subscriptions spec) were sent as inline text and not saved as files, which is why only two z files exist. Say that plainly in the opening paragraph, so the folder is described as the saved prompts, not all of them; keep the rest as it is.
+Environment: Windows. You cannot run commands. When done, list the files you changed.
