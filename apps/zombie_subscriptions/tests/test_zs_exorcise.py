@@ -288,3 +288,60 @@ def test_the_draft_of_the_gymplus_card_lists_each_charge_after_the_cancellation(
     [draft] = [d for d in drafts if d.startswith("Subject: Refund request")]
     assert "I cancelled my subscription on 2026-07-31" in draft
     assert "2026-08-09: 8,99 EUR" in draft
+
+
+# --- duplicate draft: each distinct account name once -------------------------------------------
+
+DRAFT_WORD_LIMIT = 150
+
+
+def _demo_duplicate_draft(canonical: str, language: str) -> tuple[Alert, str]:
+    """Run the zs detectors on the demo and return the duplicate alert and its draft."""
+    from apps.zombie_subscriptions import settings as zs_settings
+    from apps.zombie_subscriptions.detectors.utils import (
+        normalise_alias_map,
+        normalise_date_map,
+    )
+
+    root = Path(__file__).resolve().parents[3]
+    config = zs_settings.load_config(root / "apps" / "zombie_subscriptions" / "config.toml")
+    demo = zs_settings.demo_inputs(config, root, "csv")
+    pipeline = zs_settings.run_pipeline(
+        demo.statement_name,
+        demo.statement_bytes,
+        aliases=normalise_alias_map(demo.aliases),
+        cancellation_dates=normalise_date_map(demo.cancellation_dates),
+        cpi=zs_settings.load_cpi(config, root),
+    )
+    ledger = pipeline.debit_ledger
+    [alert] = [
+        a
+        for a in pipeline.alerts
+        if a.detector == "zs.duplicate_subscription" and a.data["canonical_name"] == canonical
+    ]
+    rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
+    draft = build_draft(alert, rows, TEMPLATES[alert.detector], language)
+    assert draft is not None  # the number guard passed
+    assert len(draft.split()) < DRAFT_WORD_LIMIT
+    return alert, draft
+
+
+def test_the_musicbox_duplicate_draft_lists_no_repeated_name_in_both_languages() -> None:
+    alert, english = _demo_duplicate_draft("MUSICBOX", "en")
+    _, spanish = _demo_duplicate_draft("MUSICBOX", "es")
+
+    assert len(set(alert.data["series_counterparties"])) == 1  # the names are all the same
+    assert f"I have {alert.data['series_count']} separate accounts for MUSICBOX. " in english
+    assert f"Tengo {alert.data['series_count']} cuentas distintas de MUSICBOX. " in spanish
+    assert english.count("MUSICBOX") == 1 and spanish.count("MUSICBOX") == 1
+
+
+def test_the_streaming_duplicate_draft_still_lists_both_different_names() -> None:
+    alert, english = _demo_duplicate_draft("STREAMING", "en")
+    _, spanish = _demo_duplicate_draft("STREAMING", "es")
+
+    assert set(alert.data["series_counterparties"]) == {"STREAMFLIX INTL", "STREAMFLIXCOM"}
+    for draft in (english, spanish):
+        assert draft.count("STREAMFLIX INTL") == 1 and draft.count("STREAMFLIXCOM") == 1
+    assert "accounts for STREAMING: " in english
+    assert "cuentas distintas de STREAMING: " in spanish

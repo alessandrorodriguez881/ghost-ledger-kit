@@ -1,7 +1,7 @@
 """Ledger scan: check statements and invoices with the kit from the command line.
 
-Spec: ``.kiro/specs/scan-command/``. Two subcommands, both read-only, both deterministic. No language model is called and nothing
-opens a connection (REQ-SCAN-01, REQ-SCAN-15):
+Spec: ``.kiro/specs/scan-command/``. Two subcommands, both read-only, both deterministic. No
+language model is called and nothing opens a connection (REQ-SCAN-01, REQ-SCAN-15):
 
 * ``scan FILE [FILE ...]`` sniffs each file by content, runs the pipeline of each app exactly as
   its page does and prints one JSON object with the files and every alert.

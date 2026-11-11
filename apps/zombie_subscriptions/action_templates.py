@@ -86,7 +86,7 @@ DUPLICATE_SUBSCRIPTION = ActionTemplate(
         "en": (
             "Subject: Request to cancel a duplicate account\n\n"
             "Dear customer service,\n\n"
-            "I have {series_count} separate accounts for {canonical_name}: {account_names}. "
+            "I have {series_count} separate accounts for {canonical_name}{account_names}. "
             "Together they cost {yearly_cost:money} per year. I need only one. Please cancel "
             "the duplicate account, stop its charges and confirm in writing which account "
             "stays active.\n\n"
@@ -96,7 +96,7 @@ DUPLICATE_SUBSCRIPTION = ActionTemplate(
         "es": (
             "Asunto: Solicitud de cancelación de una cuenta duplicada\n\n"
             "Estimados señores del servicio de atención al cliente:\n\n"
-            "Tengo {series_count} cuentas distintas de {canonical_name}: {account_names}. "
+            "Tengo {series_count} cuentas distintas de {canonical_name}{account_names}. "
             "Juntas cuestan {yearly_cost:money} al año. Solo necesito una. Les ruego que "
             "cancelen la cuenta duplicada, detengan sus cobros y confirmen por escrito qué "
             "cuenta sigue activa.\n\n"
@@ -196,6 +196,14 @@ def _cpi_sentence(alert: Alert, language: str) -> str:
     return " " + fill(template, alert, language)
 
 
+def _account_names(names: list[object]) -> str:
+    """Return ': A, B' for the distinct series names, or '' when they all share one name."""
+    distinct = list(dict.fromkeys(str(name) for name in names))
+    if len(distinct) < 2:
+        return ""
+    return ": " + ", ".join(distinct)
+
+
 def zombie_extras(alert: Alert, rows: pd.DataFrame, language: str) -> Mapping[str, str]:
     """Return the computed placeholders of every zombie template for this alert and language."""
     data = alert.data
@@ -205,7 +213,7 @@ def zombie_extras(alert: Alert, rows: pd.DataFrame, language: str) -> Mapping[st
     return {
         "charge_lines": row_lines(rows) if listed else "",
         "interval_text": INTERVAL_TEXT[language].get(interval, interval),
-        "account_names": ", ".join(str(name) for name in names),
+        "account_names": _account_names(names),
         "cpi_sentence": _cpi_sentence(alert, language),
     }
 
