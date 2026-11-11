@@ -63,6 +63,7 @@ STORY: tuple[str, ...] = (
     "Here, plain rules find every figure, and a guard throws out any figure the model invents.",
 )
 START_HERE = "Start here: Zombie Subscriptions"
+START_HERE_ICON = "🪦"  # the tombstone of Zombie Subscriptions; st.page_link takes an emoji
 START_HERE_FALLBACK = "Start here: open Zombie Subscriptions from the menu."
 
 LAYERS = """
@@ -115,7 +116,7 @@ def _start_here() -> None:
     """The Start here link to Zombie Subscriptions; a plain sentence if it cannot be drawn."""
     zombie = next(spec for spec in PAGES if spec.url_path == "zombie-subscriptions")
     try:
-        st.page_link(_page(zombie), label=START_HERE)
+        st.page_link(_page(zombie), label=START_HERE, icon=START_HERE_ICON)
     except Exception:  # a link that cannot be drawn must never take Home down
         st.markdown(START_HERE_FALLBACK)
 

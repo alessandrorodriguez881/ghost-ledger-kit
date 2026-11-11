@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 
+from ledger_kit.live_guard import MARK_STYLE, highlight_segments
 from ledger_kit.public_data import DEFAULT_SNAPSHOT_PATH, SnapshotError, load_snapshot
 from ledger_kit.replay import ReplayRun
 from ledger_kit.ui.icons import icon
@@ -257,11 +258,22 @@ def example_html(run: ReplayRun | None) -> str:
     if figure is None or question is None:
         return ""
     label = f"One recorded answer of {run.model_name}, {run.date}."
+    sentence = recording.sentence_with(figure)
+    quoted = ""
+    if sentence is not None:
+        marked = "".join(
+            f'<mark style="{MARK_STYLE}">{html.escape(seg.text)}</mark>'
+            if seg.flagged
+            else html.escape(seg.text)
+            for seg in highlight_segments(sentence, (figure,))
+        )
+        quoted = f"<div>The model wrote: “{marked}”</div>"
     return (
         '<div class="gl-example">'
         f'<div class="gl-example-label">{html.escape(label)}</div>'
-        f"<div>You asked: {html.escape(question)}</div>"
-        f"<div>The model answered with <b>{html.escape(figure)}</b>, a figure that is not in "
-        "the cited rows or the alert data. The number guard: <b>rejected</b>.</div>"
+        f"<div>Question: {html.escape(question)}</div>"
+        f"{quoted}"
+        f"<div>The figure <b>{html.escape(figure)}</b> is not in the cited rows or the alert "
+        "data. The number guard: <b>rejected</b>.</div>"
         "</div>"
     )

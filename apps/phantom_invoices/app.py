@@ -25,10 +25,13 @@ if str(_ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
+from apps.phantom_invoices.action_templates import action_for  # noqa: E402
 from apps.phantom_invoices.detectors import LABELS  # noqa: E402  (registers the pi.* detectors)
 from apps.phantom_invoices.explain_support import (  # noqa: E402
+    ROW_COLUMNS,
     HallucinatingStubClient,
     badge_kind,
+    build_explain_rows,
     explain_alert,
     explanation_key,
     guard_badge,
@@ -69,7 +72,6 @@ from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.live_guard import (  # noqa: E402
-    ASK_LABEL,
     LIVE_ASKS_PER_SESSION_LIMIT,
     MSG_LIMIT,
     NOTE_GUARD_SCOPE,
@@ -81,6 +83,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     LiveStatus,
     ProbeResult,
     TrickQuestion,
+    ask_label,
     counter_caption,
     highlight_html,
     intro_line,
@@ -91,6 +94,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.theme import (  # noqa: E402
     PHANTOM,
@@ -429,7 +433,7 @@ def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
         recorded = None if run is None else run.probe(alert.id, question.id)
         can_ask = status.enabled or recorded is not None
         st.button(
-            ASK_LABEL,
+            ask_label(live=status.enabled, replayable=replayable),
             key=f"pi_lg_ask_{alert.id}",
             disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
             on_click=_ask_model,
@@ -474,6 +478,13 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         for caption in alert_captions(alert):
             st.caption(caption)
         st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
+        render_exorcise(
+            alert,
+            build_explain_rows(alert, pipeline.invoices, pipeline.suppliers, pipeline.payments),
+            action_for(alert),
+            prefix="pi",
+            row_columns=ROW_COLUMNS,
+        )
         _render_live_panel(alert, pipeline)
 
 

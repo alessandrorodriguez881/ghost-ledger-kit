@@ -13,6 +13,7 @@ off (``load_run`` returns ``None``); it never raises and it shows no message.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -33,6 +34,10 @@ REPLAY_RUN_PATH: Path = DEFAULT_REPLAY_RUN_PATH
 Kind = Literal["card", "probe"]
 
 _QUESTION_TEXT: dict[str, str] = {q.id: q.text for q in TRICK_QUESTIONS}
+# A money amount ends in a decimal part of one or two digits: 539.40, 1.349,40.
+_MONEY_TOKEN = re.compile(r"\d[.,]\d{1,2}$")
+# A sentence ends at . ! or ? followed by white space, or at a line break; 539.40 is not split.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
 BADGE_ACCEPTED = (
     "📼 Recorded answer of {model}, {date}, checked now by the number guard: accepted. "
@@ -73,11 +78,25 @@ class Recording:
 
     @property
     def invented_token(self) -> str | None:
-        """The first stored rejected token that holds a digit, else the first one, else None."""
-        for token in self.stored_rejection:
-            if any(char.isdigit() for char in token):
+        """The stored rejected token that matters: a money amount, else the longest token.
+
+        A money amount ends in a decimal part (``539.40``, ``1.349,40``), so a multiplier such as
+        ``5`` or a currency sign never wins over the amount the model made up. The first money
+        amount wins; with none, the longest token (the first of equal length). None when the
+        guard of the recording day rejected nothing.
+        """
+        tokens = self.stored_rejection
+        for token in tokens:
+            if _MONEY_TOKEN.search(token):
                 return token
-        return self.stored_rejection[0] if self.stored_rejection else None
+        return max(tokens, key=len, default=None)
+
+    def sentence_with(self, token: str) -> str | None:
+        """Return the sentence of the raw answer that contains `token`, else None."""
+        for part in _SENTENCE_SPLIT.split(self.raw_answer.strip()):
+            if token in part:
+                return part.strip()
+        return None
 
 
 @dataclass(frozen=True)
@@ -263,7 +282,10 @@ def card_badge(recording: Recording, explanation: Explanation) -> tuple[str, str
         return "llm", BADGE_ACCEPTED.format(model=recording.model_name, date=recording.date)
     numbers = ""
     if explanation.rejected_numbers:
-        numbers = f" (invented number {', '.join(explanation.rejected_numbers)})"
+        numbers = (
+            " (not found in the cited rows or the alert data: "
+            f"{', '.join(explanation.rejected_numbers)})"
+        )
     label = BADGE_REJECTED.format(model=recording.model_name, date=recording.date, numbers=numbers)
     return "rejected", label
 

@@ -48,7 +48,9 @@ DEMO_LOADED_KEY = "vf_demo_loaded"
 BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
 BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
-BADGE_REJECTED: str = "⚠️ LLM answer rejected: invented number {numbers}"
+BADGE_REJECTED: str = (
+    "⚠️ LLM answer rejected: not found in the cited rows or the alert data: {numbers}"
+)
 
 # The rule in force, per detected format (REQ-VF-45).
 RULE_CSV: str = "A CSV has no bank concept: fees are recognised by words only."

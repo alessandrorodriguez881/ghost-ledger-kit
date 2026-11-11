@@ -163,7 +163,8 @@ examples is **(synthetic)** or a recorded answer of a real model on synthetic de
 - **REQ-JP-15** The example shall be read from the run file, not typed: the first **probe** record
   whose answer the guard rejected and that has an answer, with its question text, the invented
   figure (the first rejected token that holds a digit, else the first token) and the word
-  `rejected`, labelled as one recorded answer of the named model on the recorded date. *If* the file
+  `rejected`, labelled as one recorded answer of the named model on the recorded date. (Amended by
+  REQ-JP-21: the figure rule and the wording of the example changed.) *If* the file
   is missing, invalid or has no such record, *then* Home shall omit the example and keep the rest.
   - Example: record `{kind: probe, question_id: forecast, observed_rejected: ["779.40"], ...}` →
     `You asked: ... — it answered with 779.40 — rejected.` and the label
@@ -188,3 +189,30 @@ examples is **(synthetic)** or a recorded answer of a real model on synthetic de
 - **REQ-JP-19** The change shall add no dependency, change no detector, figure, number-guard rule,
   existing widget key or line of the live call, and every existing test shall stay green except the
   tests that pin the strings and shapes the requirements above change (listed in `tasks.md`).
+
+## 10 — Amendment 17c (small fixes after the first browser run)
+
+- **REQ-JP-20** *While* replay is active for an alert (no key set and the alert has a recorded
+  probe), the button of the Provoke panel shall read `Replay the recorded answer`; *while* a key
+  is set, or the alert has no recorded probe, it shall read `Ask the model`. Widget keys and the
+  disabled rules do not change.
+- **REQ-JP-21** The Home example shall name the invented figure by this rule: among the stored
+  rejected tokens, the first that is a **money amount** (ends in a decimal part of one or two
+  digits, such as `539.40` or `1.349,40`), else the **longest** token (the first of equal length).
+  It shall show the **sentence of the recorded answer** that contains the figure, with the figure
+  marked, and the line `Question: ...` (not `You asked:`), because the visitor asked nothing.
+  - Example: stored tokens `5`, `539.40` and the answer `Over five years you will pay 5 x 107.88 =
+    539.40 EUR. Cancel it.` → figure `539.40`; the sentence shown is the first one, with `539.40`
+    marked.
+  - Example: stored tokens `5`, `$`, `2030` and no money amount → figure `2030` (the longest).
+- **REQ-JP-22** A rejected token is not always a number (a currency sign, a word). The rejected
+  badges and verdict lines of cards and of the replay shall therefore not say `invented number`;
+  they shall say `not found in the cited rows or the alert data: <tokens>`, the wording of the
+  panel verdict, for live and replayed answers alike.
+  - Example (card, live): `⚠️ LLM answer rejected: not found in the cited rows or the alert data:
+    99999.99`.
+  - Example (replay): `... rejected (not found in the cited rows or the alert data: 98765.43).
+    Fixed template shown. No model called.`
+- **REQ-JP-23** The *Start here* entry on Home shall be a page link to Zombie Subscriptions with
+  the tombstone icon, drawn at body text size (1 rem), underlined, inside a bordered box in the
+  accent colour; not a small caption.

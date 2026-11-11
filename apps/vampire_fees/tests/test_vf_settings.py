@@ -281,7 +281,9 @@ def test_guard_badge_for_the_four_cases() -> None:
     badge = guard_badge(rejected, has_api_key=True)
     assert badge.kind == "rejected"
     assert badge.label == BADGE_REJECTED.format(numbers="99999.99")
-    assert badge.label == "⚠️ LLM answer rejected: invented number 99999.99"
+    assert badge.label == (
+        "⚠️ LLM answer rejected: not found in the cited rows or the alert data: 99999.99"
+    )
     assert guard_badge(plain, has_api_key=True).label == BADGE_UNAVAILABLE
     assert guard_badge(plain, has_api_key=False).label == BADGE_TEMPLATE
 

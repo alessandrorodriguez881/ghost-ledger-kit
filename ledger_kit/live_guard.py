@@ -32,6 +32,14 @@ CAPTION_URL_WITHOUT_KEY = (
 
 PANEL_TITLE = "🔦 Provoke the LLM"
 ASK_LABEL = "Ask the model"
+REPLAY_ASK_LABEL = "Replay the recorded answer"  # the button while the answers are recorded
+
+
+def ask_label(*, live: bool, replayable: bool) -> str:
+    """Return the button label: Ask the model with a key or without a recording, else Replay."""
+    return REPLAY_ASK_LABEL if replayable and not live else ASK_LABEL
+
+
 RAW_LABEL = "Model answer (raw, before the guard):"
 TEMPLATE_LABEL = "Fixed template shown on the card when the answer is not trusted:"
 NOTE_GUARD_SCOPE = "The guard checks figures, dates and IBANs. It does not judge wording."
@@ -233,6 +241,9 @@ _MARK_STYLE = (
     "background: #ffd54a; color: #1a1a1a; font-weight: 700; text-decoration: underline; "
     "padding: 0 0.15rem; border-radius: 0.2rem;"
 )
+
+
+MARK_STYLE = _MARK_STYLE  # public name for the pages that mark a token inline (Home example)
 
 
 def highlight_html(raw: str, tokens: Sequence[str]) -> str:

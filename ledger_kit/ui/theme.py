@@ -142,6 +142,7 @@ BASE_CSS: str = """
   opacity: 1;
 }
 .stApp textarea, .stApp input { background-color: #1c1829; color: #e8dcc0; }
+.stApp textarea:disabled { -webkit-text-fill-color: #e8dcc0; opacity: 1; }
 .stApp code { color: var(--gl-accent-text); overflow-wrap: anywhere; }
 .stApp h1, .stApp h2, .stApp h3, .stApp .gl-section, .stApp .gl-sub, .stApp .gl-figure,
 .stApp .gl-tile-name, .stApp .gl-promise {
@@ -302,6 +303,20 @@ BASE_CSS: str = """
 }
 .stApp .gl-example-label { font-size: 0.9rem; color: #b9ae95; margin-bottom: 0.3rem; }
 .stApp .gl-example b { color: #ffd166; }
+.stApp .gl-example mark { border-radius: 0.2rem; }
+.stApp [data-testid="stMainBlockContainer"] [data-testid="stPageLink-NavLink"] {
+  border: 1px solid var(--gl-accent);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  width: fit-content;
+  margin: 0 0 0.9rem;
+}
+.stApp [data-testid="stMainBlockContainer"] [data-testid="stPageLink-NavLink"] p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gl-accent-text);
+  text-decoration: underline;
+}
 .stApp .gl-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));

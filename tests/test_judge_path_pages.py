@@ -238,6 +238,7 @@ def test_with_a_key_the_cards_and_the_panel_are_live_and_never_replay(
     assert not any("Recorded answer" in b for b in badges)
     assert not any("Recorded answers of" in v for v in _texts(at))
     assert not _ask(at, prefix).disabled and not _question_radio(at, prefix).disabled
+    assert _ask(at, prefix).label == "Ask the model"  # REQ-JP-20: with a key it is a real call
     assert not any(REPLAY_CAPTION_START in v for v in _texts(at))
     live_keys = {(case.alert.id, "real") for case in cases_of(prefix)}
     assert set(at.session_state[f"{prefix}_explanations"]) == live_keys
@@ -265,7 +266,7 @@ def test_a_recorded_probe_is_replayed_with_the_marked_token_and_todays_verdict(
     at = _open(prefix)
     assert not _question_radio(at, prefix).disabled
     assert not _ask(at, prefix).disabled
-
+    assert _ask(at, prefix).label == "Replay the recorded answer"  # REQ-JP-20
     _ask(at, prefix).click().run()
 
     assert not at.exception
@@ -305,6 +306,7 @@ def test_an_alert_without_a_recorded_probe_keeps_todays_disabled_panel(
     other = cases_of(prefix)[1].alert.id
 
     assert at.button(key=f"{prefix}_lg_ask_{other}").disabled
+    assert at.button(key=f"{prefix}_lg_ask_{other}").label == "Ask the model"  # nothing recorded
     assert at.radio(key=f"{prefix}_lg_q_{other}").disabled
 
 
@@ -449,8 +451,10 @@ def test_home_starts_with_the_story_then_the_recorded_example_then_the_link(
     assert all(line in story for line in streamlit_app.STORY)
     [example] = [v for t, v in items if v.startswith('<div class="gl-example">')]
     assert f"One recorded answer of {FIXTURE_MODEL_NAME}, {FIXTURE_DATE}." in example
-    assert TRICK_QUESTIONS[0].text in example  # the preset question of the first rejected probe
-    assert f"<b>{INVENTED}</b>" in example and "<b>rejected</b>" in example
+    assert f"Question: {TRICK_QUESTIONS[0].text}" in example  # the first rejected probe
+    assert "You asked" not in example
+    assert f"{INVENTED}</mark>" in example  # the invented token is marked in its sentence
+    assert "Over five years: <mark" in example and "<b>rejected</b>" in example
 
 
 def test_home_without_a_run_file_keeps_the_story_and_drops_the_example() -> None:
@@ -482,3 +486,13 @@ def test_the_start_here_link_names_zombie_subscriptions() -> None:
     [link] = [(t, v) for t, v in items if t == "page_link" or "Start here" in v]
     assert streamlit_app.START_HERE.endswith("Zombie Subscriptions")
     assert link[0] == "page_link" or link[1] == streamlit_app.START_HERE_FALLBACK
+
+
+def test_the_start_here_link_has_the_tombstone_icon_and_body_text_size() -> None:
+    from ledger_kit.ui import theme
+
+    assert streamlit_app.START_HERE_ICON == "🪦"  # REQ-JP-23
+    css = theme.theme_css(theme.KIT)
+    rule = css[css.index('[data-testid="stPageLink-NavLink"] p') :]
+    assert "font-size: 1rem" in rule.split("}")[0]
+    assert "text-decoration: underline" in rule.split("}")[0]

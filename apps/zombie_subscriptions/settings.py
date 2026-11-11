@@ -49,7 +49,9 @@ DEMO_FORMATS: dict[str, DemoFormat] = {"CSV": "csv", "Real formats": "real"}
 BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
 BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
-BADGE_REJECTED: str = "⚠️ LLM answer rejected: invented number {numbers}"
+BADGE_REJECTED: str = (
+    "⚠️ LLM answer rejected: not found in the cited rows or the alert data: {numbers}"
+)
 
 
 @dataclass(frozen=True)

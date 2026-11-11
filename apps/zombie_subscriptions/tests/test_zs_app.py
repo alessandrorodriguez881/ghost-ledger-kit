@@ -147,7 +147,10 @@ def test_hallucination_toggle_produces_fallback_with_guard_badge() -> None:
     assert len(badges) == len(_alert_titles(at)) >= len(ZS_DETECTORS)
     for badge in badges:
         assert "zs-badge-rejected" in badge
-        assert "⚠️ LLM answer rejected: invented number 99999.99" in badge
+        assert (
+            "⚠️ LLM answer rejected: not found in the cited rows or the alert data: 99999.99"
+            in badge
+        )
     explanations = [v for v in _markdown(at) if not v.startswith(("<span", "<div", "<style"))]
     assert not any("99999.99" in value for value in explanations)
     assert any("36,00 EUR" in value for value in explanations)  # the filled fallback template

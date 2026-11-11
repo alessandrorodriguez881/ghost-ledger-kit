@@ -39,7 +39,7 @@ TIMEOUT_SECONDS = 60
 
 VF_DETECTORS = {"vf.recurring_fee", "vf.fee_increase", "vf.overdraft_cost", "vf.fee_summary"}
 YEARLY_COSTS = ("78,00 EUR", "36,00 EUR", "30,00 EUR")
-REJECTED_BADGE = "⚠️ LLM answer rejected: invented number 99999.99"
+REJECTED_BADGE = "⚠️ LLM answer rejected: not found in the cited rows or the alert data: 99999.99"
 
 
 @pytest.fixture(autouse=True)

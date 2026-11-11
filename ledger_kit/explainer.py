@@ -444,6 +444,21 @@ def _passes_number_guard(
     return True, ()
 
 
+def check_figures(
+    text: str,
+    alert: Alert,
+    rows: pd.DataFrame,
+    row_columns: Sequence[str] | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Run the number guard on a text that is not a model answer; return (passed, rejected).
+
+    It narrows the rows exactly as explain_with_meta does and then asks the same guard, so a text
+    (for example an Exorcise draft) can cite only what a model answer could cite.
+    """
+    narrow_rows = _select_llm_columns(rows, row_columns)
+    return _passes_number_guard(text, alert, narrow_rows, row_columns)
+
+
 # --- Numbers that are not figures (row citations, counts of cited rows, list markers) -----------
 
 # A whole integer: not part of a longer number, a date, a ref or a hyphenated code.

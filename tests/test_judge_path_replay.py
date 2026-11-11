@@ -37,7 +37,7 @@ from judge_path_support import (
 from ledger_kit import replay
 from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback
 from ledger_kit.live_guard import TRICK_QUESTIONS
-from ledger_kit.replay import ReplayClient, ReplayRun, load_run, recorded_answer
+from ledger_kit.replay import Recording, ReplayClient, ReplayRun, load_run, recorded_answer
 
 ROOT = Path(__file__).resolve().parents[1]
 QUESTION_IDS = [q.id for q in TRICK_QUESTIONS]
@@ -175,8 +175,32 @@ def test_the_stored_verdict_only_marks_a_record_for_the_home_example(tmp_path: P
 
     found = run.first_rejected_probe()
     assert found is not None and found.alert_id == "a2"
-    assert found.invented_token == "1.349,40"  # the first token that holds a digit
+    assert found.invented_token == "1.349,40"  # the money amount, not the currency sign
     assert run.probe("a1", "forecast").stored_rejection == ()
+
+
+def _recording_with(raw: str, tokens: tuple[str, ...]) -> Recording:
+    return Recording("a1", "probe", "forecast", raw, "m", "2026-11-11", tokens)
+
+
+def test_the_invented_token_is_the_money_amount_not_the_multiplier() -> None:
+    recording = _recording_with("Five years: 5 x 107.88 = 539.40 EUR.", ("5", "539.40"))
+
+    assert recording.invented_token == "539.40"
+
+
+def test_without_a_money_amount_the_invented_token_is_the_longest() -> None:
+    assert _recording_with("x", ("5", "$", "2030")).invented_token == "2030"
+    assert _recording_with("x", ("5", "7")).invented_token == "5"  # first of equal length
+    assert _recording_with("x", ()).invented_token is None
+
+
+def test_the_sentence_holds_the_token_and_is_not_cut_inside_an_amount() -> None:
+    raw = "It costs a lot. Over five years you will pay 539.40 EUR. Cancel it.\nBye."
+    recording = _recording_with(raw, ("539.40",))
+
+    assert recording.sentence_with("539.40") == "Over five years you will pay 539.40 EUR."
+    assert recording.sentence_with("77.77") is None
 
 
 @pytest.mark.parametrize("path", OLD_RUNS, ids=lambda p: p.name)
@@ -294,7 +318,8 @@ def test_badge_texts_name_the_model_the_date_and_say_no_model_was_called(run_pat
     assert rejected_kind == "rejected"
     assert rejected_label == (
         "📼 Recorded answer of testmodel:1b, 2026-11-11, checked now by the number guard: "
-        f"rejected (invented number {INVENTED}). Fixed template shown. No model called."
+        f"rejected (not found in the cited rows or the alert data: {INVENTED}). "
+        "Fixed template shown. No model called."
     )
     for text in (label, rejected_label):
         assert "LLM text verified" not in text and "LLM answer rejected" not in text

@@ -24,6 +24,7 @@ APP_FILES = {
     "prepare.py",
     "explain_support.py",
     "flashlight.py",
+    "action_templates.py",
 }
 DETECTOR_FILES = {
     "detectors/__init__.py",
@@ -59,6 +60,7 @@ TEST_MODULES = (
     "demo_e2e",
     "real_formats",
     "live_guard",
+    "exorcise",
 )
 # conftest.py and pi_checkers.py are in the spec; pi_builders.py and pi_strategies.py hold the
 # builders and strategies that conftest.py re-exports; pi_live_fakes.py is the fake `openai`
@@ -114,7 +116,7 @@ def test_phantom_block_lists_exactly_the_spec_files() -> None:
     listed = {path for path in _tree_files() if path.startswith(PHANTOM)}
 
     assert listed == EXPECTED_PHANTOM_FILES
-    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 7 + 6 + 5 + 25
+    assert len(listed) == len(EXPECTED_PHANTOM_FILES) == 8 + 6 + 5 + 26
 
 
 def test_phantom_block_has_no_requirements_txt() -> None:

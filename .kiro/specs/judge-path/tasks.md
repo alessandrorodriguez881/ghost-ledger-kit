@@ -96,6 +96,20 @@ set) is run by the user: this session could not run commands. Tasks run in order
 - [x] No other existing test was edited; the root `conftest.py` keeps them on their old starting
   point.
 
+## Task JP8 — Amendment 17c: small fixes
+
+**Covers**: REQ-JP-20 to REQ-JP-23, REQ-JP-15 (amended)
+
+- [x] Tests first: `tests/test_judge_path_replay.py` (money token, longest token, sentence of the
+  token, replay badge wording), `tests/test_judge_path_pages.py` (`Replay the recorded answer` with
+  replay, `Ask the model` with a key and for an alert without a probe; the Home example with
+  `Question:`, the marked sentence and no `You asked`; the Start here icon and CSS size).
+- [x] Update only the tests that pinned `invented number`: `test_pi_explain_support.py`,
+  `test_vf_app_logic.py`, `test_vf_settings.py`, `test_zs_app.py`, `test_judge_path_replay.py`.
+- [x] `replay.Recording.invented_token` / `sentence_with`; `landing.example_html`;
+  `live_guard.REPLAY_ASK_LABEL`, `ask_label`, `MARK_STYLE`; the three apps' button label; the three
+  `BADGE_REJECTED` constants and `replay.card_badge`; `START_HERE_ICON` and the page-link CSS.
+
 ## Open for the user to run
 
 - [ ] `ruff check .` and `ruff format --check .`

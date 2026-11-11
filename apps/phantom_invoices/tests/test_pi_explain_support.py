@@ -334,7 +334,9 @@ def test_guard_badge_three_plus_one_texts() -> None:
 
     assert guard_badge(llm, True) == "🤖 ✓ LLM text verified by number guard"
     assert guard_badge(plain, False) == "📋 Template (no API key)"
-    assert guard_badge(rejected, True) == f"⚠️ LLM answer rejected: invented number {INJECTED}"
+    assert guard_badge(rejected, True) == (
+        f"⚠️ LLM answer rejected: not found in the cited rows or the alert data: {INJECTED}"
+    )
     assert guard_badge(plain, True) == "📋 Template (LLM unavailable)"
 
 

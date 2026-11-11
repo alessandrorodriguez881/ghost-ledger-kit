@@ -22,6 +22,7 @@ ghost-ledger-kit/
 │   │   ├── __init__.py
 │   │   └── base.py                 # DetectorResult type, detector registry
 │   ├── explainer.py                # LLM explanation layer; only file that calls an LLM
+│   ├── actions.py                  # Exorcise: fixed templates filled into drafts, each checked by the number guard (pure, no model)
 │   ├── live_guard.py               # Pure helpers of the Provoke-the-LLM panel (no Streamlit, no model call)
 │   ├── replay.py                   # Replay of a recorded real-model run through today's guard (no model, no network)
 │   ├── public_data/
@@ -33,6 +34,7 @@ ghost-ledger-kit/
 │   │   ├── icons.py                # Six inline SVG line icons: tombstone, ghost, coffin, candle, magnifier, scales
 │   │   ├── theme.py                # Palette, one accent per app, the one CSS block, card and heading helpers
 │   │   ├── first_run.py            # Pure switch of the demo that loads by itself on the first run of a session
+│   │   ├── exorcise.py             # The Exorcise expander shared by the three apps (language, draft, download)
 │   │   └── landing.py              # Home page parts: proof strip read from committed files, tiles, diagram
 │   └── utils/
 │       ├── __init__.py
@@ -45,6 +47,7 @@ ghost-ledger-kit/
 │   │   ├── config.toml             # aliases, demo inputs (no thresholds)
 │   │   ├── settings.py             # load config.toml, demo inputs, run_pipeline, sidebar text parse/format
 │   │   ├── explain_support.py      # fallback TEMPLATES, HallucinatingStubClient
+│   │   ├── action_templates.py     # Exorcise templates: refund, cancellation and bank-dispute drafts
 │   │   ├── detectors/
 │   │   │   ├── __init__.py         # auto_discover; run_zs_detectors convenience wrapper
 │   │   │   ├── utils.py            # normalisation, series helpers, compute_zombie_cost
@@ -82,6 +85,7 @@ ghost-ledger-kit/
 │   │       ├── test_zs_scaffold.py
 │   │       ├── test_zs_live_guard.py   # headless AppTest runs of the Provoke-the-LLM panel
 │   │       ├── zs_live_fakes.py        # fake `openai` module for the live-guard tests
+│   │       ├── test_zs_exorcise.py     # Exorcise templates and the card expander (headless AppTest)
 │   │       └── test_zs_fixtures.py
 │   ├── vampire_fees/               # App 3: bank-fee detector (built from the finished template)
 │   │   ├── __init__.py
@@ -89,6 +93,7 @@ ghost-ledger-kit/
 │   │   ├── config.toml             # fee vocabulary and demo paths (no thresholds)
 │   │   ├── settings.py             # load config.toml, run_pipeline, view-model helpers
 │   │   ├── explain_support.py      # fallback TEMPLATES, HallucinatingStubClient
+│   │   ├── action_templates.py     # Exorcise template: the complaint to the bank for each fee alert
 │   │   ├── detectors/
 │   │   │   ├── __init__.py         # auto_discover
 │   │   │   ├── utils.py            # constants, folding, vocabulary, classify_fee, runs
@@ -116,6 +121,7 @@ ghost-ledger-kit/
 │   │       ├── test_vf_real_formats.py  # Norma 43 demo, routers, equivalence with the CSV demo
 │   │       ├── test_vf_live_guard.py    # headless AppTest runs of the Provoke-the-LLM panel
 │   │       ├── vf_live_fakes.py         # fake `openai` module for the live-guard tests
+│   │       ├── test_vf_exorcise.py      # Exorcise templates and the card expander (headless AppTest)
 │   │       └── test_vf_app_logic.py     # pure helpers and headless AppTest runs of app.py
 │   └── phantom_invoices/           # App 2: SME invoice anomaly detector
 │       ├── __init__.py
@@ -124,6 +130,7 @@ ghost-ledger-kit/
 │       ├── settings.py             # load config.toml, run_pipeline, view-model helpers
 │       ├── prepare.py              # multi-rate invoice quarantine
 │       ├── explain_support.py      # fallback TEMPLATES, ROW_COLUMNS, HallucinatingStubClient
+│       ├── action_templates.py     # Exorcise templates: supplier e-mail, hold note and phone script, corrected invoice
 │       ├── flashlight.py           # haunted-ledger CSS and the flashlight table renderer
 │       ├── detectors/
 │       │   ├── __init__.py         # auto_discover; LABELS; run_pi_detectors
@@ -162,6 +169,7 @@ ghost-ledger-kit/
 │           ├── test_pi_real_formats.py  # Facturae + Norma 43 demo, routers, equivalence with CSV
 │           ├── test_pi_live_guard.py    # headless AppTest runs of the Provoke-the-LLM panel
 │           ├── pi_live_fakes.py         # fake `openai` module for the live-guard tests
+│           ├── test_pi_exorcise.py      # Exorcise templates and the card expander (headless AppTest)
 │           └── test_pi_demo_e2e.py
 ├── tests/                          # Shared library tests
 │   ├── conftest.py
@@ -203,6 +211,10 @@ ghost-ledger-kit/
 │   ├── test_judge_path_pages.py    # headless AppTest runs: recorded cards, replayed panel, auto-load, Home
 │   ├── test_judge_path_misc.py     # plurals, percentages, first-run switch, config key
 │   ├── test_live_guard_docs.py     # docs/live-guard.md, README paragraph, .env.example
+│   ├── exorcise_script.py          # AppTest script: one Exorcise expander on a sample alert
+│   ├── test_actions.py             # Exorcise mechanism: fill, row lines, check_figures, the widget
+│   ├── test_exorcise_demos.py      # every alert of the three demos, both languages: guard, words, figures
+│   ├── test_exorcise_boundaries.py # no model, no key, no network; package rules of the new modules
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/
@@ -280,9 +292,9 @@ files with the generator (`scripts/generate_samples.py`).
 
 - `ledger_kit` is a **library**: it must not import from either app folder.
 - App packages (`apps.zombie_subscriptions`, `apps.phantom_invoices`) **import from `ledger_kit`** and from their own `detectors/` sub-package only.
-- The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py` and `explain_support.py`.
-- The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`.
-- The vampire app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py` and `explain_support.py`.
+- The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py`, `explain_support.py` and `action_templates.py`.
+- The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`, `action_templates.py`.
+- The vampire app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `explain_support.py` and `action_templates.py`.
 - Apps must not import from each other.
 - Apps read bank statements and invoices through the routers of `ledger_kit/ingestion/sniffer.py`
   (`read_bank_statement`, `read_invoices`); the content, not the file extension, picks the reader.
@@ -295,6 +307,7 @@ files with the generator (`scripts/generate_samples.py`).
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `live_guard.py` is pure: no Streamlit, no model call; the explainer stays the only module that calls a model.
 - `replay.py` is pure too: it reads one committed run file and hands recorded text to the same call and the same guard as a live answer, through an OpenAI-shaped client that opens no connection.
+- `actions.py` is pure and calls no model: a draft is a fixed template filled from the alert and its cited rows, and `explainer.check_figures` (the number guard) must pass it before it is shown. `ui/exorcise.py` is the one widget that draws it.
 - `money.py` is the **only** module permitted to perform monetary arithmetic; all other modules call its helpers.
 
 ## Data directory rules

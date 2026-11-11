@@ -23,6 +23,7 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 import apps.vampire_fees.detectors  # noqa: E402,F401  (registers the vf.* detectors)
+from apps.vampire_fees.action_templates import action_for  # noqa: E402
 from apps.vampire_fees.explain_support import (  # noqa: E402
     HallucinatingStubClient,
     template_for,
@@ -50,7 +51,6 @@ from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.live_guard import (  # noqa: E402
-    ASK_LABEL,
     LIVE_ASKS_PER_SESSION_LIMIT,
     MSG_LIMIT,
     NOTE_GUARD_SCOPE,
@@ -62,6 +62,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     LiveStatus,
     ProbeResult,
     TrickQuestion,
+    ask_label,
     counter_caption,
     highlight_html,
     intro_line,
@@ -72,6 +73,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
@@ -387,7 +389,7 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
         recorded = None if run is None else run.probe(alert.id, question.id)
         can_ask = status.enabled or recorded is not None
         st.button(
-            ASK_LABEL,
+            ask_label(live=status.enabled, replayable=replayable),
             key=f"vf_lg_ask_{alert.id}",
             disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
             on_click=_ask_model,
@@ -428,6 +430,12 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
             st.dataframe(format_for_display(cited), hide_index=True, width="stretch")
+        render_exorcise(
+            alert,
+            ledger[ledger["source_ref"].isin(alert.source_refs)],
+            action_for(alert),
+            prefix="vf",
+        )
         _render_live_panel(alert, ledger)
 
 
