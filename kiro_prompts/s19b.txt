@@ -1,0 +1,1 @@
+Session 19b, one lint fix after my run of 19a (3595 tests pass): ruff E501 line too long (129 > 100) in the module docstring of scripts/ledger_scan.py, line 3. Rewrap that docstring paragraph to lines of at most 100 characters, same words. Change nothing else. Environment: Windows. You cannot run commands. When done, list the files you changed.

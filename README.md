@@ -124,6 +124,21 @@ In any app, click **Load demo data** in the sidebar if it has not loaded by itse
 
 **Optional LLM.** `.env.example` documents `OPENAI_API_KEY`. The code reads it from the process environment and does not load a `.env` file, so set it in your shell before starting Streamlit (PowerShell: `$env:OPENAI_API_KEY = "your-key"`). Without a key every explanation is the fixed template filled from the alert, and the number guard still runs on whatever a client returns.
 
+### Scan files from the command line
+
+`scripts/ledger_scan.py` runs the three apps' pipelines on files and prints one JSON object, so another program can call the kit with the kit's own Python (the virtual environment above) without installing its packages. It sniffs each file by content, uses no model and no network, and gives the same bytes for the same files.
+
+```powershell
+# Bank statements (CSV or Norma 43) and invoices (CSV, JSON or Facturae), in one call
+.venv\Scripts\python.exe scripts/ledger_scan.py scan data/samples/zombie_demo_statement.csv
+.venv\Scripts\python.exe scripts/ledger_scan.py scan data/samples/phantom_demo/invoices.csv --suppliers data/samples/phantom_demo/suppliers.csv --payments data/samples/phantom_demo/payments.csv --as-of 2026-10-30
+
+# Apply the number guard to a text for one alert id taken from the scan output
+.venv\Scripts\python.exe scripts/ledger_scan.py check --alert-id ALERT_ID --text "your text" data/samples/zombie_demo_statement.csv
+```
+
+`scan` lists, per file, its path, SHA-256, kind, row count and quarantined count (an unreadable file carries an `error` and the others still run), and every alert with its id, app, detector, severity, title, the fixed template text of the card, `source_refs`, the cited rows and the Exorcise drafts in English and Spanish (or `null`). Statements go through Zombie Subscriptions (with no aliases and no cancellation dates, so the detectors that need them stay silent) and Vampire Fees; invoices go through Phantom Invoices, with the optional supplier master and payments. `check` reruns the scan and prints `passed` and the rejected tokens; an unknown alert id gives `passed` false and an error message. The exit code is 0 when the command ran and 2 for bad arguments. The spec is `.kiro/specs/scan-command/`.
+
 ## Run the tests
 
 ```powershell
@@ -151,7 +166,7 @@ apps/
   zombie_subscriptions/  app.py, config.toml, settings.py, detectors/, tests/
   phantom_invoices/      app.py, config.toml, settings.py, detectors/, tests/
   vampire_fees/          app.py, config.toml, settings.py, detectors/, tests/
-scripts/               generate_samples.py (seeded synthetic data), generate_benchmark.py and benchmark.py (benchmark), fetch_ine_cpi.py (INE snapshot)
+scripts/               generate_samples.py (seeded synthetic data), generate_benchmark.py and benchmark.py (benchmark), fetch_ine_cpi.py (INE snapshot), ledger_scan.py (scan and check files, JSON on stdout)
 data/samples/          synthetic sample and demo files only (CSV, Norma 43, Facturae)
 data/public/           the committed INE CPI snapshot and its licence notes
 data/benchmark/        results.json written by scripts/benchmark.py
