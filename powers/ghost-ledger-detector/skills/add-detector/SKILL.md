@@ -1,14 +1,15 @@
 ---
 name: add-detector
-description: Add a new deterministic detector to the zombie-subscriptions (zs.) or phantom-invoices (pi.) app of Ghost Ledger Kit, with its Alert contract, fallback template, three test tiers and verification commands.
+description: Add a new deterministic detector to the zombie-subscriptions (zs.), phantom-invoices (pi.) or vampire-fees (vf.) app of Ghost Ledger Kit, with its Alert contract, fallback template, three test tiers and verification commands.
 ---
 
 # Add a detector to Ghost Ledger Kit
 
-Use this when asked to add a detector to `apps/zombie_subscriptions/` (namespace `zs`) or
-`apps/phantom_invoices/` (namespace `pi`). Read one existing detector of the target app first and
-copy its shape: `apps/zombie_subscriptions/detectors/price_increase.py` or
-`apps/phantom_invoices/detectors/vat_error.py`. Do not edit anything under `ledger_kit/` for a new
+Use this when asked to add a detector to `apps/zombie_subscriptions/` (namespace `zs`),
+`apps/phantom_invoices/` (namespace `pi`) or `apps/vampire_fees/` (namespace `vf`). Read one
+existing detector of the target app first and
+copy its shape: `apps/zombie_subscriptions/detectors/price_increase.py`,
+`apps/phantom_invoices/detectors/vat_error.py` or `apps/vampire_fees/detectors/recurring_fee.py`. Do not edit anything under `ledger_kit/` for a new
 detector, and never import one app from the other.
 
 The product promise: detectors are plain deterministic Python, every figure is traceable to a
@@ -16,10 +17,11 @@ source row, and an LLM only ever words the explanation. Never invent a figure, d
 
 ## 1. Create the module and register it
 
-- New file in the app's `detectors/` folder, `snake_case`: `apps/zombie_subscriptions/detectors/`
-  or `apps/phantom_invoices/detectors/`.
+- New file in the app's `detectors/` folder, `snake_case`: `apps/zombie_subscriptions/detectors/`,
+  `apps/phantom_invoices/detectors/` or `apps/vampire_fees/detectors/`.
 - Register with the namespaced decorator `ledger_kit.detectors.register`, e.g.
-  `@register("zs.my_detector")` or `@register("pi.my_detector")`. The name must match
+  `@register("zs.my_detector")`, `@register("pi.my_detector")` or `@register("vf.my_detector")`.
+  The name must match
   `<namespace>.<detector>` in lowercase snake_case and be unique, otherwise `ValueError`.
 - The package `__init__.py` calls `auto_discover`, which imports every module in the folder. Do not
   add manual imports.
@@ -76,7 +78,9 @@ Phantom-invoices (`pi`):
   `(detector, variant)`.
 
 Zombie-subscriptions (`zs`) has no `LABELS`. Add one template to
-`apps.zombie_subscriptions.explain_support.TEMPLATES`, keyed by detector name.
+`apps.zombie_subscriptions.explain_support.TEMPLATES`, keyed by detector name. Vampire-fees (`vf`)
+works the same way: one template in `apps.vampire_fees.explain_support.TEMPLATES`, keyed by
+detector name.
 
 Template rules (the number guard in `ledger_kit.explainer` rejects any number it cannot find in
 `Alert.data` or the cited rows, so a template that breaks them would be rejected too):
@@ -92,8 +96,8 @@ Template rules (the number guard in `ledger_kit.explainer` rejects any number it
 
 ## 6. Tests: three tiers, deterministic, synthetic
 
-Create `test_zs_<module>.py` in `apps/zombie_subscriptions/tests/` or `test_pi_<module>.py` in
-`apps/phantom_invoices/tests/`. Reuse that folder's `conftest.py` (and for pi the builders in
+Create `test_zs_<module>.py` in `apps/zombie_subscriptions/tests/`, `test_pi_<module>.py` in
+`apps/phantom_invoices/tests/` or `test_vf_<module>.py` in `apps/vampire_fees/tests/`. Reuse that folder's `conftest.py` (and for pi the builders in
 `apps/phantom_invoices/tests/pi_builders.py`). Synthetic data only: fictional names, `@example.com`
 addresses, and IBANs and tax ids as described in Finance Rule 5. Never read the wall clock; pass
 dates explicitly or use `freezegun`.
@@ -123,6 +127,8 @@ Adding a detector changes counts that other tests pin exactly. Update them in th
 - pi: `EXPECTED_NAMES` in `apps/phantom_invoices/tests/test_pi_registry.py`, the template count in
   `apps/phantom_invoices/tests/test_pi_explain_support.py`, and the expected file list in
   `apps/phantom_invoices/tests/test_pi_structure_steering.py`.
+- vf: `EXPECTED_NAMES` in `apps/vampire_fees/tests/test_vf_registry.py` and the template check in
+  `apps/vampire_fees/tests/test_vf_explain_support.py`.
 - Add the new module and test file to the layout tree in `.kiro/steering/structure.md`.
 
 ## 8. Verify (from the repository root, venv active)
@@ -132,9 +138,10 @@ ruff check .
 ruff format --check .
 pytest apps/zombie_subscriptions/tests/test_zs_<module>.py
 pytest apps/phantom_invoices/tests/test_pi_<module>.py
+pytest apps/vampire_fees/tests/test_vf_<module>.py
 pytest
 ```
 
 Run the module test of the app you changed, then the full `pytest`. CI also requires coverage of
 at least 80 % (`pytest --cov=ledger_kit --cov=apps/zombie_subscriptions
---cov=apps/phantom_invoices --cov-fail-under=80`). Fix every failure before reporting done.
+--cov=apps/phantom_invoices --cov=apps/vampire_fees --cov-fail-under=80`). Fix every failure before reporting done.

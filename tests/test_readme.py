@@ -30,6 +30,8 @@ KIRO_FEATURES = (
     "property-based testing",
     "powers",
     "custom agent",
+    "kiro cli",
+    "spec-driven versus vibe coding",
 )
 
 # Official documentation of the tools the README names; nothing else may be linked.
@@ -155,11 +157,17 @@ def _kiro_section(text: str) -> str:
 
 
 def _table_rows(section: str) -> list[list[str]]:
-    """The cells of every row of the first Markdown table in `section`."""
-    rows = []
+    """The cells of every row of the Kiro feature table (the one headed 'Kiro feature')."""
+    rows: list[list[str]] = []
+    started = False
     for line in section.splitlines():
         line = line.strip()
-        if line.startswith("|") and line.endswith("|"):
+        is_row = line.startswith("|") and line.endswith("|")
+        if not started:
+            started = is_row and line.strip("|").split("|")[0].strip() == "Kiro feature"
+        elif not is_row:
+            break
+        if started:
             rows.append([cell.strip() for cell in line.strip("|").split("|")])
     return rows
 

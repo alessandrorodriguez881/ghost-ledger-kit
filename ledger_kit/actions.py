@@ -13,6 +13,7 @@ The module is pure: no Streamlit, no I/O, no clock, no model. Amounts are only f
 from __future__ import annotations
 
 import logging
+import re
 import string
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -35,6 +36,9 @@ DEFAULT_LANGUAGE: str = "en"
 MAX_DRAFT_WORDS: int = 150
 # Used when a cited row names no currency (the pipelines keep one currency per statement).
 DEFAULT_CURRENCY: str = "EUR"
+
+# Exactly two full stops in a row: a value ending in "." followed by the template's own ".".
+_DOUBLE_STOP: re.Pattern[str] = re.compile(r"(?<!\.)\.\.(?!\.)")
 
 EXPANDER_TITLE: str = "Exorcise: prepare the action"
 LANGUAGE_LABEL: str = "Language"
@@ -115,8 +119,13 @@ class _Formatter(string.Formatter):
 def fill(
     template: str, alert: Alert, language: str, extras: Mapping[str, str] | None = None
 ) -> str:
-    """Fill a template; KeyError for an unknown placeholder, ValueError for a bad spec."""
-    return _Formatter(alert, extras or {}, language).vformat(template, (), {})
+    """Fill a template; KeyError for an unknown placeholder, ValueError for a bad spec.
+
+    A value that already ends with a full stop (``S.L.``) followed by the template's own full
+    stop gives one full stop, not two. A run of three or more dots (an ellipsis) is left alone.
+    """
+    text = _Formatter(alert, extras or {}, language).vformat(template, (), {})
+    return _DOUBLE_STOP.sub(".", text)
 
 
 def _as_date(cell: Any) -> date | None:
