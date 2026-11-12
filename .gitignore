@@ -237,6 +237,9 @@ data/real/
 # answers on synthetic demo data only, never real statements.
 !data/live_runs/
 !data/live_runs/**
+# Log of the Kiro CLI hooks (scripts/kiro_hooks.py): relative paths and counts only, see data/hook_runs/README.md.
+!data/hook_runs/
+!data/hook_runs/**
 # Kiro's output of a rerun call, written by kiro_prompts/run_kiro.ps1.
 kiro_prompts/*_out.txt
 # Tooling configuration (hooks, settings) is JSON that must stay tracked.

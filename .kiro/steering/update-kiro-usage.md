@@ -12,7 +12,7 @@ Ground every cell in evidence. Before writing, list `.kiro/` (specs, steering, h
 
 - specs: `.kiro/specs/*/` (requirements, design, tasks)
 - steering: `.kiro/steering/*.md`, including the always-included rules and the manual `update-kiro-usage.md`
-- hooks: `.kiro/hooks/*.kiro.hook`
+- hooks: `.kiro/hooks/*.json` (CLI and IDE) and `.kiro/hooks/*.kiro.hook` (IDE only)
 - property-based testing: the Hypothesis tests (`max_examples=200`, the `loaded_source_refs` no-invention property) in `tests/` and `apps/*/tests/`
 - MCP and powers: check for `.kiro/settings/mcp.json` and for installed powers; if there is no evidence of use, write "Not used" in the row and say why it was not needed
 

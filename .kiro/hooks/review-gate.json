@@ -1,0 +1,20 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "lint-after-write",
+      "description": "ruff check and ruff format --check on each .py file the agent writes; findings go back to the agent.",
+      "trigger": "PostToolUse",
+      "matcher": "write",
+      "action": { "type": "command", "command": "python scripts/kiro_hooks.py post-write" },
+      "timeout": 60
+    },
+    {
+      "name": "tests-on-stop",
+      "description": "ruff check . and the pytest folders of the files touched in the session; always exits 0.",
+      "trigger": "Stop",
+      "action": { "type": "command", "command": "python scripts/kiro_hooks.py stop" },
+      "timeout": 600
+    }
+  ]
+}
