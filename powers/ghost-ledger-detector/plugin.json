@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ghost-ledger-detector",
+  "version": "1.0.0",
+  "description": "Teaches an agent to add a new deterministic detector to Ghost Ledger Kit.",
+  "author": {
+    "name": "Ghost Ledger Kit"
+  },
+  "license": "MIT",
+  "keywords": ["detector", "ledger", "zombie", "phantom", "alert", "source_ref"]
+}

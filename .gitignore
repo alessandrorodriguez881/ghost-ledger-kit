@@ -245,3 +245,6 @@ kiro_prompts/*_out.txt
 # Tooling configuration (hooks, settings) is JSON that must stay tracked.
 !.kiro/
 !.kiro/**
+# The ghost-ledger-detector power manifest (powers/**/plugin.json) is JSON that must stay tracked.
+!powers/
+!powers/**
