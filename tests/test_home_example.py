@@ -390,9 +390,12 @@ def test_readme_has_the_section_on_what_the_guard_does_not_check() -> None:
 def test_readme_has_the_decisions_row_of_13_nov() -> None:
     _, lines = _readme()
 
-    [row] = [line for line in lines if line.startswith("| 13 Nov |")]
+    rows = [line for line in lines if line.startswith("| 13 Nov |")]
+    [row] = [line for line in rows if "number words" in line]
     assert "number words" in row and "real invention" in row and "539.40" in row
     assert "five hundred and forty euros passed" in row
+    [other] = [line for line in rows if line is not row]
+    assert "its own drawing" in other
 
 
 def test_readme_no_longer_makes_the_old_claims() -> None:

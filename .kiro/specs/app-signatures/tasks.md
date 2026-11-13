@@ -89,7 +89,8 @@ Fill in after the review. One line per call that touched this feature.
 |---|---|---|---|---|---|
 | 1 | | Kiro, session 22a | Build the signatures: chips, heartbeat, bites, lantern, CSS, three pages, honesty test | Full suite green: 3917 passed, 1 skipped; `ruff check` and `ruff format --check` clean. Looked at in a browser at 1400 px: heartbeat read as a flat line, drawing covered half the card, lantern showed every column | |
 | 2 | | Kiro, session 22b | Polish after the 1400 px look: spike and larger tombstone, full width, short lantern, one caption per app, structure.md, `_refs_markdown` | Files written, not run (no commands in this session); the hooks lint and test on stop. See Task AS8 | |
-| 3 | | | | | |
+| 3 | | Kiro, session 22c | README: Specs row now lists 17 specs, a Decisions row for the signatures and a clause in step 3 of the judge steps | Full suite: 1 failed (`test_readme_has_the_decisions_row_of_13_nov`, which expected one `13 Nov` row), 3926 passed, 1 skipped; ruff clean | |
+| 4 | | Kiro, session 22d | Fix that test: pick the `13 Nov` row that mentions number words, keep its assertions, assert the other `13 Nov` row mentions the drawing per app | Test file edited, not run (no commands in this session); the hooks run the tests on stop | |
 
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
 - [ ] Look at the three pages at 1400 and 800 pixels wide; note anything that must change.
