@@ -31,6 +31,14 @@ DEFAULT_REPLAY_RUN_PATH: Path = ROOT / "data" / "live_runs" / "2026-11-11_llama3
 # The path read at call time; a test may point it elsewhere, DEFAULT_REPLAY_RUN_PATH stays as is.
 REPLAY_RUN_PATH: Path = DEFAULT_REPLAY_RUN_PATH
 
+# The Home example: one record of an older run, a real invention (a 5% interest rate found in no
+# row, and 617.51 built on it). The path is read at call time like REPLAY_RUN_PATH.
+DEFAULT_HOME_EXAMPLE_PATH: Path = ROOT / "data" / "live_runs" / "2026-11-10_llama3.2-3b.json"
+HOME_EXAMPLE_PATH: Path = DEFAULT_HOME_EXAMPLE_PATH
+HOME_EXAMPLE_ID = "P3"  # duplicate invoice F-2026-0310, the five-year question
+# The two strings of the answer that Home marks: the assumed rate and the figure built on it.
+HOME_EXAMPLE_MARKS: tuple[str, str] = ("5%", "617.51")
+
 Kind = Literal["card", "probe"]
 
 _QUESTION_TEXT: dict[str, str] = {q.id: q.text for q in TRICK_QUESTIONS}
@@ -40,8 +48,8 @@ _MONEY_TOKEN = re.compile(r"\d[.,]\d{1,2}$")
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
 BADGE_ACCEPTED = (
-    "📼 Recorded answer of {model}, {date}, checked now by the number guard: accepted. "
-    "No model called."
+    "📼 Recorded answer of {model}, {date}, checked now by the number guard: figures accepted; "
+    "wording not checked. No model called."
 )
 BADGE_REJECTED = (
     "📼 Recorded answer of {model}, {date}, checked now by the number guard: rejected{numbers}. "
@@ -219,6 +227,42 @@ def load_run(path: Path | str | None = None) -> ReplayRun | None:
     except OSError:
         return None
     return _load_cached(str(target), stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=8)
+def _home_example_cached(path: str, mtime_ns: int, size: int) -> Recording | None:
+    """Read one file and return its HOME_EXAMPLE_ID record; the arguments after `path` key it."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, Mapping):
+        return None
+    model, run_date, records = data.get("model"), data.get("date"), data.get("records")
+    if not isinstance(model, str) or not model.strip() or not isinstance(records, list):
+        return None
+    try:
+        date.fromisoformat(str(run_date))
+    except ValueError:
+        return None
+    model_name = model.split(" (", 1)[0].strip()
+    for record in records:
+        if isinstance(record, Mapping) and record.get("id") == HOME_EXAMPLE_ID:
+            found = _recording(record, model_name, str(run_date))
+            if found is None or found.question_text is None:
+                return None
+            return found
+    return None
+
+
+def home_example(path: Path | str | None = None) -> Recording | None:
+    """Return the Home example (record P3 of its file, a probe of a preset question), else None."""
+    target = Path(HOME_EXAMPLE_PATH if path is None else path)
+    try:
+        stat = target.stat()
+    except OSError:
+        return None
+    return _home_example_cached(str(target), stat.st_mtime_ns, stat.st_size)
 
 
 def card_recording(alert_id: str, *, path: Path | str | None = None) -> Recording | None:

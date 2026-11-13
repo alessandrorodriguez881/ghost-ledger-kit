@@ -61,13 +61,24 @@ Fill in after running the checks. One line per call; do not write what was not r
 
 | # | Command or action | Result | Date | By |
 |---|---|---|---|---|
-| 1 | `ruff check .` | | | |
+| 1 | `ruff check .` | F401 (unused import) | — | reviewer |
 | 2 | `ruff format --check .` | | | |
 | 3 | `pytest tests/test_number_words.py` | | | |
 | 4 | `pytest tests/test_guard_number_words.py` | | | |
 | 5 | `pytest tests/test_recorded_verdicts.py` (if a set differs: explain it in §5 of the design, per record) | | | |
-| 6 | `pytest` (all) | | | |
-| 7 | Session 21a2: fixes after the user's full run (3 failed, ruff 1 error); edited files only, no command run by Kiro | not run | — | Kiro |
+| 6 | `pytest` (all) | 3 failed, 3767 passed | — | reviewer |
+| 7 | Session 21a2: fixes after the user's full run (3 failed, ruff 1 error); edited files only, no command run by Kiro | not run by Kiro; reviewer: 3784 passed, 1 skipped, ruff I001 fixed with `ruff check --fix`, committed as eb94102 | — | Kiro / reviewer |
+| 8 | Session 21b: Home example, labels, README; edited files only, no command run by Kiro | not run by Kiro; reviewer: full suite 6 failed, 3829 passed, 1 skipped; ruff clean | — | Kiro / reviewer |
+| 9 | Session 21b2: fixes after the user's full run of 21b (6 failed); edited files only, no command run by Kiro | not run | — | Kiro |
+
+What the reviewer saw for the earlier rows:
+
+| Session | What the reviewer saw |
+|---|---|
+| 21a | Full suite: 3 failed, 3767 passed; ruff F401. `ciento` in `por ciento` was read as 100; one test relied on 3, a value the GYMPLUS data holds. |
+| 21a2 | Full suite: 3784 passed, 1 skipped; one ruff I001 fixed by the reviewer with `ruff check --fix`; every recorded verdict and rejected token unchanged; Night Watch 760 passed with this kit; committed as eb94102. |
+| 21b | Full suite: 6 failed, 3829 passed, 1 skipped; ruff clean. Four causes: `home_example` returned a P3 record read as a card (question None); `docs/live-guard.md` said 5% (a digit percent the docs test forbids); two old tests pinned the badge texts this spec changed on purpose (the recorded `BADGE_ACCEPTED` and the live `BADGE_LLM`, the second in three parametrized cases). |
+| 21b2 | Session 21b2: files edited only, no command run by Kiro (commands unavailable); checks left to the user and the workspace hooks. |
 
 ### Task GH5b — Fixes of session 21a2
 
@@ -82,23 +93,27 @@ Fill in after running the checks. One line per call; do not write what was not r
 - [x] `tests/test_recorded_verdicts.py`: unused `Path` import removed; pinned sets unchanged.
 - [x] `docs/live-guard.md`: one item for these two rules (checked against `test_live_guard_docs.py`).
 
-## Part 2 — session 21b (pending, no code in 21a)
+## Part 2 — session 21b
 
-### Task GH7 — The Home example says what the guard checks
+### Task GH7 — The Home example is a real invention
 
-**Covers**: REQ-GH-20 (pending)
+**Covers**: REQ-GH-20
 
-- [ ] Tests first, then `ledger_kit/ui/landing.py` and the Home page.
+- [x] `tests/test_home_example.py` first, then `replay.home_example` and its constants,
+  `landing.example_html(recording)`, `theme.py` (`gl-example-note`) and `streamlit_app.py`.
+- [x] Existing tests edited only to follow (root `conftest.py`, the `judge_path` fixture and the
+  two Home tests of `test_judge_path_pages.py`, one test of `test_judge_path_replay.py`).
 
 ### Task GH8 — Labels of accepted answers
 
-**Covers**: REQ-GH-21 (pending)
+**Covers**: REQ-GH-21
 
-- [ ] Tests first, then the badge and verdict texts (`ledger_kit/replay.py`, `live_guard.py`, the
-  `BADGE_*` constants of the three apps).
+- [x] Label tests in `tests/test_home_example.py`, then `VERDICT_ACCEPTED`, `NOTE_GUARD_SCOPE`,
+  `BADGE_ACCEPTED` and the three `BADGE_LLM`.
 
-### Task GH9 — README
+### Task GH9 — README and docs
 
-**Covers**: REQ-GH-22 (pending)
+**Covers**: REQ-GH-22
 
-- [ ] README paragraph on number words and their limits, in step with `docs/live-guard.md`.
+- [x] README tests, then the README (line 3, judge steps 1 and 4, the promise sentence, the new
+  section, a Decisions row) and the one item of `docs/live-guard.md`.

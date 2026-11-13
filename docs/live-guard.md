@@ -136,9 +136,10 @@ On 2026-11-10 the demo cards of the three apps and the trick questions went to `
 the CPU only: temperature 0, a 120 second timeout, eleven questions. The raw answers are in
 `data/live_runs/2026-11-10_llama3.2-3b.json`. It is one run, not a rate.
 
-- The guard caught three inventions: a total for five years (`539.4`, the yearly cost times five),
-  a difference presented as fees the rows do not show (`80.91`), and an interest rate the data does
-  not hold, with a total built on it (`617.51`).
+- The guard caught two inventions and rejected one right sum that is in no row: the five-year
+  total (`539.4`, the yearly cost times five) is correct arithmetic, rejected because the guard
+  does no arithmetic; `80.91` (a difference presented as fees the rows do not show) and an
+  invented interest rate with a total built on it (`617.51`) are inventions.
 - The model also refused honestly once, saying the rows do not show next month's charge. The guard
   accepted that answer.
 - The old guard rejected correct answers too: for the line numbers of the card's own source refs

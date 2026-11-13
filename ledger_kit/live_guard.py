@@ -42,10 +42,13 @@ def ask_label(*, live: bool, replayable: bool) -> str:
 
 RAW_LABEL = "Model answer (raw, before the guard):"
 TEMPLATE_LABEL = "Fixed template shown on the card when the answer is not trusted:"
-NOTE_GUARD_SCOPE = "The guard checks figures, dates and IBANs. It does not judge wording."
+NOTE_GUARD_SCOPE = (
+    "The guard checks figures (digits, and numbers in English or Spanish words), dates and "
+    "IBANs. It does not judge wording and does no arithmetic."
+)
 VERDICT_ACCEPTED = (
-    "✅ Guard verdict: accepted. The model kept to the data: every figure in its answer "
-    "was found in the cited rows or the alert data."
+    "✅ Guard verdict: accepted. Every figure in the answer, in digits or in words, was found "
+    "in the cited rows or the alert data. Figures checked; wording not checked."
 )
 VERDICT_REJECTED_PREFIX = (
     "🛑 Guard verdict: rejected. Not found in the cited rows or the alert data: "

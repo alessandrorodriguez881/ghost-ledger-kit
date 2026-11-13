@@ -302,6 +302,7 @@ BASE_CSS: str = """
   color: #e8dcc0;
 }
 .stApp .gl-example-label { font-size: 0.9rem; color: #b9ae95; margin-bottom: 0.3rem; }
+.stApp .gl-example-note { font-size: 0.85rem; color: #b9ae95; margin-top: 0.4rem; }
 .stApp .gl-example b { color: #ffd166; }
 .stApp .gl-example mark { border-radius: 0.2rem; }
 .stApp [data-testid="stMainBlockContainer"] [data-testid="stPageLink-NavLink"] {

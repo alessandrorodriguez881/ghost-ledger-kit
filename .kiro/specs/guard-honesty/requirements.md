@@ -251,11 +251,55 @@ of a badge or of a verdict. Ids are `REQ-GH-nn`; acceptance examples are `AE-GH-
     (`twelve`) on an alert with 3; `Rows one and two.` and `Row twelve.` pass when lines 1, 2 and
     12 are cited; `Row fourteen.` is rejected.
 
-## 5 — Part 2 (session 21b, pending: no code in 21a)
+## 5 — Part 2 (session 21b)
 
-- **REQ-GH-20** (pending) The Home example shall say what the guard now checks.
-- **REQ-GH-21** (pending) The labels of accepted answers shall not claim more than the guard checks.
-- **REQ-GH-22** (pending) The README shall describe number words and their limits as the docs do.
+A fresh jury found that the Home example (`landing.example_html`, fed by
+`replay.load_run().first_rejected_probe()`) shows the 2026-11-11 GYMPLUS answer `107.88 * 5 =
+€539.40` as an invention. It is not one: the arithmetic is right, and the guard rejects it only
+because 539.40 is in no cited row (the guard does no arithmetic). A real invention by the same
+model is record P3 of `data/live_runs/2026-11-10_llama3.2-3b.json` (duplicate invoice F-2026-0310,
+the five-year question): `Assuming a constant interest rate of 5% per annum (which is a common
+rate for invoices), we can calculate the total cost.` and `So, the total cost in five years will
+be approximately €617.51.` No row and no alert field holds an interest rate. Today's guard rejects
+P3 with `5` and `617.51` among the tokens (`tests/test_recorded_verdicts.py` pins it).
+
+- **REQ-GH-20** The Home example shall be record P3 of the 2026-11-10 file (`replay.home_example()`,
+  constants `DEFAULT_HOME_EXAMPLE_PATH`, `HOME_EXAMPLE_PATH` read at call time, `HOME_EXAMPLE_ID`
+  = `P3`, `HOME_EXAMPLE_MARKS` = `5%`, `617.51`). `home_example` shall return a `Recording`
+  with the model name and date of that file, and `None` (never an exception) when the file, the
+  model, the date or the record is missing or malformed. The cards and the Provoke panel shall
+  keep replaying the 2026-11-11 file. `landing.example_html(recording)` shall return `''` when the
+  recording is `None`, when its question is not a preset or when a mark is not in its raw answer;
+  otherwise it shall show the label, the preset question, the two sentences with the marks
+  highlighted, a line saying that no cited row and no alert field holds an interest rate and the
+  word `rejected`, and a smaller line (`gl-example-note`) saying that the guard does no
+  arithmetic and why the GYMPLUS sum is rejected too.
+  - AE-GH-20
+
+    | Call | Result |
+    |---|---|
+    | `home_example()` on the committed file | P3, model `llama3.2:3b`, date `2026-11-10` |
+    | today's guard on that raw answer | fallback; `617.51` and `5` among the rejected tokens |
+    | `example_html(home_example())` | label, question, two `<mark>`, `<b>rejected</b>`, note line |
+    | `example_html(None)`; a recording without a mark | `''` |
+    | missing or malformed file | `None` |
+    | GYMPLUS forecast probe of 2026-11-11 | holds `539.40`; rejected now; `Decimal("107.88") * 5 == Decimal("539.40")` |
+
+- **REQ-GH-21** The labels next to accepted answers shall not claim more than the guard checks:
+  `VERDICT_ACCEPTED`, `NOTE_GUARD_SCOPE` (`live_guard.py`), `BADGE_LLM` (the three apps) and
+  `BADGE_ACCEPTED` (`replay.py`) shall each say that figures are checked and wording is not
+  checked, in the exact texts of the session 21b request.
+  - AE-GH-21: each of the four texts contains `figures checked` (case-insensitive) and
+    `wording not checked`; `NOTE_GUARD_SCOPE` says the guard does not judge wording and does no
+    arithmetic.
+
+- **REQ-GH-22** The README shall say the same as the Home page and the docs: line 3, step 1 and
+  step 4 of the judge path, the sentence of the one promise, a section `## What the guard does not
+  check` (meaning, arithmetic, number words, an accepted answer is not a statement that it is
+  true) and a Decisions row for 13 Nov. `docs/live-guard.md` shall say two inventions and one
+  right sum that is in no row. The README shall no longer contain `inventing 539.40`,
+  `can never introduce a figure` or `traceable to an exact row`.
+  - AE-GH-22: `MUSICBOX costs 10.99 EUR every year` is in the new section as the meaning example.
 
 ## Out of scope
 

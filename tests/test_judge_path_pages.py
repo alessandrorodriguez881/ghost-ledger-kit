@@ -68,9 +68,10 @@ def _isolated_registry(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def judge_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Switch the replay (the test run file) and the auto-load on."""
+    """Switch on the replay (test run file), the Home example (committed file) and the auto-load."""
     path = write_run(tmp_path / "run.json")
     monkeypatch.setattr(replay, "REPLAY_RUN_PATH", path)
+    monkeypatch.setattr(replay, "HOME_EXAMPLE_PATH", replay.DEFAULT_HOME_EXAMPLE_PATH)
     monkeypatch.setattr(first_run, "AUTOLOAD_DEMO", True)
     return path
 
@@ -234,7 +235,9 @@ def test_with_a_key_the_cards_and_the_panel_are_live_and_never_replay(
 
     assert len(calls) == len(cases_of(prefix))  # one live call per card
     badges = _badges(at, prefix)
-    assert all(f"{prefix}-badge-llm" in b and "LLM text verified" in b for b in badges)
+    assert all(
+        f"{prefix}-badge-llm" in b and "figures checked by the number guard" in b for b in badges
+    )
     assert not any("Recorded answer" in b for b in badges)
     assert not any("Recorded answers of" in v for v in _texts(at))
     assert not _ask(at, prefix).disabled and not _question_radio(at, prefix).disabled
@@ -450,14 +453,15 @@ def test_home_starts_with_the_story_then_the_recorded_example_then_the_link(
     assert story.count("<p>") == len(streamlit_app.STORY) == 3
     assert all(line in story for line in streamlit_app.STORY)
     [example] = [v for t, v in items if v.startswith('<div class="gl-example">')]
-    assert f"One recorded answer of {FIXTURE_MODEL_NAME}, {FIXTURE_DATE}." in example
-    assert f"Question: {TRICK_QUESTIONS[0].text}" in example  # the first rejected probe
+    assert "One recorded answer of llama3.2:3b, 2026-11-10." in example  # the committed P3
+    assert f"Question: {TRICK_QUESTIONS[0].text}" in example  # the five-year question
     assert "You asked" not in example
-    assert f"{INVENTED}</mark>" in example  # the invented token is marked in its sentence
-    assert "Over five years: <mark" in example and "<b>rejected</b>" in example
+    assert "5%</mark>" in example and "617.51</mark>" in example
+    assert "<b>rejected</b>" in example and 'class="gl-example-note"' in example
 
 
 def test_home_without_a_run_file_keeps_the_story_and_drops_the_example() -> None:
+    assert replay.home_example() is None  # the root conftest points the example at no file
     at = AppTest.from_file(ENTRY, default_timeout=TIMEOUT_SECONDS).run()
 
     assert not at.exception

@@ -1,6 +1,6 @@
 # Ghost Ledger Kit
 
-Financial apps that cannot make up a number: a template where an LLM may word an explanation but can never introduce a figure.
+Financial apps where an LLM may word the explanation but cannot slip in a figure: any amount, date or IBAN that is not in the cited rows or the alert data, in digits or in English or Spanish words, sends the card back to a fixed template. It checks figures, not meaning (see What the guard does not check).
 
 - Live app: TODO add the Streamlit Community Cloud URL here once the app is deployed.
 - Demo video: TODO add the demo video link here once it is recorded.
@@ -9,10 +9,10 @@ Financial apps that cannot make up a number: a template where an LLM may word an
 
 No key and no install are needed on the public app.
 
-1. Open Home. It shows one recorded answer of a real model (`llama3.2:3b`) inventing 539.40, and the number guard rejecting it.
+1. Open Home. It shows one recorded answer of a real model (`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and the number guard rejecting it.
 2. Open Zombie Subscriptions. The demo loads by itself.
 3. Each card shows the recorded real answer, re-checked by today's number guard and labelled *No model called*.
-4. On the GYMPLUS card, open *Provoke the LLM* and replay the five-year question.
+4. On the GYMPLUS card, open *Provoke the LLM* and replay the five-year question. The model's arithmetic is right (107.88 × 5 = 539.40) and the guard still rejects it: it does no arithmetic and lets through only figures it finds in the rows.
 5. On any card, open *Exorcise* to get the refund request or the bank complaint.
 
 To run it live with a local model, see `docs/live-guard.md`.
@@ -21,7 +21,7 @@ To run it live with a local model, see `docs/live-guard.md`.
 
 LLM agents invent figures when money is involved. Ask a model to explain a charge or an invoice and it can produce an amount, a date or an IBAN that looks right and is not in the data. In a finance tool that is worse than no answer, because nobody can tell which numbers are real.
 
-Ghost Ledger Kit is built around one promise: an LLM touches the explanation layer only, and every figure in any output is traceable to an exact row of the source data.
+Ghost Ledger Kit is built around one promise: an LLM touches the explanation layer only. Every figure it writes must be one the detectors already produced (the alert data) or one in a cited row, and every alert cites the rows it comes from (`file:row`).
 
 ## How it works
 
@@ -38,6 +38,13 @@ The explanation is decorative. It never feeds back into the alert logic, and it 
 **No key needed, real model output.** `data/live_runs/2026-11-11_llama3.2-3b_demo.json` holds the raw answers that `llama3.2:3b` gave on the synthetic demo data. Without a key, a card shows the recorded answer if today's number guard accepts it, and the fixed template if not; the *Provoke the LLM* panel replays a recorded answer to a trick question. No model is called and no network is used, and the captions say so. With a key set, the apps call the model as before.
 
 **The proof, live.** Every alert card has a *Provoke the LLM* panel: three preset questions that tempt a model to state a figure that is not in the cited rows. It uses the model set through `OPENAI_API_KEY` (a local model through Ollama works too), shows the raw answer, marks the rejected tokens and shows the fixed template next to it. In general, small local models invent figures more often than large hosted ones, so a rejection is the likely outcome. The guard checks figures, dates and IBAN-shaped tokens only and does not judge wording: an accepted answer is not a statement that it is true, and a harmless count such as `3 months` is rejected too. The first call to a local model can take longer than the 10 seconds allowed, so warm it up first. Steps for Windows with Ollama are in `docs/live-guard.md`.
+
+## What the guard does not check
+
+- **Meaning.** It checks that each figure is in the cited rows or the alert data, not what the sentence says about it. `MUSICBOX costs 10.99 EUR every year` passes on a monthly 10.99 charge.
+- **Arithmetic.** It does none. A right result that is in no row is rejected (107.88 × 5 = 539.40), and a figure that is in the rows passes whatever the sentence does with it.
+- **Number words.** English and Spanish only. Any number above ten, or written with more than one word, is checked; ten or less only next to a currency or a percent. So `three months` and `one of them` pass, while `3 months` in digits is rejected. Ordinals and other languages are not read, so a day written as `twenty-first` is not checked. An amount with cents in words is rejected even when right.
+- **Truth.** An accepted answer is not a statement that it is true.
 
 ### Real Spanish formats
 
@@ -199,6 +206,7 @@ This is a student project. I set the goal, chose between options and approved ev
 | 10 Nov | Test the guard against a real model, locally with Ollama | Claude Code | Me |
 | 10 Nov | Adversarial review against past winners before the video | Me | Me |
 | 12 Nov | Make the hooks run in the CLI build (lint after every write, tests on stop, a log in the repo) | Claude Code, after the adversarial review found that the hooks never ran | Claude Code, within my general go-ahead to keep improving the project |
+| 13 Nov | Read number words in the guard, and make the Home example a real invention, after a fresh jury showed that 539.40 is right arithmetic and that five hundred and forty euros passed | Claude Code, after the fresh jury | Claude Code, within my go-ahead to keep working through the night |
 
 ## How we used Kiro
 

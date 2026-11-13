@@ -9,8 +9,9 @@ Pure module: no Streamlit. It reads four committed files and nothing else, never
   against the official Facturae XSD (25 of 25, DN-RF-23). The check is not part of CI, so the
   card says so, and it prints the number of files now in the folder next to the 25 checked;
 - ``data/public/ine_cpi_ipc290751.json``: the INE consumer price index snapshot;
-- the recorded run of ``ledger_kit/replay.py`` (judge-path): the one recorded answer that the
-  guard rejected, shown as the example under the story.
+- the Home example of ``ledger_kit/replay.py`` (guard-honesty): one recorded answer of a real
+  model that assumed an interest rate found in no row and built a total on it, with the number
+  guard rejecting it; the 107.88 × 5 = 539.40 note says the guard does no arithmetic.
 
 A file that is missing or malformed gives ``n/a`` for its fact (or no example) and never an
 exception. The number of tests is not shown anywhere: it changes with every session.
@@ -26,7 +27,7 @@ from pathlib import Path
 
 from ledger_kit.live_guard import MARK_STYLE, highlight_segments
 from ledger_kit.public_data import DEFAULT_SNAPSHOT_PATH, SnapshotError, load_snapshot
-from ledger_kit.replay import ReplayRun
+from ledger_kit.replay import HOME_EXAMPLE_MARKS, Recording
 from ledger_kit.ui.icons import icon
 from ledger_kit.ui.theme import PHANTOM, VAMPIRE, ZOMBIE, Accent, card_html
 
@@ -244,36 +245,54 @@ def story_html(lines: tuple[str, ...]) -> str:
     return f'<div class="gl-story">{paragraphs}</div>'
 
 
-def example_html(run: ReplayRun | None) -> str:
-    """Return the recorded example of Home, or '' when the run has no usable rejected answer.
+def _mark_in(sentence: str, mark: str) -> str:
+    """Return the sentence as escaped HTML with every whole occurrence of `mark` highlighted."""
+    return "".join(
+        f'<mark style="{MARK_STYLE}">{html.escape(seg.text)}</mark>'
+        if seg.flagged
+        else html.escape(seg.text)
+        for seg in highlight_segments(sentence, (mark,))
+    )
 
-    It is the first recorded answer to a trick question that the guard rejected: the question
-    (from the preset), the invented figure and the word rejected. The label says it is one
-    recorded answer of the named model on the recorded date; nothing here is a live result.
+
+EXAMPLE_NOTE = (
+    "The guard does no arithmetic. On the GYMPLUS card the same model wrote "
+    "107.88 × 5 = 539.40: the sum is right, and the guard rejects it too, because 539.40 is in "
+    "no cited row. It lets through only figures it finds in the cited rows or the alert data, "
+    "and it does not check the wording."
+)
+
+
+def example_html(recording: Recording | None) -> str:
+    """Return the recorded example of Home, or '' when the recording cannot carry it.
+
+    The recording is the Home example of ``replay.home_example()``: a real invention, an interest
+    rate found in no row and a total built on it. The block shows the label (model and date of the
+    recording), the preset question, the sentence holding each mark, and the word rejected, then a
+    smaller note on what the guard does not do. '' for None, for a question that is not a preset
+    and for a recording whose raw answer lacks a mark. Nothing here is a live result.
     """
-    recording = None if run is None else run.first_rejected_probe()
-    if run is None or recording is None:
+    if recording is None:
         return ""
-    figure, question = recording.invented_token, recording.question_text
-    if figure is None or question is None:
+    question = recording.question_text
+    if question is None or any(mark not in recording.raw_answer for mark in HOME_EXAMPLE_MARKS):
         return ""
-    label = f"One recorded answer of {run.model_name}, {run.date}."
-    sentence = recording.sentence_with(figure)
-    quoted = ""
-    if sentence is not None:
-        marked = "".join(
-            f'<mark style="{MARK_STYLE}">{html.escape(seg.text)}</mark>'
-            if seg.flagged
-            else html.escape(seg.text)
-            for seg in highlight_segments(sentence, (figure,))
-        )
-        quoted = f"<div>The model wrote: “{marked}”</div>"
+    rate, total = HOME_EXAMPLE_MARKS
+    label = f"One recorded answer of {recording.model_name}, {recording.date}."
+    quotes = []
+    for mark in HOME_EXAMPLE_MARKS:
+        sentence = recording.sentence_with(mark)
+        if sentence is not None:
+            quotes.append(f"“{_mark_in(sentence, mark)}”")
+    wrote = f"<div>The model wrote: {' '.join(quotes)}</div>" if quotes else ""
     return (
         '<div class="gl-example">'
         f'<div class="gl-example-label">{html.escape(label)}</div>'
         f"<div>Question: {html.escape(question)}</div>"
-        f"{quoted}"
-        f"<div>The figure <b>{html.escape(figure)}</b> is not in the cited rows or the alert "
-        "data. The number guard: <b>rejected</b>.</div>"
+        f"{wrote}"
+        "<div>No cited row and no alert field holds an interest rate: the model assumed "
+        f"{html.escape(rate)} and built {html.escape(total)} on it. "
+        "The number guard: <b>rejected</b>.</div>"
+        f'<div class="gl-example-note">{html.escape(EXAMPLE_NOTE)}</div>'
         "</div>"
     )

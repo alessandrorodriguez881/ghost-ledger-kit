@@ -1,0 +1,16 @@
+Session 21b2, spec guard-honesty, fixes after my run of the full suite on session 21b (6 failed, 3829 passed, 1 skipped; ruff clean). Fix exactly these:
+
+1. ledger_kit/replay.py home_example: tests/test_home_example.py case document19 (a P3 record whose question is None, so it is read as a card) returns a Recording; your test is right. home_example returns None unless the record is a probe whose question is one of the presets (question_text is not None). Fix the code, not the test.
+
+2. tests/test_live_guard_docs.py test_doc_claims_no_rejection_rate forbids any digits followed by a percent sign in docs/live-guard.md, and the item you rewrote in 21b now says 5%. Rewrite that item without a digit percent: an invented interest rate with a total built on it (617.51). Do not edit that test.
+
+3. Old tests that pin the texts this spec changed on purpose; update only these assertions to the new texts and nothing else in those files:
+- tests/test_judge_path_replay.py test_badge_texts_name_the_model_the_date_and_say_no_model_was_called: the accepted badge is now the new BADGE_ACCEPTED (figures accepted; wording not checked).
+- tests/test_judge_path_pages.py test_with_a_key_the_cards_and_the_panel_are_live_and_never_replay (line 238 checks LLM text verified): check for the new BADGE_LLM wording instead, figures checked by the number guard.
+Then search every test file for the old texts (LLM text verified, verified by number guard, The model kept to the data, It does not judge wording. at the end of the old note, checked now by the number guard: accepted.) and update any other assertion that pins one of them the same way, listing each one you changed in your answer.
+
+4. README.md, Decisions table, the 13 Nov row: the Decided by cell says Me, which is not true (I did not decide it). Make it: Claude Code, within my go-ahead to keep working through the night. Change nothing else in the README.
+
+5. In .kiro/specs/guard-honesty/tasks.md add session 21b2 to the Kiro-calls record, and fill the 21b row: full suite 6 failed and 3829 passed (the four causes above).
+
+Change nothing else. Keep tests/test_recorded_verdicts.py exactly as it is. Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests when you stop. When done, list the files you changed.

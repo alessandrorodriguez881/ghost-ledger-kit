@@ -332,7 +332,9 @@ def test_guard_badge_three_plus_one_texts() -> None:
     plain = Explanation("x", "fallback", ())
     rejected = Explanation("x", "fallback", (INJECTED,))
 
-    assert guard_badge(llm, True) == "🤖 ✓ LLM text verified by number guard"
+    assert guard_badge(llm, True) == (
+        "🤖 ✓ LLM text · figures checked by the number guard; wording not checked"
+    )
     assert guard_badge(plain, False) == "📋 Template (no API key)"
     assert guard_badge(rejected, True) == (
         f"⚠️ LLM answer rejected: not found in the cited rows or the alert data: {INJECTED}"

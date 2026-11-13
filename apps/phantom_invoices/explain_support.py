@@ -108,7 +108,7 @@ SAME_DAY_TEMPLATES: dict[tuple[str, str], str] = {
 }
 
 # Guard-badge texts (REQ-PI-46).
-BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
+BADGE_LLM: str = "🤖 ✓ LLM text · figures checked by the number guard; wording not checked"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
 BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
 BADGE_REJECTED: str = (

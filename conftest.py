@@ -21,4 +21,5 @@ NO_RUN_FILE = Path(__file__).resolve().parent / "data" / "live_runs" / "no-repla
 def _judge_path_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """Point the replay at a file that does not exist and switch the auto-load off."""
     monkeypatch.setattr(replay, "REPLAY_RUN_PATH", NO_RUN_FILE)
+    monkeypatch.setattr(replay, "HOME_EXAMPLE_PATH", NO_RUN_FILE)
     monkeypatch.setattr(first_run, "AUTOLOAD_DEMO", False)

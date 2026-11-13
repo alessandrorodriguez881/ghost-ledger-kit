@@ -128,7 +128,7 @@ def home() -> None:
     st.title(HOME_TITLE)
     _markdown(f'<div class="gl-promise">{html.escape(PROMISE)}</div>')
     _markdown(landing.story_html(STORY))
-    example = landing.example_html(replay.load_run())
+    example = landing.example_html(replay.home_example())
     if example:
         _markdown(example)
     _start_here()

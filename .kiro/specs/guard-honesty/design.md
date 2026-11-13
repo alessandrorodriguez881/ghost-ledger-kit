@@ -99,6 +99,23 @@ without an entry fails `test_every_committed_run_file_is_pinned`.
 |---|---|---|---|
 | session 21a | all four | none expected: the pinned sets are those of the guard before number words | part 1 |
 
-## §6 Not designed here (part 2)
+## §6 Part 2 (session 21b)
 
-The Home example, the accepted-answer labels and the README (REQ-GH-20 to REQ-GH-22) are session 21b.
+| File | Change |
+|---|---|
+| `ledger_kit/replay.py` | `DEFAULT_HOME_EXAMPLE_PATH`, `HOME_EXAMPLE_PATH` (read at call time), `HOME_EXAMPLE_ID`, `HOME_EXAMPLE_MARKS`, `home_example(path=None)` (cached, never raises); `BADGE_ACCEPTED` text. `first_rejected_probe` and the rest unchanged |
+| `ledger_kit/ui/landing.py` | `example_html(recording)`: the P3 example, one block `gl-example`, one note line `gl-example-note` |
+| `ledger_kit/ui/theme.py` | `.gl-example-note` styled like `.gl-example-label` |
+| `streamlit_app.py` | `landing.example_html(replay.home_example())` |
+| `ledger_kit/live_guard.py` | `VERDICT_ACCEPTED`, `NOTE_GUARD_SCOPE` |
+| three apps | `BADGE_LLM` |
+| `README.md`, `docs/live-guard.md` | REQ-GH-22 |
+
+**Why P3 and not the GYMPLUS answer.** The GYMPLUS answer (`107.88 * 5 = 539.40`) is right
+arithmetic that the guard rejects because 539.40 is in no cited row. P3 assumes an interest rate
+found in no row and builds 617.51 on it: a real invention. The Home note says both, so the page
+does not teach that the guard does arithmetic. `home_example` reads the 2026-11-10 file only;
+the cards and the Provoke panel keep the 2026-11-11 file (`REPLAY_RUN_PATH`).
+
+**Sentences.** The Home block quotes `Recording.sentence_with` for each mark (`5%`, `617.51`), so
+for 617.51 it quotes the first line of the answer that holds it (`A = 617.51`).

@@ -313,7 +313,7 @@ def test_badge_texts_name_the_model_the_date_and_say_no_model_was_called(run_pat
     assert kind == "llm"
     assert label == (
         "📼 Recorded answer of testmodel:1b, 2026-11-11, checked now by the number guard: "
-        "accepted. No model called."
+        "figures accepted; wording not checked. No model called."
     )
     assert rejected_kind == "rejected"
     assert rejected_label == (
@@ -427,17 +427,16 @@ def test_every_alert_id_of_the_committed_run_is_raised_by_the_demo() -> None:
 
 
 def test_the_home_example_is_a_record_todays_guard_rejects_with_the_same_token() -> None:
-    """DN-JP-08: Home reads the stored verdict, so today's guard must agree with it."""
-    run = load_run(COMMITTED_RUN)
-    recording = None if run is None else run.first_rejected_probe()
-    if recording is None:
-        pytest.skip("the committed run has no rejected trick-question answer yet")
+    """The Home example is record P3: today's guard must reject it with its marked figures."""
+    recording = replay.home_example(replay.DEFAULT_HOME_EXAMPLE_PATH)
+    assert recording is not None
     case = find_case(recording.alert_id)
     assert case is not None
 
     result = _verdict(case, recording.raw_answer, recording.question_text)
 
     assert result.source == "fallback"
+    assert "617.51" in result.rejected_numbers and "5" in result.rejected_numbers
     assert recording.invented_token in result.rejected_numbers
 
 

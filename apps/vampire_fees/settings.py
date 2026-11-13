@@ -45,7 +45,7 @@ SOURCE_KEY = "vf_source"
 DEMO_LOADED_KEY = "vf_demo_loaded"
 
 # Guard-badge labels (copied, C2). `{numbers}` is replaced by the rejected tokens.
-BADGE_LLM: str = "🤖 ✓ LLM text verified by number guard"
+BADGE_LLM: str = "🤖 ✓ LLM text · figures checked by the number guard; wording not checked"
 BADGE_TEMPLATE: str = "📋 Template (no API key)"
 BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
 BADGE_REJECTED: str = (
