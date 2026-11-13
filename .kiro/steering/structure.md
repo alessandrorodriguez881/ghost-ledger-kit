@@ -4,6 +4,8 @@
 
 ```
 ghost-ledger-kit/
+├── .github/
+│   └── workflows/                  # tests.yml (tests on every push), keep-demo-awake.yml (visit the public demo every 6 hours once DEMO_URL is set)
 ├── .kiro/
 │   └── steering/                   # Kiro steering documents (this directory)
 ├── ledger_kit/                     # Shared template library (importable package)
@@ -198,6 +200,7 @@ ghost-ledger-kit/
 │   ├── test_public_data_docs.py    # attribution identical in snapshot, READMEs, Home page
 │   ├── test_showcase_app.py        # headless AppTest runs of streamlit_app.py
 │   ├── test_showcase_requirements.py
+│   ├── test_publish_ready.py       # text checks: usage statistics off, the two GitHub workflows
 │   ├── test_benchmark_generator.py # scenario generator: independence, determinism, golden cases
 │   ├── test_benchmark_matching.py  # matching rule and metrics (pure)
 │   ├── test_benchmark_runner.py    # pipelines, results, CLI, committed files equal a fresh run

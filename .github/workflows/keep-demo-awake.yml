@@ -1,0 +1,51 @@
+name: keep-demo-awake
+
+# A free Streamlit app sleeps after a while without visitors. This visits the public demo every
+# six hours so a judge does not land on the sleep page.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # The owner fills this in with the address of the app once it is public.
+      DEMO_URL: ""
+    steps:
+      - name: Check the address
+        run: |
+          if [ -z "$DEMO_URL" ]; then
+            echo "No public URL yet"
+          fi
+      - uses: actions/setup-python@v5
+        if: env.DEMO_URL != ''
+        with:
+          python-version: "3.12"
+      - name: Install the browser
+        if: env.DEMO_URL != ''
+        run: |
+          pip install playwright==1.48.0
+          python -m playwright install --with-deps chromium
+      - name: Visit the demo
+        if: env.DEMO_URL != ''
+        run: |
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.goto(os.environ["DEMO_URL"], timeout=120000)
+              page.wait_for_timeout(5000)
+              button = page.get_by_role("button", name="Yes, get this app back up!")
+              if button.count() > 0:
+                  print("The demo was asleep")
+                  button.first.click()
+              page.wait_for_timeout(90000)
+              print(page.title())
+              browser.close()
+          PY

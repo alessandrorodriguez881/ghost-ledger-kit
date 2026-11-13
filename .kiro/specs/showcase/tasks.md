@@ -52,6 +52,36 @@ of `streamlit_app.py`) is run by the user.
 - [x] Document the root `requirements.txt` sections; add the new files to the layout of
   `.kiro/steering/structure.md`.
 
+## Task SC6 — Publish readiness (13 Nov 2026)
+
+**Covers**: REQ-SC-13, REQ-SC-14, REQ-SC-15, §6
+
+- [x] `tests/test_publish_ready.py` (text checks only): `gatherUsageStats = false`; `tests.yml` runs
+  on push and pull_request, Python 3.12, installs `requirements.txt`, runs `ruff check .` and
+  pytest; neither workflow mentions secrets; `keep-demo-awake.yml` has the schedule,
+  `workflow_dispatch`, an empty `DEMO_URL`, the skip message, `playwright==1.48.0` and the button
+  name.
+- [x] Update `tests/test_showcase_theme.py` (REQ-SC-06 as amended): exactly one `[browser]` key,
+  value false; `[server]`, `[global]` and secrets still forbidden.
+- [x] Add `[browser]` and the new header comment to `.streamlit/config.toml`.
+- [x] Create `.github/workflows/tests.yml` and `.github/workflows/keep-demo-awake.yml`.
+- [x] Add `.github/` to the layout of `README.md` and `.kiro/steering/structure.md`.
+
+Runs recorded for SC6 (session 24b):
+
+- After session 24, the user's run: ruff clean, 3,935 passed, 1 skipped, 1 failed
+  (`tests/test_judge_path_misc.py::test_the_client_table_hides_the_toolbar_for_visitors`, the
+  config comment lacked the word *neither*); fixed in 24b by rewording the comment.
+- Clean clone with LF line endings: 3,927 passed, 1 skipped, `ruff check .` clean;
+  `ruff format --check .` reported 245 files already formatted.
+- Coverage run (the command of `testing.md` line 139, `--cov-fail-under=80`): passed, total
+  coverage 99.00 percent, 32 minutes; hence `timeout-minutes: 60` in `tests.yml`.
+- Browser check with the new config: Home and Vampire Fees made no request outside localhost;
+  before the change the browser sent three requests to `webhooks.fivetran.com`.
+- The workflows themselves have not run on GitHub yet.
+- `tests.yml` now also runs `ruff format --check .` and the coverage command (REQ-SC-14,
+  `tests/test_publish_ready.py` updated).
+
 ## Not verified by the author
 
 The tasks were written without running a command. The user runs `ruff check .`,

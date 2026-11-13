@@ -1,6 +1,7 @@
-"""Checks .streamlit/config.toml: a theme, one client display key and nothing else (REQ-SC-06).
+"""Checks .streamlit/config.toml: theme, one client key, one browser key only (REQ-SC-06).
 
 judge-path (REQ-JP-13) adds ``[client] toolbarMode = "viewer"`` so the Deploy button is gone.
+REQ-SC-13 amends REQ-SC-06 with ``[browser] gatherUsageStats = false``.
 """
 
 import re
@@ -40,11 +41,14 @@ def config() -> dict[str, Any]:
         return tomllib.load(handle)
 
 
-def test_config_parses_and_holds_only_the_theme_and_client_tables(config: dict[str, Any]) -> None:
-    """No [server], [browser], [global] or other table that could upset Community Cloud."""
-    assert set(config) == {"theme", "client"}
+def test_config_parses_and_holds_only_the_allowed_tables(config: dict[str, Any]) -> None:
+    """No [server], [global] or other table that could upset Community Cloud (REQ-SC-13)."""
+    assert set(config) == {"theme", "client", "browser"}
     assert isinstance(config["theme"], dict)
     assert config["client"] == {"toolbarMode": "viewer"}  # REQ-JP-13: no Deploy button
+    assert config["browser"] == {"gatherUsageStats": False}  # REQ-SC-13: no usage statistics
+    assert "server" not in config
+    assert "global" not in config
 
 
 def test_theme_holds_only_known_flat_keys(config: dict[str, Any]) -> None:

@@ -1,8 +1,10 @@
 # Shared dark Halloween theme of the showcase. Colours come from the CSS of the apps
 # (haunted ledger: #12101a background, #7cffb2 accent, #e8dcc0 text, #1c1829 inputs).
-# Theme and client keys only: no credentials and no server settings (Community Cloud manages
-# those). The client key below is a display setting, neither of the two: it hides the Deploy
-# button and the developer menu of the top bar for a visitor.
+# Theme keys, one client display key and one browser privacy key. The client key below is a
+# display setting: it hides the Deploy button and the developer menu of the top bar for a
+# visitor. The browser key is a privacy setting: it stops the browser from sending Streamlit
+# usage statistics to a third party. The client key and the browser key are neither credentials
+# nor server settings (Community Cloud manages those).
 [theme]
 base = "dark"
 primaryColor = "#7cffb2"
@@ -12,3 +14,6 @@ textColor = "#e8dcc0"
 
 [client]
 toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false

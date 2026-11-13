@@ -35,7 +35,9 @@ Ids are `REQ-SC-nn`. EARS keywords: *shall*, *when*, *while*, *where*, *if ... t
 - **REQ-SC-06** The repository shall contain `.streamlit/config.toml` with a single `[theme]`
   table: base `dark`, and background, secondary background, text and primary colours taken from
   the existing app CSS (`#12101a`, `#7cffb2`). It shall hold no secret and no `[server]`,
-  `[browser]`, `[global]` or other non-theme setting.
+  `[browser]`, `[global]` or other non-theme setting. *(Amended by REQ-SC-13: one `[browser]` key,
+  `gatherUsageStats = false`, is now allowed; `[server]`, `[global]` and secrets stay forbidden.
+  The one `[client]` key of REQ-JP-13 is also allowed.)*
 
 ## 3 — Wording polish (phantom-invoices)
 
@@ -58,3 +60,29 @@ Ids are `REQ-SC-nn`. EARS keywords: *shall*, *when*, *while*, *where*, *if ... t
   Fixtures and demo files shall stay synthetic.
 - **REQ-SC-12** Nothing shall be published, pushed or deployed by this work, and the README is
   out of scope (session 7).
+
+## 5 — Publish readiness (13 Nov 2026)
+
+Prepares the repository for the day the owner publishes it. Nothing is pushed or published by
+this work; the owner does that.
+
+- **REQ-SC-13** *(amends REQ-SC-06)* The file `.streamlit/config.toml` shall contain a `[browser]`
+  table with exactly one key, `gatherUsageStats = false`, so that a running showcase sends no
+  Streamlit usage statistics to a third party (checked on 13 Nov 2026: the browser called
+  `webhooks.fivetran.com`, while the README says the apps never call the network). The file shall
+  still hold no secret, no `[server]` and no `[global]` table. Its header comment shall describe
+  the file as it is: theme keys, one client display key and one browser privacy key.
+- **REQ-SC-14** The repository shall contain `.github/workflows/tests.yml`, a workflow named
+  `tests` that runs on `push` and `pull_request` in one job on `ubuntu-latest` (60-minute limit)
+  with Python 3.12, installs `requirements.txt`, then runs `ruff check .`, `ruff format --check .`
+  and `python -m pytest --cov=ledger_kit --cov=apps/zombie_subscriptions
+  --cov=apps/phantom_invoices --cov=apps/vampire_fees --cov-fail-under=80` (the command of
+  `testing.md`, CI requirements). It shall use no secret, no deploy step and no network call beyond installing the pinned
+  packages. The tests shall pass, or skip, on a clean Linux runner without an API key.
+- **REQ-SC-15** The repository shall contain `.github/workflows/keep-demo-awake.yml`, which on a
+  schedule (`17 */6 * * *`) and on `workflow_dispatch` visits the public demo so that a free
+  Streamlit app does not sleep before a judge arrives. While the job-level `DEMO_URL` is empty
+  the job shall print `No public URL yet` and end successfully without installing anything. When
+  the owner sets `DEMO_URL`, it shall open the page with a headless browser, press the button
+  *Yes, get this app back up!* if it is shown, stay on the page so the visit counts and close.
+  It shall use no secret and run at most 10 minutes.

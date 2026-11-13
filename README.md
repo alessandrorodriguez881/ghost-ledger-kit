@@ -180,6 +180,7 @@ data/benchmark/        results.json written by scripts/benchmark.py
 data/live_runs/        raw answers of real-model runs on the synthetic demo data
 data/hook_runs/        hook_log.jsonl, the log written by the CLI hooks
 .kiro/                 specs, steering, hooks, agents (the custom agent)
+.github/workflows/     two workflows: tests on every push, and a visit to the public demo every 6 hours once its address is set
 powers/                the ghost-ledger-detector power
 kiro_prompts/          the prompt file of every Kiro CLI call and run_kiro.ps1, the script that sent them
 docs/                  benchmark.md (generated), live-guard.md, mcp-api-checks.md (library API checks made through MCP)
