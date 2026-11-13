@@ -576,6 +576,97 @@ def cited_payments_view(payments: pd.DataFrame, refs: Iterable[str]) -> pd.DataF
     return pd.DataFrame(rows, columns=list(PAYMENT_COLUMNS))
 
 
+# Columns the lantern lights on an alert card, per detector (spec app-signatures, REQ-AS-11). They
+# are the fields each detector module compares: duplicate_invoice groups by supplier and compares
+# the invoice number, the issue date and the total; iban_change compares the IBAN of the invoice
+# or the payment with the supplier master; vat_error checks the amounts of one invoice against its
+# base; reconciliation matches an invoice total and due date with a payment amount and date of the
+# same supplier. A detector that is not here lights the columns that differ between the rows.
+LANTERN_COLUMNS: dict[str, tuple[str, ...]] = {
+    "pi.duplicate_invoice": ("supplier_name", "invoice_number", "issue_date", "total"),
+    "pi.iban_change": ("iban",),
+    "pi.vat_error": (
+        "base_amount",
+        "vat_rate",
+        "vat_amount",
+        "surcharge_amount",
+        "withholding_amount",
+        "total",
+    ),
+    "pi.reconciliation": (
+        "supplier_name",
+        "due_date",
+        "total",
+        "date",
+        "amount",
+        "counterparty",
+    ),
+}
+# Columns of the lantern, in order: the invoice fields, then the payment fields, then the IBAN.
+LANTERN_ORDER: tuple[str, ...] = (
+    "source_ref",
+    "invoice_number",
+    "supplier_name",
+    "issue_date",
+    "due_date",
+    "date",
+    "counterparty",
+    "flow",
+    "base_amount",
+    "vat_rate",
+    "vat_amount",
+    "surcharge_amount",
+    "withholding_amount",
+    "total",
+    "amount",
+    "iban",
+)
+
+
+def lantern_lit_columns(alert: Alert) -> tuple[str, ...] | None:
+    """Return the columns to light for the alert's detector; None when it is not in the mapping."""
+    return LANTERN_COLUMNS.get(alert.detector)
+
+
+def lantern_view(alert: Alert, pipeline: Pipeline) -> pd.DataFrame:
+    """Return the cited rows of an alert as lantern display strings, in `source_refs` order.
+
+    The values come from the views the page already uses for its cited rows (`ledger_view`,
+    `cited_master_view`, `cited_payments_view`), so amounts are European, dates are ISO and an IBAN
+    is masked. Only columns that hold a value in some row are kept. The IBAN column is kept only
+    where the detector compares it (it is in the mapping) or, for an unmapped detector, where the
+    IBANs differ; no other column ever shows an IBAN.
+    """
+    refs = list(alert.source_refs)
+    invoices = pipeline.invoices
+    if isinstance(invoices, pd.DataFrame) and "source_ref" in invoices.columns:
+        cited_invoices = invoices[invoices["source_ref"].isin(refs)]
+        invoice_rows = ledger_view(cited_invoices, pipeline.reconciliation)
+    else:
+        invoice_rows = pd.DataFrame(columns=list(LEDGER_COLUMNS))
+    found: dict[str, dict[str, str]] = {}
+    for frame in (
+        invoice_rows,
+        cited_master_view(pipeline.suppliers, refs),
+        cited_payments_view(pipeline.payments, refs),
+    ):
+        for record in frame.to_dict("records"):
+            found.setdefault(record["source_ref"], record)
+    records = [found[ref] for ref in refs if ref in found]
+    mapped = LANTERN_COLUMNS.get(alert.detector)
+    kept: list[str] = []
+    for column in LANTERN_ORDER:
+        values = [record.get(column, "") for record in records]
+        if not any(values):
+            continue
+        if column == "iban":
+            shown = "iban" in mapped if mapped is not None else len(set(values)) > 1
+            if not shown:
+                continue
+        kept.append(column)
+    return pd.DataFrame([{c: record.get(c, "") for c in kept} for record in records], columns=kept)
+
+
 def quarantine_view(records: Iterable[dict]) -> pd.DataFrame:
     """Flatten quarantine records into a table of file, row, reason and raw values."""
     rows = [

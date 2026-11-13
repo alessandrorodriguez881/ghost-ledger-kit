@@ -56,6 +56,8 @@ from apps.phantom_invoices.settings import (  # noqa: E402
     flashlight_options,
     group_alerts,
     input_notice,
+    lantern_lit_columns,
+    lantern_view,
     ledger_view,
     lit_refs_for,
     load_config,
@@ -96,6 +98,11 @@ from ledger_kit.live_guard import (  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
+from ledger_kit.ui.signatures import (  # noqa: E402
+    lantern_html,
+    refs_chips_html,
+    signature_block,
+)
 from ledger_kit.ui.theme import (  # noqa: E402
     PHANTOM,
     apply_theme,
@@ -451,6 +458,14 @@ def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
         st.caption(counter_caption(counts))
 
 
+def _render_signature(alert: Alert, pipeline: Pipeline) -> None:
+    """Draw the lantern of the cited rows; draw nothing when no cited row is found."""
+    lantern = lantern_html(lantern_view(alert, pipeline), lantern_lit_columns(alert))
+    drawing = signature_block(lantern)
+    if drawing:
+        st.markdown(drawing, unsafe_allow_html=True)
+
+
 def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
     """One alert card: title, detector label, explanation, guard badge, refs and captions."""
     explanation = _explain(alert, pipeline, hallucinate)
@@ -472,12 +487,15 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
             f'<span class="pi-badge pi-badge-{kind}">{html.escape(badge)}</span>',
             unsafe_allow_html=True,
         )
+        _render_signature(alert, pipeline)
         message = verification_message(alert)
         if message is not None:
             st.warning(message)
         for caption in alert_captions(alert):
             st.caption(caption)
-        st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
+        st.markdown(
+            "**Source refs:** " + refs_chips_html(alert.source_refs), unsafe_allow_html=True
+        )
         render_exorcise(
             alert,
             build_explain_rows(alert, pipeline.invoices, pipeline.suppliers, pipeline.payments),

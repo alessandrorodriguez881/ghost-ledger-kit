@@ -233,6 +233,81 @@ BASE_CSS: str = """
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
 }
+.stApp .gl-ref-chip {
+  display: inline-block;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--gl-accent-text);
+  background: rgba(var(--gl-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--gl-accent-rgb), 0.55);
+  border-radius: 999px;
+  padding: 0.05rem 0.65rem;
+  margin: 0.15rem 0.25rem 0.15rem 0;
+  overflow-wrap: anywhere;
+}
+.stApp .gl-signature {
+  background: rgba(var(--gl-accent-rgb), 0.05);
+  border: 1px dashed var(--gl-line);
+  border-radius: 6px;
+  margin: 0.5rem 0 0.4rem;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.5rem 0.7rem 0.4rem;
+}
+.stApp .gl-signature svg.gl-sig-svg {
+  display: block;
+  height: auto;
+  max-width: 40rem;
+  min-width: 30rem;
+  width: 100%;
+}
+.stApp .gl-signature-caption { font-size: 0.8rem; color: #b9ae95; margin-top: 0.3rem; }
+.stApp .gl-sig-line { fill: none; stroke: var(--gl-accent); stroke-width: 1.5; opacity: 0.85; }
+.stApp .gl-dot { fill: var(--gl-accent); stroke: #12101a; stroke-width: 1; }
+.stApp .gl-dot-after {
+  fill: #e8dcc0;
+  stroke: var(--gl-accent-text);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px var(--gl-accent));
+}
+.stApp .gl-tomb { fill: #1c1829; stroke: #e8dcc0; stroke-width: 1.4; stroke-linejoin: round; }
+.stApp .gl-fang {
+  fill: var(--gl-accent);
+  stroke: var(--gl-accent-text);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.stApp .gl-sig-text {
+  fill: #b9ae95;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 11px;
+}
+.stApp .gl-lantern-wrap { max-width: 100%; overflow-x: auto; }
+.stApp table.gl-lantern {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0;
+  min-width: 100%;
+  width: max-content;
+}
+.stApp table.gl-lantern th, .stApp table.gl-lantern td {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(232, 220, 192, 0.18);
+  padding: 0.25rem 0.65rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.stApp table.gl-lantern .gl-dim { color: #b9ae95; }
+.stApp table.gl-lantern th.gl-lit {
+  color: var(--gl-accent-text);
+  border-bottom: 1px solid var(--gl-accent);
+}
+.stApp table.gl-lantern td.gl-lit {
+  background: rgba(var(--gl-accent-rgb), 0.22);
+  box-shadow: inset 0 0 12px rgba(var(--gl-accent-rgb), 0.5);
+  color: #fff7e0;
+}
 .stApp .zs-name { font-size: 1.35rem; font-weight: 700; margin: 6px 0 10px; color: #e8dcc0; }
 .stApp .zs-line, .stApp .vf-line { font-size: 0.95rem; margin: 2px 0; color: #e8dcc0; }
 .stApp .zs-amber, .stApp .vf-cost { color: var(--gl-accent-text); }
@@ -355,6 +430,9 @@ BASE_CSS: str = """
   .stApp .gl-section { font-size: 1.3rem; }
   .stApp .gl-promise { font-size: 1.15rem; }
   .stApp .gl-figure { font-size: 1.8rem; }
+  .stApp .gl-signature { padding: 0.4rem 0.5rem 0.3rem; }
+  .stApp .gl-ref-chip { font-size: 0.75rem; padding: 0.05rem 0.5rem; }
+  .stApp table.gl-lantern { font-size: 0.75rem; }
   .stApp [data-testid="stMainBlockContainer"] { padding: 3.5rem 1rem 4rem; }
 }
 """

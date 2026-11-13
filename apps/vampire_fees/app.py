@@ -82,6 +82,11 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
     quarantine_table,
     rows_for_refs,
 )
+from ledger_kit.ui.signatures import (  # noqa: E402
+    bites_svg,
+    refs_chips_html,
+    signature_block,
+)
 from ledger_kit.ui.theme import (  # noqa: E402
     VAMPIRE,
     apply_theme,
@@ -407,6 +412,14 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
         st.caption(counter_caption(counts))
 
 
+def _render_signature(alert: Alert, ledger: pd.DataFrame) -> None:
+    """Draw the bites of the cited rows; draw nothing when no row can be drawn."""
+    cited, _missing = rows_for_refs(ledger, alert.source_refs)
+    drawing = signature_block(bites_svg(cited))
+    if drawing:
+        st.markdown(drawing, unsafe_allow_html=True)
+
+
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
@@ -426,7 +439,10 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
             f'<span class="vf-badge vf-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,
         )
-        st.markdown("**Source refs:** " + _refs_markdown(alert.source_refs))
+        _render_signature(alert, ledger)
+        st.markdown(
+            "**Source refs:** " + refs_chips_html(alert.source_refs), unsafe_allow_html=True
+        )
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
             st.dataframe(format_for_display(cited), hide_index=True, width="stretch")

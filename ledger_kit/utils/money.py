@@ -70,6 +70,18 @@ def format_index(value: Decimal) -> str:
     return _european_number(value, 3)
 
 
+def scale_to(value: Decimal, maximum: Decimal, size: int) -> int:
+    """Return value / maximum x size as a whole number, rounded half-up (a drawing length).
+
+    It is for the height of a bar, never shown as a figure. Zero when `maximum` is not positive
+    or `value` is negative; never more than `size`.
+    """
+    if maximum <= 0 or value <= 0:
+        return 0
+    scaled = (value / maximum * size).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    return min(int(scaled), size)
+
+
 def within_tolerance(a: Decimal, b: Decimal, tol: Decimal) -> bool:
     """Return True when abs(a - b) <= tol (inclusive); raise ValueError for negative tol."""
     if tol < 0:
