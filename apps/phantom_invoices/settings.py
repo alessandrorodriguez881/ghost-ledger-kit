@@ -603,6 +603,7 @@ LANTERN_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
 }
 # Columns of the lantern, in order: the invoice fields, then the payment fields, then the IBAN.
+# (An unmapped detector shows its differing columns in this order.)
 LANTERN_ORDER: tuple[str, ...] = (
     "source_ref",
     "invoice_number",
@@ -621,6 +622,8 @@ LANTERN_ORDER: tuple[str, ...] = (
     "amount",
     "iban",
 )
+# The two columns that always name a row of the lantern, lit or not (an empty one is left out).
+LANTERN_NAMING: tuple[str, ...] = ("source_ref", "invoice_number")
 
 
 def lantern_lit_columns(alert: Alert) -> tuple[str, ...] | None:
@@ -633,9 +636,10 @@ def lantern_view(alert: Alert, pipeline: Pipeline) -> pd.DataFrame:
 
     The values come from the views the page already uses for its cited rows (`ledger_view`,
     `cited_master_view`, `cited_payments_view`), so amounts are European, dates are ISO and an IBAN
-    is masked. Only columns that hold a value in some row are kept. The IBAN column is kept only
-    where the detector compares it (it is in the mapping) or, for an unmapped detector, where the
-    IBANs differ; no other column ever shows an IBAN.
+    is masked. Only these columns are kept: the source ref, the invoice number (it names the row,
+    lit or not) and, for a detector in the mapping, its lit columns in the order of the mapping;
+    for an unmapped detector, the columns whose values differ. A column that holds no value in any
+    row is left out. The IBAN column appears only where the detector compares it.
     """
     refs = list(alert.source_refs)
     invoices = pipeline.invoices
@@ -654,16 +658,24 @@ def lantern_view(alert: Alert, pipeline: Pipeline) -> pd.DataFrame:
             found.setdefault(record["source_ref"], record)
     records = [found[ref] for ref in refs if ref in found]
     mapped = LANTERN_COLUMNS.get(alert.detector)
-    kept: list[str] = []
-    for column in LANTERN_ORDER:
-        values = [record.get(column, "") for record in records]
-        if not any(values):
-            continue
-        if column == "iban":
-            shown = "iban" in mapped if mapped is not None else len(set(values)) > 1
-            if not shown:
-                continue
-        kept.append(column)
+    if mapped is not None:
+        # The columns that name the row (lit or not), then the lit columns in mapping order.
+        head = ["source_ref"] if "invoice_number" in mapped else list(LANTERN_NAMING)
+        wanted = [*head, *mapped]
+    else:
+        # Not in the mapping: the lantern lights the columns that differ, so show only those.
+        differing = [
+            column
+            for column in LANTERN_ORDER
+            if column not in LANTERN_NAMING
+            and len({record.get(column, "") for record in records}) > 1
+        ]
+        wanted = [*LANTERN_NAMING, *differing]
+    kept = [
+        column
+        for column in wanted
+        if column == "source_ref" or any(record.get(column, "") for record in records)
+    ]
     return pd.DataFrame([{c: record.get(c, "") for c in kept} for record in records], columns=kept)
 
 

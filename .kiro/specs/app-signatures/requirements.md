@@ -53,9 +53,10 @@ statements and invoice sets of `data/samples/`.
   - AE-AS-01 Zombie demo: 19 alerts → 19 `gl-signature` blocks. Phantom demo: 9 → 9. Vampire demo:
     6 → 6. In each card the order is title, detector line, text, badge, signature, `Source refs:`.
 
-- **REQ-AS-02** Every signature shall end with one caption line, `Each mark is one cited row.`,
-  which holds no digit.
-  - AE-AS-02 The caption of the 45-bar signature of `vf.fee_summary` is the same line.
+- **REQ-AS-02** Every signature shall end with one caption line that holds no digit and no figure.
+  The caption is the one of its app (REQ-AS-24).
+  - AE-AS-02 The caption of the 45-bar signature of `vf.fee_summary` is `Each bite is one cited
+    fee.`
 
 ## 2 — The chips
 
@@ -88,7 +89,8 @@ statements and invoice sets of `data/samples/`.
     charge is after it, so every dot is bright.
 
 - **REQ-AS-07** The visible text of a heartbeat shall be the first and the last cited date and,
-  *where* there is one, the cancellation date with the word `cancelled`. Nothing else is visible.
+  *where* there is one, the cancellation date with the word `cancelled` (REQ-AS-21). Nothing else
+  is visible.
   Each dot shall carry an SVG `title` with the row label of its row.
   - AE-AS-08 Dot of the row dated 2026-08-31 with amount 29,99 EUR → title
     `2026-08-31 · 29,99 EUR`.
@@ -158,3 +160,39 @@ statements and invoice sets of `data/samples/`.
 - **REQ-AS-19** The feature shall change nothing else: no detector, no alert, no guard, no replay,
   no README, no Home page. The only existing tests edited are those that pin the old inline-code
   refs after `Source refs:`; each one is listed in `tasks.md`.
+
+## 8 — Polish after session 22a (session 22b)
+
+- **REQ-AS-20** *Where* the heartbeat joins two dots, the line shall make one spike before each
+  dot (when there is room for it): it jumps up about 28 viewBox units above the line, falls about
+  14 units below the line, and comes back to the line at the dot. The spike is static and adds no
+  text.
+  - AE-AS-14 A heartbeat of five dates on five different days has five spikes, each `l5,-28
+    l6,42 l7,-14` (up 28, down 42 to 14 below the line, up 14 back to it).
+
+- **REQ-AS-21** *Where* the heartbeat has a cancellation date, the tombstone shall be about twice
+  its first size (28 units wide, 50 units high) and the word `cancelled` with the cancellation
+  date shall stand above it, centred on it and kept inside the drawing. The first and last cited
+  dates and the row titles shall not change.
+  - AE-AS-15 Cancellation 2026-07-31 (GYMPLUS): tombstone 28 × 50, the text `cancelled 2026-07-31`
+    above its top edge.
+
+- **REQ-AS-22** The drawing of a signature shall fill the width of its card, with no maximum
+  width. *Where* the card is narrower than the minimum width of the drawing, the drawing shall
+  keep that minimum width and the box shall scroll sideways instead of squashing it.
+
+- **REQ-AS-23** The lantern shall show only the `source_ref` column, the `invoice_number` column
+  (it names a row, lit or not; left out when no cited row has one) and the lit columns, in the
+  order of the mapping. *If* a detector is not in the mapping, *then* the lantern shall show the
+  `source_ref`, the `invoice_number` and the columns whose values differ. A column in which no
+  cited row has a value shall not be shown. The mapping and its fallback (REQ-AS-11, 12) do not
+  change.
+  - AE-AS-16 `pi.duplicate_invoice`: `source_ref`, supplier, invoice number, issue date, total
+    (the lit total is next to the invoice number, not off screen). `pi.vat_error`: `source_ref`,
+    invoice number, base, VAT rate, VAT amount, surcharge, withholding, total.
+
+- **REQ-AS-24** Each signature shall end with the caption of its app, with no figure:
+  Zombie `Each dot is one cited charge.`; Vampire `Each bite is one cited fee.`; Phantom `Lit: the
+  fields the detector compares. Each line is one cited row.`
+  - AE-AS-17 The Phantom caption names the lit fields and the rows; the Zombie and Vampire
+    captions name the mark.

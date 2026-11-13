@@ -28,7 +28,9 @@ import pandas as pd
 
 from ledger_kit.utils.money import format_amount, scale_to
 
-CAPTION: str = "Each mark is one cited row."
+ZOMBIE_CAPTION: str = "Each dot is one cited charge."
+VAMPIRE_CAPTION: str = "Each bite is one cited fee."
+PHANTOM_CAPTION: str = "Lit: the fields the detector compares. Each line is one cited row."
 DOT: str = "\u00b7"  # the middle dot of "file · row N" and of a row label
 SVG_NAMESPACE: str = "http://www.w3.org/2000/svg"
 HEARTBEAT_LABEL: str = "Charges of this alert over time, one dot per cited row"
@@ -46,18 +48,26 @@ LABEL_ROW_B: int = 111  # y of the last label when the two would touch
 LABEL_CLEARANCE: int = 36  # a centred date label is about 72 wide: keep half of it inside
 LABEL_TOUCH: int = 76  # labels closer than this go on two rows
 
-# heartbeat
+# heartbeat: taller than the bites, because the tombstone and its word stand above the line
+HEART_HEIGHT: int = 166  # height of the heartbeat viewBox
+HEART_LABEL_ROW_A: int = 152  # y of the date labels
+HEART_LABEL_ROW_B: int = 163  # y of the last label when the two would touch
 HEART_MARGIN: int = 28  # space left of the first date and right of the last
-HEART_LINE_Y: int = 56  # y of the pulse line
-HEART_PULSE: int = 12  # width of one blip of the pulse
-HEART_BLIP: int = 12  # height of the first rise of a blip
+HEART_LINE_Y: int = 110  # y of the pulse line
+HEART_PULSE: int = 18  # width of the spike before a dot
+HEART_SPIKE_RISE: int = 5  # width of the rise of a spike
+HEART_SPIKE_FALL: int = 6  # width of the fall of a spike
+HEART_SPIKE_UP: int = 28  # the spike jumps this far above the line
+HEART_SPIKE_DOWN: int = 14  # then falls this far below the line, then comes back to it
 HEART_STACK: int = 9  # vertical step between dots of one date
 HEART_STACK_LEVELS: int = 7  # dots of one date before the offsets start again
 DOT_RADIUS: float = 5
 DOT_AFTER_RADIUS: float = 6.5  # the zombie charges after the cancellation are a little bigger
-TOMB_TOP: int = 15
-TOMB_BASE: int = 40
-TOMB_HALF: int = 7
+TOMB_LABEL_Y: int = 11  # y of the word 'cancelled', above the tombstone
+TOMB_LABEL_CLEARANCE: int = 64  # the word and the date are about 120 wide: keep half inside
+TOMB_TOP: int = 17
+TOMB_BASE: int = 67
+TOMB_HALF: int = 14  # twice the size of the first version (half width 7, height 25)
 
 # bites
 BITES_MARGIN: int = 12
@@ -152,24 +162,24 @@ def refs_chips_html(refs: Iterable[str]) -> str:
     return " ".join(_chip(ref) for ref in refs)
 
 
-def signature_block(inner: str) -> str:
+def signature_block(inner: str, caption: str) -> str:
     """Wrap one drawing in the gl-signature box with its caption; '' when there is no drawing."""
     if not inner:
         return ""
     return (
         f'<div class="gl-signature">{inner}'
-        f'<div class="gl-signature-caption">{_escape(CAPTION)}</div></div>'
+        f'<div class="gl-signature-caption">{_escape(caption)}</div></div>'
     )
 
 
 # --- shared SVG pieces --------------------------------------------------------------------------
 
 
-def _svg(css_class: str, label: str, body: str) -> str:
+def _svg(css_class: str, label: str, body: str, height: int = HEIGHT) -> str:
     """Return the one-line <svg> element of a drawing, with its role and its words-only label."""
     return (
         f'<svg class="gl-sig-svg {css_class}" xmlns="{SVG_NAMESPACE}" '
-        f'viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-label="{_escape(label)}" '
+        f'viewBox="0 0 {WIDTH} {height}" role="img" aria-label="{_escape(label)}" '
         f'preserveAspectRatio="xMidYMid meet">{body}</svg>'
     )
 
@@ -182,15 +192,22 @@ def _text(x: float, y: int, content: str) -> str:
     )
 
 
-def _date_labels(first: date, last: date, x_first: float, x_last: float) -> str:
+def _date_labels(
+    first: date,
+    last: date,
+    x_first: float,
+    x_last: float,
+    row_a: int = LABEL_ROW_A,
+    row_b: int = LABEL_ROW_B,
+) -> str:
     """Return the visible texts of the first and the last cited date (one when they are equal)."""
     low, high = LABEL_CLEARANCE, WIDTH - LABEL_CLEARANCE
     x1 = min(max(x_first, low), high)
     x2 = min(max(x_last, low), high)
     if first == last:
-        return _text(x1, LABEL_ROW_A, first.isoformat())
-    row = LABEL_ROW_B if x2 - x1 < LABEL_TOUCH else LABEL_ROW_A
-    return _text(x1, LABEL_ROW_A, first.isoformat()) + _text(x2, row, last.isoformat())
+        return _text(x1, row_a, first.isoformat())
+    row = row_b if x2 - x1 < LABEL_TOUCH else row_a
+    return _text(x1, row_a, first.isoformat()) + _text(x2, row, last.isoformat())
 
 
 def _stack_offset(index: int) -> int:
@@ -207,9 +224,10 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
     """Return the heartbeat of the cited rows, or '' when no row can be drawn.
 
     One dot per row on a time line from the first to the last cited date, joined by a static pulse
-    line. With a cancellation date (a date or an ISO string) a tombstone stands at that date, the
+    line. Before each dot the line makes a spike: up 28 units, down 14 below the line, back to it.
+    With a cancellation date (a date or an ISO string) a tombstone stands at that date, the
     time line reaches it, and the dots dated after it are brighter. The visible text is the first
-    and last cited date and the word 'cancelled' with the cancellation date.
+    and last cited date and, above the tombstone, the word 'cancelled' with the cancellation date.
     """
     marks = _marks(rows)
     if not marks:
@@ -229,11 +247,15 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
 
     pulse = [f"M8,{HEART_LINE_Y}"]
     cursor = 8.0
+    back = HEART_PULSE - HEART_SPIKE_RISE - HEART_SPIKE_FALL
+    spike = (
+        f"l{HEART_SPIKE_RISE},-{HEART_SPIKE_UP} "
+        f"l{HEART_SPIKE_FALL},{HEART_SPIKE_UP + HEART_SPIKE_DOWN} "
+        f"l{back},-{HEART_SPIKE_DOWN}"
+    )
     for x in sorted({x_of(mark.day) for mark in marks}):
         if x - cursor >= HEART_PULSE:
-            pulse.append(
-                f"H{x - HEART_PULSE:.1f} l4,-{HEART_BLIP} l4,{2 * HEART_BLIP} l4,-{HEART_BLIP}"
-            )
+            pulse.append(f"H{x - HEART_PULSE:.1f} {spike}")
         else:
             pulse.append(f"H{x:.1f}")
         cursor = x
@@ -263,14 +285,12 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
             f"a{half},{half} 0 0 1 {2 * half},0 V{base} Z "
             f'M{cx - half - 3:.1f},{base} h{2 * half + 6}"/>'
         )
-        side = -(half + 4) if cx > WIDTH / 2 else half + 4
-        anchor = "end" if cx > WIDTH / 2 else "start"
-        parts.append(
-            f'<text class="gl-sig-text" x="{cx + side:.1f}" y="{top + 2 * half}" '
-            f'text-anchor="{anchor}">{_escape(f"{CANCELLED_WORD} {cancel.isoformat()}")}</text>'
-        )
-    parts.append(_date_labels(first, last, x_of(first), x_of(last)))
-    return _svg("gl-heartbeat", label, "".join(parts))
+        word_x = min(max(cx, TOMB_LABEL_CLEARANCE), WIDTH - TOMB_LABEL_CLEARANCE)
+        parts.append(_text(word_x, TOMB_LABEL_Y, f"{CANCELLED_WORD} {cancel.isoformat()}"))
+    parts.append(
+        _date_labels(first, last, x_of(first), x_of(last), HEART_LABEL_ROW_A, HEART_LABEL_ROW_B)
+    )
+    return _svg("gl-heartbeat", label, "".join(parts), HEART_HEIGHT)
 
 
 # --- the bites (Vampire) ------------------------------------------------------------------------

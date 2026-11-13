@@ -24,7 +24,9 @@ from ledger_kit.explainer import check_figures
 from ledger_kit.ui import signatures, theme
 from ledger_kit.ui.reference_app import format_for_display
 from ledger_kit.ui.signatures import (
-    CAPTION,
+    PHANTOM_CAPTION,
+    VAMPIRE_CAPTION,
+    ZOMBIE_CAPTION,
     bites_svg,
     heartbeat_svg,
     lantern_html,
@@ -36,6 +38,7 @@ from ledger_kit.utils.money import format_amount, scale_to, sum_amounts
 DOT = "\u00b7"
 INVENTED_FIGURE = "98765,43 EUR"  # in no demo alert and no demo row
 APP_ACCENTS = (theme.ZOMBIE, theme.PHANTOM, theme.VAMPIRE)
+CAPTIONS = {"zs": ZOMBIE_CAPTION, "vf": VAMPIRE_CAPTION, "pi": PHANTOM_CAPTION}
 
 
 # --- helpers -------------------------------------------------------------------------------------
@@ -181,16 +184,26 @@ def test_no_refs_give_no_chips() -> None:
 # --- REQ-AS-01, REQ-AS-02: the box ---------------------------------------------------------------
 
 
-def test_the_block_wraps_a_drawing_and_ends_with_the_caption() -> None:
-    assert signature_block("<svg></svg>") == (
+def test_the_block_wraps_a_drawing_and_ends_with_the_caption_it_is_given() -> None:
+    assert signature_block("<svg></svg>", "Each dot is one cited charge.") == (
         '<div class="gl-signature"><svg></svg>'
-        '<div class="gl-signature-caption">Each mark is one cited row.</div></div>'
+        '<div class="gl-signature-caption">Each dot is one cited charge.</div></div>'
     )
-    assert CAPTION == "Each mark is one cited row." and not re.search(r"\d", CAPTION)
+
+
+def test_each_app_has_its_own_caption_and_none_holds_a_figure() -> None:
+    assert ZOMBIE_CAPTION == "Each dot is one cited charge."
+    assert VAMPIRE_CAPTION == "Each bite is one cited fee."
+    assert PHANTOM_CAPTION == "Lit: the fields the detector compares. Each line is one cited row."
+    assert not [text for text in CAPTIONS.values() if re.search(r"\d", text)]
+
+
+def test_the_caption_is_escaped() -> None:
+    assert "&lt;b&gt;" in signature_block("<svg></svg>", "<b>")
 
 
 def test_an_empty_drawing_gives_no_block() -> None:
-    assert signature_block("") == ""
+    assert signature_block("", ZOMBIE_CAPTION) == ""
 
 
 # --- DN-AS-06: the height of a bar ---------------------------------------------------------------
@@ -276,7 +289,7 @@ def test_heartbeat_does_not_mark_a_dot_on_the_cancellation_date_itself() -> None
 def test_heartbeat_reaches_a_cancellation_date_before_the_first_cited_date() -> None:
     svg = heartbeat_svg(make_rows(*FIVE), "2026-04-01")
 
-    assert 'class="gl-tomb" d="M21.0,40' in svg  # the tombstone stands at the left end
+    assert 'class="gl-tomb" d="M14.0,67' in svg  # the tombstone stands at the left end
     assert svg.count("gl-dot-after") == 5
     assert float(re.findall(r'<circle class="[^"]*" cx="([0-9.]+)"', svg)[0]) > 28.0
 
@@ -285,7 +298,38 @@ def test_heartbeat_draws_the_tombstone_when_the_cancellation_is_after_the_last_r
     svg = heartbeat_svg(make_rows(*FIVE), "2026-10-01")
 
     assert 'class="gl-tomb"' in svg and "gl-dot-after" not in svg
-    assert 'text-anchor="end">cancelled 2026-10-01' in svg
+    assert 'text-anchor="middle">cancelled 2026-10-01' in svg
+
+
+def test_heartbeat_spike_before_each_dot_goes_up_28_down_to_14_below_and_back() -> None:
+    svg = heartbeat_svg(make_rows(*FIVE))
+
+    line = re.search(r'class="gl-sig-line" d="([^"]*)"', svg)
+    assert line is not None
+    spikes = re.findall(r"l(\d+),(-?\d+) l(\d+),(-?\d+) l(\d+),(-?\d+)", line.group(1))
+    assert len(spikes) == 5  # one before each of the five dots
+    for _w1, up, _w2, down, _w3, back in spikes:
+        assert (int(up), int(down), int(back)) == (-28, 42, -14)  # net 0: back on the line
+
+
+def test_heartbeat_tombstone_is_twice_its_first_size_with_the_word_above_it() -> None:
+    svg = heartbeat_svg(make_rows(*FIVE), "2026-07-15")
+
+    tomb = re.search(r'class="gl-tomb" d="M([0-9.]+),(\d+) V(\d+) a14,14 0 0 1 28,0 V(\d+)', svg)
+    assert tomb is not None
+    _x, base, shoulder, _end = (float(value) for value in tomb.groups())
+    assert base - (shoulder - 14) == 50  # 50 units high and 28 wide: twice 25 by 14
+    word = re.search(r'<text [^>]*y="(\d+)"[^>]*>cancelled 2026-07-15</text>', svg)
+    assert word is not None and int(word.group(1)) < shoulder - 14  # above the top of the arch
+
+
+def test_heartbeat_keeps_the_word_and_the_tombstone_inside_the_drawing_at_both_ends() -> None:
+    for cancel in ("2026-04-01", "2026-10-01"):
+        svg = heartbeat_svg(make_rows(*FIVE), cancel)
+        word_x = float(re.search(r'x="([0-9.]+)"[^>]*>cancelled', svg).group(1))
+        left_edge = float(re.search(r'class="gl-tomb" d="M([0-9.]+),', svg).group(1))
+
+        assert 60 <= word_x <= 580 and left_edge >= 0 and left_edge + 28 <= 640
 
 
 def test_heartbeat_ignores_a_cancellation_date_that_is_not_a_date() -> None:
@@ -517,6 +561,43 @@ def test_the_lantern_rows_follow_the_cited_refs_of_each_demo_alert() -> None:
         assert list(view["source_ref"]) == list(case.alert.source_refs)
 
 
+def test_the_lantern_shows_only_the_ref_the_number_and_the_lit_columns_in_mapping_order() -> None:
+    pipeline = _phantom()
+
+    for case in cases_of("pi"):
+        alert = case.alert
+        view = pi_settings.lantern_view(alert, pipeline)
+        mapped = pi_settings.LANTERN_COLUMNS[alert.detector]
+        naming = [] if "invoice_number" in mapped else ["invoice_number"]
+        allowed = ["source_ref", *naming, *mapped]
+        # nothing else, in that order; a column with no value in any cited row is left out
+        assert list(view.columns) == [c for c in allowed if c in view.columns], alert.id
+        assert view.columns[0] == "source_ref"
+
+
+def test_the_invoice_number_names_the_invoice_rows_of_every_demo_lantern() -> None:
+    pipeline = _phantom()
+
+    for case in cases_of("pi"):
+        view = pi_settings.lantern_view(case.alert, pipeline)
+        invoice_rows = view[view["source_ref"].str.startswith("invoices")]
+        if not invoice_rows.empty:
+            assert "invoice_number" in view.columns and all(invoice_rows["invoice_number"])
+
+
+def test_an_unmapped_detector_shows_the_ref_the_number_and_the_differing_columns() -> None:
+    pipeline = _phantom()
+    case = next(c for c in cases_of("pi") if c.alert.detector == "pi.vat_error")
+    alert = case.alert.model_copy(update={"detector": "pi.unknown"})
+
+    view = pi_settings.lantern_view(alert, pipeline)
+
+    assert list(view.columns[:2]) == ["source_ref", "invoice_number"]
+    assert pi_settings.lantern_lit_columns(alert) is None
+    for column in view.columns[2:]:
+        assert len(set(view[column])) > 1  # only the columns whose values differ
+
+
 def test_the_lantern_of_the_demo_alerts_lights_what_the_detector_compares() -> None:
     pipeline = _phantom()
 
@@ -585,6 +666,14 @@ def test_the_signatures_adapt_to_800_pixels() -> None:
     assert "overflow-x: auto" in css  # the drawing and the lantern scroll inside their box
 
 
+def test_the_signature_fills_the_card_width_and_keeps_its_minimum_width() -> None:
+    css = theme.BASE_CSS
+    rule = css[css.index(".stApp .gl-signature svg.gl-sig-svg {") :].split("}", 1)[0]
+
+    assert "width: 100%;" in rule and "min-width: 30rem;" in rule
+    assert "max-width" not in rule  # no cap: on a wide card the drawing fills it
+
+
 def test_the_module_imports_no_streamlit_and_no_theme() -> None:
     tree = ast.parse(Path(signatures.__file__).read_text(encoding="utf-8"))
     imported: set[str] = set()
@@ -612,7 +701,7 @@ def build_signature(case: Case) -> str:
     else:
         lantern = pi_settings.lantern_view(alert, _phantom())
         inner = lantern_html(lantern, pi_settings.lantern_lit_columns(alert))
-    return signature_block(inner)
+    return signature_block(inner, CAPTIONS[case.prefix])
 
 
 @pytest.mark.parametrize("prefix", ["zs", "pi", "vf"])
@@ -637,7 +726,7 @@ def test_the_text_of_a_drawing_is_one_row_label_per_cited_row(prefix: str) -> No
         text = signature_text(build_signature(case))
 
         assert text.count("EUR") == len(case.rows), case.alert.id
-        assert text.endswith(CAPTION)
+        assert text.endswith(CAPTIONS[prefix])
 
 
 def test_the_demo_has_the_alerts_the_task_describes() -> None:

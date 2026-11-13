@@ -87,10 +87,35 @@ Fill in after the review. One line per call that touched this feature.
 
 | # | Date | Tool or agent | Input (short) | Result / decision | Reviewer |
 |---|---|---|---|---|---|
-| 1 | | | | | |
-| 2 | | | | | |
+| 1 | | Kiro, session 22a | Build the signatures: chips, heartbeat, bites, lantern, CSS, three pages, honesty test | Full suite green: 3917 passed, 1 skipped; `ruff check` and `ruff format --check` clean. Looked at in a browser at 1400 px: heartbeat read as a flat line, drawing covered half the card, lantern showed every column | |
+| 2 | | Kiro, session 22b | Polish after the 1400 px look: spike and larger tombstone, full width, short lantern, one caption per app, structure.md, `_refs_markdown` | Files written, not run (no commands in this session); the hooks lint and test on stop. See Task AS8 | |
 | 3 | | | | | |
 
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
 - [ ] Look at the three pages at 1400 and 800 pixels wide; note anything that must change.
-- [ ] List the new files in `.kiro/steering/structure.md` (not done in this session, DN-AS-07).
+- [x] List the new files in `.kiro/steering/structure.md` (done in session 22b; DN-AS-07 is superseded).
+
+## Task AS8 — Polish after session 22a (session 22b)
+
+**Covers**: REQ-AS-20 to 24, §2.2, §3, §4
+
+Requirements first (`requirements.md` §8), then the tests, then the code.
+
+- [x] Heartbeat: a spike before each dot (up 28, down to 14 below the line, back), the tombstone
+  twice its size with `cancelled <date>` above it; the viewBox is 166 high (`HEART_HEIGHT`); dates
+  and row titles unchanged. `tests/test_signatures.py`: spike path, tombstone size, word above it,
+  both ends of the axis.
+- [x] `ledger_kit/ui/theme.py`: no `max-width` on the signature SVG, `min-width: 30rem` kept.
+- [x] Lantern: `lantern_view` keeps `source_ref`, `invoice_number` and the lit columns in mapping
+  order (`LANTERN_NAMING` in `settings.py`); the mapping and its fallback are unchanged.
+- [x] Captions: `signature_block(inner, caption)`; `ZOMBIE_CAPTION`, `VAMPIRE_CAPTION`,
+  `PHANTOM_CAPTION`; the three apps pass theirs. `tests/test_signatures_pages.py` checks the caption
+  of each page. The honesty test is unchanged in what it checks and still runs over every demo alert.
+- [x] `.kiro/steering/structure.md` lists `signatures.py`, `test_signatures.py` and
+  `test_signatures_pages.py`.
+- [x] `apps/phantom_invoices/app.py`: `_refs_markdown` removed (the Phantom card has used
+  `refs_chips_html` since 22a); the unused `Iterable` import went with it. The same-named helpers
+  of the other apps are separate and untouched. The repo-wide search could not be run in this
+  session; checked by reading `apps/phantom_invoices/app.py` and `test_pi_app_logic.py`.
+- Existing tests edited: only `tests/test_signatures.py` and `tests/test_signatures_pages.py`
+  (the tombstone position and the `end` anchor, the one-argument `signature_block`, `CAPTION`).

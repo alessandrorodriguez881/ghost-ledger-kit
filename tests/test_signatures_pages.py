@@ -99,6 +99,22 @@ def test_the_refs_show_as_chips_in_the_order_of_the_alert(prefix: str) -> None:
         assert line.count('class="gl-ref-chip"') == len(chips)
 
 
+def test_each_page_ends_every_signature_with_the_caption_of_its_app() -> None:
+    captions = {
+        "zs": "Each dot is one cited charge.",
+        "vf": "Each bite is one cited fee.",
+        "pi": "Lit: the fields the detector compares. Each line is one cited row.",
+    }
+    for prefix in PREFIXES:
+        at = _demo(prefix)
+        values = [element.value for element in at.markdown]
+        blocks = [v for v in values if v.startswith('<div class="gl-signature">')]
+
+        assert blocks, prefix
+        suffix = f'<div class="gl-signature-caption">{captions[prefix]}</div></div>'
+        assert all(block.endswith(suffix) for block in blocks), prefix
+
+
 def test_the_zombie_page_marks_the_cancelled_service_and_only_that_one() -> None:
     at = _demo("zs")
     values = [element.value for element in at.markdown]

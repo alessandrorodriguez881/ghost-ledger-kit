@@ -257,7 +257,6 @@ BASE_CSS: str = """
 .stApp .gl-signature svg.gl-sig-svg {
   display: block;
   height: auto;
-  max-width: 40rem;
   min-width: 30rem;
   width: 100%;
 }

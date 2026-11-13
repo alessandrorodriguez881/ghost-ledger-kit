@@ -23,10 +23,12 @@ Imports: `html`, `re`, `datetime`, `decimal`, `pandas`, `ledger_kit.utils.money`
 (and so not `theme.py`, which imports it; colours reach the markup as CSS variables, DN-AS-03).
 
 ```python
-CAPTION = "Each mark is one cited row."
+ZOMBIE_CAPTION = "Each dot is one cited charge."          # REQ-AS-24
+VAMPIRE_CAPTION = "Each bite is one cited fee."
+PHANTOM_CAPTION = "Lit: the fields the detector compares. Each line is one cited row."
 def row_label(day, amount, currency="EUR") -> str          # "2026-08-31 · 29,99 EUR"
 def refs_chips_html(refs) -> str                            # REQ-AS-03
-def signature_block(inner: str) -> str                      # div.gl-signature + caption; "" if inner is ""
+def signature_block(inner: str, caption: str) -> str       # div.gl-signature + caption; "" if inner is ""
 def heartbeat_svg(rows, cancellation_date=None) -> str      # REQ-AS-05 to 07
 def bites_svg(rows) -> str                                  # REQ-AS-08 to 10
 def lantern_html(rows, lit_columns=None) -> str             # REQ-AS-11 to 14
@@ -47,18 +49,21 @@ for the `Source rows` expander, so a test can compare them cell by cell (REQ-AS-
 
 ### 2.2 Heartbeat
 
-`viewBox="0 0 640 114"`, line at `y = 56`, side margins 28. The domain is the first to the last cited
+`viewBox="0 0 640 166"`, line at `y = 110`, side margins 28 (session 22b: taller than the bites so the
+tombstone and its word fit above the line). The domain is the first to the last cited
 date, widened to the cancellation date when that falls outside (DN-AS-04); one date gives the
 middle. `x = left + (right - left) × (day - first) / (last - first)` in whole days (no money).
 Rows of one date take the vertical offsets `0, -9, +9, -18, +18 ...`.
 
-The pulse is one path: flat, with a small up-down-up blip (12 px wide) before each dot where there
-is room, so the line reads as a slow pulse. It is static (nothing animates, `theme.py`).
+The pulse is one path: flat, with a spike (18 units wide) before each dot where there is room:
+`l5,-28 l6,42 l7,-14`, that is up 28, down to 14 below the line, back on the line (REQ-AS-20). It is
+static (nothing animates, `theme.py`).
 
 Marks: `<circle class="gl-dot">` with `<title>row label</title>`; after the cancellation date
-`class="gl-dot gl-dot-after"`. Tombstone: a `<path class="gl-tomb">` (arch on a base) at the cancel
-x, and `<text>cancelled <ISO date></text>`. Date labels: first at its x (anchor start), last at
-its x (anchor end), a second row when they would touch; one centred label when both dates are equal.
+`class="gl-dot gl-dot-after"`. Tombstone (REQ-AS-21): a `<path class="gl-tomb">` (arch on a base,
+28 wide, 50 high, top 17, base 67) at the cancel x, and `<text>cancelled <ISO date></text>` centred
+above it at `y = 11`, clamped so the text stays inside. Date labels: first at its x, last at
+its x, a second row when they would touch; one centred label when both dates are equal.
 
 ### 2.3 Bites
 
@@ -96,8 +101,10 @@ Detector modules read (`apps/phantom_invoices/detectors`):
 `lantern_view(alert, pipeline)` builds one DataFrame of display strings for the cited refs, in the
 order of `alert.source_refs`, from the three views the page already uses for its cited rows:
 `ledger_view` (invoice rows), `cited_master_view` (supplier master) and `cited_payments_view`
-(payments). It keeps the columns that hold a value in some row, in a fixed order, drops `status`,
-and applies the IBAN rule of REQ-AS-13. **The Phantom card has no `Source rows` expander**; the
+(payments). It keeps only `source_ref`, `invoice_number` (it names the row, lit or not) and the
+mapped columns in the order of the mapping (REQ-AS-23); for an unmapped detector, `source_ref`,
+`invoice_number` and the columns whose values differ. A column with no value in any row is left
+out. The IBAN is shown only where the detector compares it, and masked. **The Phantom card has no `Source rows` expander**; the
 formatting the lantern must match is the one of these three views (the haunted ledger and the cited
 tables under it), and the IBAN stays masked as it is there.
 
@@ -106,8 +113,8 @@ tables under it), and the IBAN stays masked as it is there.
 Added to `BASE_CSS` after the card rules, all under `.stApp`:
 
 - `.gl-signature`: dashed border in `var(--gl-line)`, wash of `rgba(var(--gl-accent-rgb), 0.05)`,
-  `overflow-x: auto`; its SVG `width: 100%; min-width: 30rem; max-width: 40rem` so the drawing
-  scrolls inside the block on a phone and never grows past its design size on a wide screen.
+  `overflow-x: auto`; its SVG `width: 100%; min-width: 30rem` (no maximum, REQ-AS-22) so the drawing
+  fills the card on a wide screen and scrolls inside the block on a phone.
 - `.gl-sig-line`, `.gl-dot`, `.gl-dot-after`, `.gl-tomb`, `.gl-fang`, `.gl-sig-text`: strokes and
   fills from `var(--gl-accent)` and `var(--gl-accent-text)`; text `#b9ae95` (7 to 1 on the panel).
 - `.gl-lantern-wrap { overflow-x: auto }`, `.gl-lantern td.gl-lit` with a soft glow

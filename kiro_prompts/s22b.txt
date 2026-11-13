@@ -1,0 +1,13 @@
+Session 22b, spec app-signatures, polish after I looked at session 22a in the browser at 1400 px (full suite green: 3917 passed, 1 skipped; ruff clean). Add the REQ-AS or AE-AS items first, then the code, and add 22b to the Kiro-calls record in tasks.md, filling the 22a row with that result.
+
+1. Zombie heartbeat: it reads as a flat line with small dots. Make it a pulse you see at a glance: before each dot the line jumps in a clear spike (up about 28 viewBox units, down about 14, back to the line), and the tombstone is about twice its size now, with the word cancelled above it. Keep the dates and titles exactly as they are.
+
+2. Width: in ledger_kit/ui/theme.py the signature SVG stops at max-width 40rem, so on a wide card it covers about half. Let it fill the card width (keep the min-width that makes a narrow screen scroll inside the box rather than squash the drawing).
+
+3. Phantom lantern: it shows every column, so on the duplicate invoice the lit total sits off screen to the right. Show only the source ref, the invoice number (to name the row, lit or not) and the lit columns, in the order of the mapping; nothing else. The mapping and its fallback stay as they are.
+
+4. Captions, one per app, no figures: Zombie: Each dot is one cited charge. Vampire: Each bite is one cited fee. Phantom: Lit: the fields the detector compares. Each line is one cited row.
+
+5. .kiro/steering/structure.md: list ledger_kit/ui/signatures.py and the two new test files where the other ui modules and tests are listed. In apps/phantom_invoices/app.py remove _refs_markdown if nothing uses or imports it any more (search the repo first).
+
+Update only the tests of this spec that pin what changes here (tests/test_signatures.py, tests/test_signatures_pages.py), keep the honesty test as it is and make sure it still covers every demo alert. Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests when you stop. When done, list the files you changed.

@@ -35,6 +35,7 @@ ghost-ledger-kit/
 │   │   ├── theme.py                # Palette, one accent per app, the one CSS block, card and heading helpers
 │   │   ├── first_run.py            # Pure switch of the demo that loads by itself on the first run of a session
 │   │   ├── exorcise.py             # The Exorcise expander shared by the three apps (language, draft, download)
+│   │   ├── signatures.py           # Pure markup of the signature of each alert card: ref chips, heartbeat, bites, lantern (no Streamlit)
 │   │   └── landing.py              # Home page parts: proof strip read from committed files, tiles, diagram
 │   └── utils/
 │       ├── __init__.py
@@ -215,6 +216,8 @@ ghost-ledger-kit/
 │   ├── test_actions.py             # Exorcise mechanism: fill, row lines, check_figures, the widget
 │   ├── test_exorcise_demos.py      # every alert of the three demos, both languages: guard, words, figures
 │   ├── test_exorcise_boundaries.py # no model, no key, no network; package rules of the new modules
+│   ├── test_signatures.py          # chips, heartbeat, bites, lantern, CSS, the honesty test over the three demos
+│   ├── test_signatures_pages.py    # headless AppTest runs: one signature per card, captions, chips, order
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/

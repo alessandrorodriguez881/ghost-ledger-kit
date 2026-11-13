@@ -11,7 +11,7 @@ explain_support.py so they can be tested without a Streamlit runtime.
 import html
 import os
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -99,6 +99,7 @@ from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
+    PHANTOM_CAPTION,
     lantern_html,
     refs_chips_html,
     signature_block,
@@ -322,11 +323,6 @@ def _explain(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> Explanation
     return cache[key]
 
 
-def _refs_markdown(refs: Iterable[str]) -> str:
-    """Return the source refs as inline code, comma separated."""
-    return ", ".join(f"`{ref}`" for ref in refs)
-
-
 def _table_html(view: pd.DataFrame, lit_refs: Sequence[str]) -> str:
     """Return the flashlight table of `view`, wrapped so a wide table scrolls sideways."""
     return f'<div class="ledger-wrap">{render_ledger_html(view, lit_refs)}</div>'
@@ -461,7 +457,7 @@ def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
 def _render_signature(alert: Alert, pipeline: Pipeline) -> None:
     """Draw the lantern of the cited rows; draw nothing when no cited row is found."""
     lantern = lantern_html(lantern_view(alert, pipeline), lantern_lit_columns(alert))
-    drawing = signature_block(lantern)
+    drawing = signature_block(lantern, PHANTOM_CAPTION)
     if drawing:
         st.markdown(drawing, unsafe_allow_html=True)
 

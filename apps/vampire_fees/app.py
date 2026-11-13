@@ -83,6 +83,7 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
     rows_for_refs,
 )
 from ledger_kit.ui.signatures import (  # noqa: E402
+    VAMPIRE_CAPTION,
     bites_svg,
     refs_chips_html,
     signature_block,
@@ -415,7 +416,7 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
 def _render_signature(alert: Alert, ledger: pd.DataFrame) -> None:
     """Draw the bites of the cited rows; draw nothing when no row can be drawn."""
     cited, _missing = rows_for_refs(ledger, alert.source_refs)
-    drawing = signature_block(bites_svg(cited))
+    drawing = signature_block(bites_svg(cited), VAMPIRE_CAPTION)
     if drawing:
         st.markdown(drawing, unsafe_allow_html=True)
 

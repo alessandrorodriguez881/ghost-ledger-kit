@@ -94,6 +94,7 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
     rows_for_refs,
 )
 from ledger_kit.ui.signatures import (  # noqa: E402
+    ZOMBIE_CAPTION,
     heartbeat_svg,
     refs_chips_html,
     signature_block,
@@ -479,7 +480,9 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
 def _render_signature(alert: Alert, ledger: pd.DataFrame) -> None:
     """Draw the heartbeat of the cited rows; draw nothing when no row can be drawn."""
     cited, _missing = rows_for_refs(ledger, alert.source_refs)
-    drawing = signature_block(heartbeat_svg(cited, alert.data.get("cancellation_date")))
+    drawing = signature_block(
+        heartbeat_svg(cited, alert.data.get("cancellation_date")), ZOMBIE_CAPTION
+    )
     if drawing:
         st.markdown(drawing, unsafe_allow_html=True)
 
