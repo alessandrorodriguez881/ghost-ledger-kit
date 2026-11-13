@@ -14,6 +14,7 @@ import pandas as pd
 
 from ledger_kit.ingestion.iso4217 import NUMERIC_TO_ALPHA
 from ledger_kit.models import Alert
+from ledger_kit.number_words import NumberPhrase, find_number_phrases
 from ledger_kit.utils.money import format_amount, format_index, format_percent
 
 # Streamlit renders alerts synchronously: keep the LLM call short.
@@ -378,6 +379,8 @@ def _allowed_decimals(
             value = _parse_decimal(token)
             if value is not None:
                 allowed.add(value)
+        # A number written in words in the data (a name such as SEVEN ELEVEN) is allowed too.
+        allowed.update(Decimal(phrase.value) for phrase in find_number_phrases(text))
 
     for v in alert.data.values():
         _add(str(v))
@@ -409,6 +412,64 @@ def _allowed_dates(
     return dates
 
 
+# --- Numbers written in words (guard-honesty) ------------------------------------------------
+
+# A lone number word worth this or less ("three months", "one of them") is not a figure, unless
+# a currency or a percent word stands beside it.
+NUMBER_WORD_SMALL_MAX: int = 10
+# A lone word that is also an ordinary English word: checked only beside a currency or a percent.
+NUMBER_WORD_AMBIGUOUS: frozenset[str] = frozenset({"once"})
+_MONEY_WORDS = (
+    r"euros?|eur|dollars?|d[oó]lar(?:es)?|usd|pounds?|libras?|gbp|cents?|c[eé]ntimos?"
+    r"|percent|per[ \t]+cent|por[ \t]+ciento"
+)
+# The next word of the phrase, or the word before it, is a currency or a percent.
+_MONEY_AFTER_RE = re.compile(rf"[ \t\-]*(?:[€$£%]|(?:{_MONEY_WORDS})(?!\w))", re.IGNORECASE)
+_MONEY_BEFORE_RE = re.compile(rf"(?:[€$£%]|(?<!\w)(?:{_MONEY_WORDS}))[ \t\-]*$", re.IGNORECASE)
+_MONEY_LOOKBACK = 40  # characters before a phrase that are searched for a currency word
+
+
+def _beside_money(text: str, phrase: NumberPhrase) -> bool:
+    """True when the word after or the word before the phrase is a currency or a percent."""
+    if _MONEY_AFTER_RE.match(text, phrase.end):
+        return True
+    before = text[max(0, phrase.start - _MONEY_LOOKBACK) : phrase.start]
+    return _MONEY_BEFORE_RE.search(before) is not None
+
+
+def _checked_phrases(text: str) -> list[NumberPhrase]:
+    """The number phrases of `text` that are figures to check."""
+    checked: list[NumberPhrase] = []
+    for phrase in find_number_phrases(text):
+        lone = phrase.word_count < 2
+        small = phrase.value <= NUMBER_WORD_SMALL_MAX
+        if phrase.text.lower() in NUMBER_WORD_AMBIGUOUS:
+            small = True
+        if not lone or not small or _beside_money(text, phrase):
+            checked.append(phrase)
+    return checked
+
+
+def _in_text_order(
+    text: str, digit_tokens: Sequence[str], phrases: Sequence[NumberPhrase]
+) -> list[str]:
+    """Merge rejected digit tokens and rejected phrases in the order they stand in `text`."""
+    found: list[tuple[int, str]] = []
+    cursor: dict[str, int] = {}
+    for token in digit_tokens:
+        pattern = re.compile(r"(?<![\d.,])" + re.escape(token) + r"(?!\d|[.,]\d)")
+        match = pattern.search(text, cursor.get(token, 0))
+        if match is None:
+            position = len(text)
+        else:
+            position = match.start()
+            cursor[token] = match.end()
+        found.append((position, token))
+    found.extend((phrase.start, phrase.text) for phrase in phrases)
+    found.sort(key=lambda item: item[0])  # stable: equal positions keep their order
+    return [token for _, token in found]
+
+
 def _passes_number_guard(
     text: str,
     alert: Alert,
@@ -416,7 +477,8 @@ def _passes_number_guard(
     row_columns: Sequence[str] | None = None,
 ) -> tuple[bool, tuple[str, ...]]:
     """Check LLM text; return (passed, rejected_tokens)."""
-    tokens = _tokenise(_without_non_figures(text, alert), alert.source_refs)
+    figures_text = _without_non_figures(text, alert)
+    tokens = _tokenise(figures_text, alert.source_refs)
     if tokens.ibans:
         return False, tokens.ibans
     if tokens.malformed_dates:
@@ -438,6 +500,10 @@ def _passes_number_guard(
         value = _parse_decimal(token)
         if value is not None and value not in allowed:
             rejected.append(token)
+    checked = _checked_phrases(figures_text)
+    bad_words = [p for p in checked if Decimal(p.value) not in allowed]
+    if bad_words:
+        rejected = _in_text_order(figures_text, rejected, bad_words)
     rejected.extend(_foreign_currencies(text, alert, _visible_rows(rows, row_columns)))
     if rejected:
         return False, tuple(rejected)
@@ -471,10 +537,15 @@ _RANGE_SEPARATOR = r"(?:\s+(?:to|through)\s+|\s*[-\u2013]\s*)"
 _RANGE_START = r"(?<![\d.,:/-])(\d+)(?!\d|[.,]\d)"
 _RANGE_END = r"(\d+)(?!\d|[.,]\d|[/-]\d)"
 _CITE_ITEM = "(?:" + _RANGE_START + _RANGE_SEPARATOR + _RANGE_END + "|" + _INT + ")"
+_CITE_KEYWORD = r"\b(?:rows?|lines?)\s+"
 _ROW_CITATION_RE = re.compile(
-    r"\b(?:rows?|lines?)\s+(" + _CITE_ITEM + "(?:" + _CITE_SEPARATOR + _CITE_ITEM + ")*)",
+    _CITE_KEYWORD + "(" + _CITE_ITEM + "(?:" + _CITE_SEPARATOR + _CITE_ITEM + ")*)",
     re.IGNORECASE,
 )
+# The keyword right before the end of a text: a number phrase there starts a citation list.
+_CITE_KEYWORD_END_RE = re.compile(_CITE_KEYWORD + "$", re.IGNORECASE)
+_CITE_LIST_SEPARATOR_RE = re.compile(_CITE_SEPARATOR, re.IGNORECASE)
+_CITE_RANGE_SEPARATOR_RE = re.compile(_RANGE_SEPARATOR, re.IGNORECASE)
 # One member of the list above: groups 1 and 2 are the ends of a range, group 3 a single integer.
 _CITE_ITEM_RE = re.compile(
     _RANGE_START + _RANGE_SEPARATOR + _RANGE_END + "|(" + _INT + ")", re.IGNORECASE
@@ -485,10 +556,10 @@ _ORDINAL_ROW_RE = re.compile(
 )
 # "12 debit transactions": the count of cited rows, one optional adjective (not an ISO code).
 _COUNT_NOUN = r"(?:rows?|transactions?|charges?|payments?|debits?|entr(?:y|ies)|invoices?|times?)"
-_COUNT_OF_ROWS_RE = re.compile(
-    "(" + _INT + r")(\s+(?:(?!(?-i:[A-Z]{3}\b))[A-Za-z]+\s+)?" + _COUNT_NOUN + r"\b)",
-    re.IGNORECASE,
-)
+_COUNT_TAIL = r"(\s+(?:(?!(?-i:[A-Z]{3}\b))[A-Za-z]+\s+)?" + _COUNT_NOUN + r"\b)"
+_COUNT_OF_ROWS_RE = re.compile("(" + _INT + ")" + _COUNT_TAIL, re.IGNORECASE)
+# The same words that may follow a count written in words ("twelve debit transactions").
+_COUNT_TAIL_RE = re.compile(_COUNT_TAIL, re.IGNORECASE)
 # "1. " or "2) " at the start of a line: a list marker of one or two digits.
 _LIST_MARKER_RE = re.compile(r"^\d{1,2}[.)](?= )", re.MULTILINE)
 _MAX_INT_DIGITS = 9  # longer integers are never row numbers or counts
@@ -544,7 +615,50 @@ def _without_non_figures(text: str, alert: Alert) -> str:
     text = _ORDINAL_ROW_RE.sub(_ordinal_row, text)
     if cited_count:
         text = _COUNT_OF_ROWS_RE.sub(_count, text)
+    text = _blank_word_non_figures(text, lines, cited_count)
     return _LIST_MARKER_RE.sub("", text)
+
+
+def _blank_word_non_figures(text: str, lines: frozenset[int], cited_count: int) -> str:
+    """Blank the number phrases that stand where the digit rules blank an integer.
+
+    The count of cited rows ("twelve debit transactions", same following words as the digit
+    rule) and a row citation ("rows one and two", "row twelve", same keyword, separators and
+    cited-line test). Ordinal words are never number phrases, so the ordinal rule needs no copy.
+    """
+    spans: list[tuple[int, int]] = []
+    chain_end: int | None = None  # end of the last phrase of the citation list being read
+    chain_blanked = False  # was that phrase a cited line
+    for phrase in find_number_phrases(text):
+        cited = phrase.value in lines
+        if _CITE_KEYWORD_END_RE.search(text, 0, phrase.start) is not None:
+            in_list, range_item = True, False
+        elif chain_end is not None and _CITE_LIST_SEPARATOR_RE.fullmatch(
+            text, chain_end, phrase.start
+        ):
+            in_list, range_item = True, False
+        elif chain_end is not None and _CITE_RANGE_SEPARATOR_RE.fullmatch(
+            text, chain_end, phrase.start
+        ):
+            in_list, range_item = True, True
+        else:
+            in_list, range_item = False, False
+        if in_list:
+            blank = cited and (chain_blanked or not range_item)
+            chain_end, chain_blanked = phrase.end, blank
+            if blank:
+                spans.append((phrase.start, phrase.end))
+            continue
+        chain_end, chain_blanked = None, False
+        if (
+            cited_count
+            and phrase.value == cited_count
+            and _COUNT_TAIL_RE.match(text, phrase.end) is not None
+        ):
+            spans.append((phrase.start, phrase.end))
+    for start, end in reversed(spans):
+        text = text[:start] + " " + text[end:]
+    return text
 
 
 # --- Currency ------------------------------------------------------------------------------

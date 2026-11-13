@@ -111,6 +111,19 @@ What the guard does and does not do:
   that month and day; in a list that ends with one year (`August 9, September 8, and October 8,
   2026`) every item takes that year. A range such as `rows 9 to 312` cites both ends when both are
   lines of the alert's own refs.
+- It reads numbers written in words, in English and Spanish (`five hundred and forty`,
+  `quinientos cuarenta`, `ninety-nine`), and checks their value like a digit. A number in words is
+  a figure to check when it is worth more than ten or is made of two or more words. A single word
+  worth ten or less (`three months`, `one of them`) is checked only when a currency or a percent
+  word stands next to it (`five euros`, `cinco por ciento`); the word `once` is checked only
+  there, because it is also an ordinary English word. A rejected phrase is shown as written. Limits:
+  English and Spanish only; ordinals (`twenty-first`, `primero`) are not read; a small number in
+  words with no currency or percent next to it passes; an amount with cents in words (`ocho con
+  noventa y nueve`) is rejected even when it is right.
+- Two more words are not figures, by the same rules as the digits: `ciento` or `cien` right after
+  `por` is part of the percent words `por ciento` and `por cien`, never a number of its own; and a
+  number in words that counts the cited rows (`twelve debit transactions`, when twelve rows are
+  cited) or names one of the card's own rows (`rows one and two`, `row twelve`) is not checked.
 - It was changed only after a real run, never to make the demo look better: an invented amount is
   still caught wherever it stands in an answer.
 

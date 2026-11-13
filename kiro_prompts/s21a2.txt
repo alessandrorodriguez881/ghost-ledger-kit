@@ -1,0 +1,13 @@
+Session 21a2, spec guard-honesty, fixes after my run of the full suite on session 21a (3 failed, 3767 passed, 1 skipped; ruff 1 error). Fix exactly these:
+
+1. Bug: in Paga el cinco por ciento de interés. and Paga cinco por ciento. the guard rejects ciento as well as cinco, because ledger_kit/number_words.py reads ciento as 100. Rule: cien or ciento right after the word por is part of the percent words por ciento or por cien, never a number, so it gives no phrase (cien por cien gives one phrase, the first cien, 100). Add these cases to tests/test_number_words.py.
+
+2. Wrong test, not a bug: Pagas tres céntimos. is accepted because the GYMPLUS alert data holds 3 (post_cancellation_count). Its allowed set is exactly 3, 8.99, 26.97 and 107.88. In tests/test_guard_number_words.py replace that case with Pagas cuatro céntimos. (4 is not allowed), and assert there, for every case of the two checked lists, that the value of the phrase is not in the allowed set, so a test never relies on a value the data happens to hold.
+
+3. Ruff F401: remove the unused from pathlib import Path in tests/test_recorded_verdicts.py.
+
+4. Your open question on counts, answered: yes. A number phrase is not a figure in the places where the digit rules of _without_non_figures already blank a digit integer: the count of the cited rows (twelve debit transactions when 12 rows are cited, the same words that may follow as in _COUNT_OF_ROWS_RE), a row citation (rows one and two, row twelve) and an ordinal row reference if the digit rule has one. Reuse those rules; do not write a second copy of their word lists. Add REQ-GH items and tests: twelve debit transactions passes on an alert with 12 cited rows and is rejected on an alert with 3 (pick both from the demo cases of tests/judge_path_support.py by counting source_refs in the test).
+
+5. tests/test_live_guard_docs.py may pin text of docs/live-guard.md: read it and make sure the item you added in 21a fits what it checks; do not edit that test.
+
+Keep tests/test_recorded_verdicts.py's pinned sets unchanged. In .kiro/specs/guard-honesty/tasks.md add session 21a2 to the Kiro-calls record. Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests when you stop. When done, list the files you changed.

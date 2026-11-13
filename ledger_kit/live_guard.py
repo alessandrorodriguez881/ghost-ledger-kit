@@ -195,6 +195,8 @@ class Segment(NamedTuple):
 
 
 _ISO_DATE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+# A token of letters, spaces and hyphens only (a number phrase, a currency code): whole words.
+_WORDS_ONLY = re.compile(r"[^\W\d_]+(?:[ \t-]+[^\W\d_]+)*")
 
 
 def _forms(token: str) -> list[str]:
@@ -206,6 +208,13 @@ def _forms(token: str) -> list[str]:
     return forms
 
 
+def _token_pattern(form: str) -> re.Pattern[str]:
+    """Pattern of one spelling: whole words for a token of letters, else a whole figure."""
+    if _WORDS_ONLY.fullmatch(form):
+        return re.compile(r"(?<!\w)" + re.escape(form) + r"(?!\w)")
+    return re.compile(r"(?<![\d.,])" + re.escape(form) + r"(?!\d)")
+
+
 def highlight_segments(raw: str, tokens: Sequence[str]) -> list[Segment]:
     """Cut `raw` into segments; flagged ones are whole-figure occurrences of the tokens."""
     spans: list[tuple[int, int]] = []
@@ -213,8 +222,7 @@ def highlight_segments(raw: str, tokens: Sequence[str]) -> list[Segment]:
         if not token:
             continue
         for form in _forms(token):
-            pattern = re.compile(r"(?<![\d.,])" + re.escape(form) + r"(?!\d)")
-            spans.extend((m.start(), m.end()) for m in pattern.finditer(raw))
+            spans.extend((m.start(), m.end()) for m in _token_pattern(form).finditer(raw))
     merged: list[tuple[int, int]] = []
     for start, end in sorted(spans):
         if merged and start < merged[-1][1]:
