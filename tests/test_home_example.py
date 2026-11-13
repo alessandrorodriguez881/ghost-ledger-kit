@@ -8,6 +8,7 @@ is synthetic or recorded.
 """
 
 import json
+import re
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -133,6 +134,26 @@ def test_example_html_of_the_home_example_says_what_it_must() -> None:
     assert "107.88 × 5 = 539.40: the sum is right" in block
     assert "539.40 is in no cited row" in block
     assert "it does not check the wording" in block
+
+
+def test_the_example_quotes_the_conclusion_sentence_for_the_total() -> None:
+    block = landing.example_html(_home())
+    conclusion = (
+        "So, the total cost in five years will be approximately "
+        f'€<mark style="{MARK_STYLE}">617.51</mark>'
+    )
+
+    assert conclusion in block
+    assert not re.search(r"A = \s*<mark", block)
+
+
+def test_last_sentence_with_returns_the_last_sentence_or_none() -> None:
+    recording = _home()
+    last = recording.last_sentence_with("617.51")
+
+    assert last is not None and last.startswith("So, the total cost in five years")
+    assert "A = " not in last
+    assert recording.last_sentence_with("no-such-token-9") is None
 
 
 def test_example_html_is_empty_without_a_recording() -> None:

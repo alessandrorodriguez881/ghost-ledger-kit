@@ -282,6 +282,7 @@ P3 with `5` and `617.51` among the tokens (`tests/test_recorded_verdicts.py` pin
     | today's guard on that raw answer | fallback; `617.51` and `5` among the rejected tokens |
     | `example_html(home_example())` | label, question, two `<mark>`, `<b>rejected</b>`, note line |
     | `example_html(None)`; a recording without a mark | `''` |
+    | `example_html(home_example())`, second mark | the last sentence with 617.51 (`So, the total cost in five years will be approximately €617.51.`), not `A = 617.51`; the first sentence for `5%` |
     | missing or malformed file | `None` |
     | GYMPLUS forecast probe of 2026-11-11 | holds `539.40`; rejected now; `Decimal("107.88") * 5 == Decimal("539.40")` |
 

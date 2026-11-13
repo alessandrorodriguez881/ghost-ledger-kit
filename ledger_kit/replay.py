@@ -106,6 +106,13 @@ class Recording:
                 return part.strip()
         return None
 
+    def last_sentence_with(self, token: str) -> str | None:
+        """Return the last sentence of the raw answer that contains `token`, else None."""
+        for part in reversed(_SENTENCE_SPLIT.split(self.raw_answer.strip())):
+            if token in part:
+                return part.strip()
+        return None
+
 
 @dataclass(frozen=True)
 class ReplayRun:

@@ -281,7 +281,11 @@ def example_html(recording: Recording | None) -> str:
     label = f"One recorded answer of {recording.model_name}, {recording.date}."
     quotes = []
     for mark in HOME_EXAMPLE_MARKS:
-        sentence = recording.sentence_with(mark)
+        # the rate is quoted where it first appears, the total where the model concludes
+        if mark == total:
+            sentence = recording.last_sentence_with(mark)
+        else:
+            sentence = recording.sentence_with(mark)
         if sentence is not None:
             quotes.append(f"“{_mark_in(sentence, mark)}”")
     wrote = f"<div>The model wrote: {' '.join(quotes)}</div>" if quotes else ""

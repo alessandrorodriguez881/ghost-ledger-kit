@@ -70,6 +70,7 @@ Fill in after running the checks. One line per call; do not write what was not r
 | 7 | Session 21a2: fixes after the user's full run (3 failed, ruff 1 error); edited files only, no command run by Kiro | not run by Kiro; reviewer: 3784 passed, 1 skipped, ruff I001 fixed with `ruff check --fix`, committed as eb94102 | — | Kiro / reviewer |
 | 8 | Session 21b: Home example, labels, README; edited files only, no command run by Kiro | not run by Kiro; reviewer: full suite 6 failed, 3829 passed, 1 skipped; ruff clean | — | Kiro / reviewer |
 | 9 | Session 21b2: fixes after the user's full run of 21b (6 failed); edited files only, no command run by Kiro | not run | — | Kiro |
+| 10 | Session 21b3: Home example quotes the conclusion sentence for 617.51 (`Recording.last_sentence_with`, `landing.py`, two tests, REQ-GH-20 line); edited files only, no command run by Kiro | not run | — | Kiro |
 
 What the reviewer saw for the earlier rows:
 
