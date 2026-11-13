@@ -1,0 +1,7 @@
+Session 23, README only: the Who did what section, with wording the owner approved today, 13 Nov.
+
+1. Replace the paragraph right under the heading Who did what (it starts with This is a student project. I set the goal, chose between options and approved every step) with exactly this paragraph: This is a student project. I set the goal, picked the idea from two options an AI coding assistant drafted, and steered it from there: the Spanish formats, the real-model test and the adversarial reviews were my calls. Kiro wrote the code. The assistant drafted the prompts, ran the tests and, under my general go-ahead, made the overnight fixes the reviews asked for. The table says who proposed and who decided each choice.
+
+2. In the Decisions table under it, in the 23 Oct row, change only the Proposed by cell, from Claude Code to: Claude Code (two options: this kit or a COBOL tool). Keep the other cells of that row as they are.
+
+Read tests/test_readme.py first so the README still passes it. Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests when you stop. When done, list the files you changed and quote each new or changed line.

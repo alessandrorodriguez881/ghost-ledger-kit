@@ -241,3 +241,5 @@
 {"time": "2026-11-13T07:36:06", "event": "post-write", "session": "sess_37d4ee91-c0ed-46b7-902b-3781b8a449e0", "file": "tests/test_home_example.py", "checks": ["ruff check", "ruff format --check"], "result": "pass", "detail": "", "seconds": 0.5}
 {"time": "2026-11-13T07:36:07", "event": "post-write", "session": "sess_37d4ee91-c0ed-46b7-902b-3781b8a449e0", "file": ".kiro/specs/app-signatures/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-13T07:36:12", "event": "stop", "session": "sess_37d4ee91-c0ed-46b7-902b-3781b8a449e0", "file": null, "checks": ["ruff check .", "pytest"], "result": "pass", "detail": "2448 passed in 203.85s (0:03:23)", "seconds": 208.0}
+{"time": "2026-11-13T11:50:41", "event": "post-write", "session": "sess_92f0b638-7bdb-4360-aa54-b73898546e25", "file": "README.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
+{"time": "2026-11-13T11:50:46", "event": "stop", "session": "sess_92f0b638-7bdb-4360-aa54-b73898546e25", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.4}

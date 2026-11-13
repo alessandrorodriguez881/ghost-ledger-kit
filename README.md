@@ -191,7 +191,7 @@ streamlit_app.py       showcase entry page
 
 ## Who did what
 
-This is a student project. I set the goal, chose between options and approved every step; Kiro wrote the code; an AI coding assistant helped me drive Kiro.
+This is a student project. I set the goal, picked the idea from two options an AI coding assistant drafted, and steered it from there: the Spanish formats, the real-model test and the adversarial reviews were my calls. Kiro wrote the code. The assistant drafted the prompts, ran the tests and, under my general go-ahead, made the overnight fixes the reviews asked for. The table says who proposed and who decided each choice.
 
 - **Me (Alessandro Lair, student):** chose to build for Spanish bank and invoice data instead of a generic money app; turned down the first version as too simple and asked for the official formats (Norma 43, Facturae), public data (INE CPI) and a measured benchmark; asked for the guard to be tested against a real model before the video and approved running one locally; asked for an adversarial review against past winners before recording; decide what is published and when.
 - **Kiro (CLI, spec mode and a custom agent):** wrote every spec, test and line of code in this repository.
@@ -199,7 +199,7 @@ This is a student project. I set the goal, chose between options and approved ev
 
 | Date | Decision | Proposed by | Decided by |
 |---|---|---|---|
-| 23 Oct | Build Ghost Ledger Kit (Skeleton Crew) and not a COBOL tool, after reading the 2025 gallery | Claude Code | Me |
+| 23 Oct | Build Ghost Ledger Kit (Skeleton Crew) and not a COBOL tool, after reading the 2025 gallery | Claude Code (two options: this kit or a COBOL tool) | Me |
 | 6 Nov | Hand the building to Kiro CLI, driven by the assistant, instead of the IDE | Me (to delegate), Claude Code (the CLI route) | Me |
 | 9 Nov | Version 1 is too simple: add the official formats, INE data and a benchmark | Me (the concern), Claude Code (the three additions) | Me |
 | 9 Nov | Turn on the Context7 MCP server | Claude Code | Me |
