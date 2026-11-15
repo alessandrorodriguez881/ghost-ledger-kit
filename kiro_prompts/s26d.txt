@@ -1,0 +1,7 @@
+Session 26d, one fix after session 26c. My run: ruff clean, 4,042 passed, 1 skipped. In a headless browser at 1280 px the Zombie tile (the pulse and the tombstone are now clear) and the Vampire tile (three chips and and 4 more cited rows) are right. The Phantom tile is not: the wrap rule breaks inside words, numbers and dates, letter by letter (sou / rce / ref, F-202 / 6-031 / 0, 2026-1 / 0-06, 48 / 4,00 / EUR), and the tile becomes far taller than the other two.
+
+Fix, in the Home tile only (the Phantom alert cards stay as they are): the tile lantern shows the source ref column and at most two of the compared columns (the first two of the detector's lantern columns for that alert, so the choice stays documented and data-driven, not hand-picked); text wraps only between words (never inside a word); number, amount, date, invoice-number and source-ref cells never wrap (white-space nowrap); if the table is still wider than the tile, it scrolls inside its frame as the cards do. The three tiles keep the same height.
+
+Update the polish test for the Phantom tile accordingly (no overflow-wrap anywhere or word-break break-all in the tile rule; nowrap on those cells; at most three columns in the tile lantern) and record it in .kiro/specs/haunted-design/tasks.md in one line.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed.

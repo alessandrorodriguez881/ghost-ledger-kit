@@ -42,3 +42,17 @@ nothing can be run in this session, the hooks lint each file and run the tests w
 - [x] HD19 Owner's run after session 26: ruff clean, 4,025 passed, 1 skipped, 2 failed.
 - [x] HD20 `test_home_moment.py`: the timing rule is compared in whole milliseconds (1.3 + 0.4 was 1.7000000000000002); the rule itself is unchanged.
 - [x] HD21 `test_benchmark_page.py`: the entry test allows only `apps.home_tiles`; REQ-SC-03 amended (showcase spec), `structure.md` lists `apps/home_tiles.py`.
+
+## Session 26c: polish of the Home tiles (the owner's choice of 15 Nov)
+
+Seen at 1280 px in a headless browser: the moment, the proof strip and How it works are right; the three app tiles are not. Tests first; nothing can be run in this session.
+
+- [ ] HD22 Polish of the three Home tiles. Tests: `tests/test_home_tiles_polish.py` (new) and `tests/test_home_moment.py` (the expected tile drawings follow the new rules). Code: `ledger_kit/ui/signatures.py`, `ledger_kit/ui/theme.py`, `apps/home_tiles.py`. The alert cards are unchanged.
+  1. Zombie Subscriptions: the tile heartbeat is drawn on the viewBox `TILE_WIDTH` (240) instead of `WIDTH` (640), so the browser scales it by about 1 instead of about 0.4; the dots and the line keep their size, at least as thick as on the alert card. `heartbeat_svg(..., width=WIDTH)` is the only new parameter.
+  2. Phantom Invoices: in the tile only, lantern cells wrap (`white-space: normal`, `overflow-wrap: anywhere`, table at 100 % width) instead of being cut; the card lantern keeps `nowrap` and its sideways scroll.
+  3. Vampire Fees: a tile shows at most `TILE_MAX_CHIPS` (3) source-ref chips, then one line `and N more cited rows`, N computed from the alert's source refs (`tile_refs_html`). The three tiles are flex columns in a stretching grid row, with the demo numbers at the bottom (`margin-top: auto`).
+
+## Session 26d: Phantom tile lantern
+
+- [x] HD23 Phantom tile lantern only (cards unchanged): source ref plus the first two lantern columns of the detector (`tile_lantern_columns`), free-text cells wrap only between words, number, amount, date, invoice-number and source-ref cells are `nowrap`, the frame scrolls sideways; no `overflow-wrap` or `break-all` in the tile rule; `tests/test_home_tiles_polish.py` updated.
+- [x] HD24 `test_home_moment.py`: `_expected_drawings` builds the Phantom tile as specified (`lantern_html` with `tile_lantern_columns` and the text columns, same alert and cited rows); Zombie and Vampire stay identical to the card.

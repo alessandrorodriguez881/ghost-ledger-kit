@@ -413,9 +413,21 @@ BASE_CSS: str = """
 .stApp .gl-tile-name { font-size: 1.25rem; color: #e8dcc0; }
 .stApp .gl-stats { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 0.7rem; }
 .stApp .gl-stats .gl-figure { font-size: 1.8rem; margin: 0; }
+.stApp .gl-tiles .gl-tile { display: flex; flex-direction: column; }
+.stApp .gl-tiles .gl-stats { margin-top: auto; padding-top: 0.7rem; }
 .stApp .gl-tile .gl-signature { margin: 0.6rem 0 0.2rem; padding: 0.4rem 0.5rem 0.3rem; }
 .stApp .gl-tile .gl-signature svg.gl-sig-svg { min-width: 0; }
+.stApp .gl-tile .gl-lantern-wrap { overflow-x: auto; }
+.stApp .gl-tile table.gl-lantern { width: 100%; }
+.stApp .gl-tile table.gl-lantern th, .stApp .gl-tile table.gl-lantern td {
+  white-space: nowrap;
+}
+.stApp .gl-tile table.gl-lantern td.gl-wrap {
+  white-space: normal;
+  word-break: normal;
+}
 .stApp .gl-tile-refs { margin-top: 0.2rem; }
+.stApp .gl-tile-more { font-size: 0.8rem; color: #b9ae95; margin: 0.1rem 0 0; }
 .stApp .gl-diagram { margin: 0.4rem 0 1rem; }
 .stApp .gl-diagram svg { width: 100%; height: auto; color: #e8dcc0; }
 .stApp .gl-diagram text { font-family: Georgia, "Times New Roman", serif; fill: currentColor; }

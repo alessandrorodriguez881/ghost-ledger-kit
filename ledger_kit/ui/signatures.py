@@ -42,6 +42,11 @@ CANCELLED_WORD: str = "cancelled"
 # --- the drawings share one design size (the CSS scales it) -------------------------------------
 
 WIDTH: int = 640  # width of both viewBoxes
+# The Home tile draws the heartbeat on a narrower viewBox (same height, same marks). A tile is
+# about 240 px wide, so the browser scales that drawing by about 1, where a 640 wide viewBox
+# would shrink the dots and the line to about 0.4. Only the design width changes; every mark
+# keeps its size, so the line and the dots are at least as thick as on an alert card.
+TILE_WIDTH: int = 240
 HEIGHT: int = 114  # height of both viewBoxes
 LABEL_ROW_A: int = 100  # y of the date labels
 LABEL_ROW_B: int = 111  # y of the last label when the two would touch
@@ -175,11 +180,13 @@ def signature_block(inner: str, caption: str) -> str:
 # --- shared SVG pieces --------------------------------------------------------------------------
 
 
-def _svg(css_class: str, label: str, body: str, height: int = HEIGHT) -> str:
+def _svg(
+    css_class: str, label: str, body: str, height: int = HEIGHT, width: int = WIDTH
+) -> str:
     """Return the one-line <svg> element of a drawing, with its role and its words-only label."""
     return (
         f'<svg class="gl-sig-svg {css_class}" xmlns="{SVG_NAMESPACE}" '
-        f'viewBox="0 0 {WIDTH} {height}" role="img" aria-label="{_escape(label)}" '
+        f'viewBox="0 0 {width} {height}" role="img" aria-label="{_escape(label)}" '
         f'preserveAspectRatio="xMidYMid meet">{body}</svg>'
     )
 
@@ -199,9 +206,10 @@ def _date_labels(
     x_last: float,
     row_a: int = LABEL_ROW_A,
     row_b: int = LABEL_ROW_B,
+    width: int = WIDTH,
 ) -> str:
     """Return the visible texts of the first and the last cited date (one when they are equal)."""
-    low, high = LABEL_CLEARANCE, WIDTH - LABEL_CLEARANCE
+    low, high = LABEL_CLEARANCE, width - LABEL_CLEARANCE
     x1 = min(max(x_first, low), high)
     x2 = min(max(x_last, low), high)
     if first == last:
@@ -220,8 +228,13 @@ def _stack_offset(index: int) -> int:
 # --- the heartbeat (Zombie) ---------------------------------------------------------------------
 
 
-def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
+def heartbeat_svg(
+    rows: pd.DataFrame, cancellation_date: Any = None, *, width: int = WIDTH
+) -> str:
     """Return the heartbeat of the cited rows, or '' when no row can be drawn.
+
+    `width` is the design width of the viewBox: ``WIDTH`` on an alert card, ``TILE_WIDTH`` on
+    the Home tile. The marks keep their size; only the time line gets shorter.
 
     One dot per row on a time line from the first to the last cited date, joined by a static pulse
     line. Before each dot the line makes a spike: up 28 units, down 14 below the line, back to it.
@@ -236,13 +249,13 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
     first, last = marks[0].day, marks[-1].day
     start = min(first, cancel) if cancel else first
     end = max(last, cancel) if cancel else last
-    left, right = HEART_MARGIN, WIDTH - HEART_MARGIN
+    left, right = HEART_MARGIN, width - HEART_MARGIN
     span = (end - start).days
 
     def x_of(day: date) -> float:
         """Place a date on the time line; one single date sits in the middle."""
         if span == 0:
-            return WIDTH / 2
+            return width / 2
         return left + (right - left) * (day - start).days / span
 
     pulse = [f"M8,{HEART_LINE_Y}"]
@@ -259,7 +272,7 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
         else:
             pulse.append(f"H{x:.1f}")
         cursor = x
-    pulse.append(f"H{WIDTH - 8}")
+    pulse.append(f"H{width - 8}")
     parts = [f'<path class="gl-sig-line" d="{" ".join(pulse)}"/>']
 
     seen: dict[date, int] = {}
@@ -285,12 +298,14 @@ def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None) -> str:
             f"a{half},{half} 0 0 1 {2 * half},0 V{base} Z "
             f'M{cx - half - 3:.1f},{base} h{2 * half + 6}"/>'
         )
-        word_x = min(max(cx, TOMB_LABEL_CLEARANCE), WIDTH - TOMB_LABEL_CLEARANCE)
+        word_x = min(max(cx, TOMB_LABEL_CLEARANCE), width - TOMB_LABEL_CLEARANCE)
         parts.append(_text(word_x, TOMB_LABEL_Y, f"{CANCELLED_WORD} {cancel.isoformat()}"))
     parts.append(
-        _date_labels(first, last, x_of(first), x_of(last), HEART_LABEL_ROW_A, HEART_LABEL_ROW_B)
+        _date_labels(
+            first, last, x_of(first), x_of(last), HEART_LABEL_ROW_A, HEART_LABEL_ROW_B, width
+        )
     )
-    return _svg("gl-heartbeat", label, "".join(parts), HEART_HEIGHT)
+    return _svg("gl-heartbeat", label, "".join(parts), HEART_HEIGHT, width)
 
 
 # --- the bites (Vampire) ------------------------------------------------------------------------
@@ -342,13 +357,20 @@ def _cell(value: Any) -> str:
     return str(value)
 
 
-def lantern_html(rows: pd.DataFrame, lit_columns: Collection[str] | None = None) -> str:
+def lantern_html(
+    rows: pd.DataFrame,
+    lit_columns: Collection[str] | None = None,
+    *,
+    text_columns: Collection[str] = (),
+) -> str:
     """Return the lantern: the cited rows as a table, the compared columns lit, the rest dimmed.
 
     `rows` holds display strings, already formatted as the page formats its cited rows (an IBAN
     masked). `lit_columns` names the columns to light; names the table lacks are ignored. With
     None, the columns whose values differ between the rows are lit (never `source_ref`), so one
     row lights nothing. The table sits in a box that scrolls sideways. '' when there is no row.
+    `text_columns` names the columns of free text: their cells get the class ``gl-wrap``, which
+    the Home tile lets wrap between words. Without it the markup is the one of the alert card.
     """
     if rows is None or rows.empty:
         return ""
@@ -363,9 +385,12 @@ def lantern_html(rows: pd.DataFrame, lit_columns: Collection[str] | None = None)
     else:
         lit = set(lit_columns) & set(names)
 
+    wrap = set(text_columns)
+
     def kind(name: str) -> str:
-        """Return the class of a column: lit or dim."""
-        return "gl-lit" if name in lit else "gl-dim"
+        """Return the class of a column: lit or dim, plus gl-wrap for a free-text column."""
+        base = "gl-lit" if name in lit else "gl-dim"
+        return f"{base} gl-wrap" if name in wrap else base
 
     head = "".join(
         f'<th scope="col" class="{kind(name)}">{_escape(name.replace("_", " "))}</th>'

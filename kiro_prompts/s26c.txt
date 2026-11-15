@@ -1,0 +1,11 @@
+Session 26c, polish of the Home tiles from session 26 (the owner's choice of 15 Nov). I looked at Home at 1280 px in a headless browser: the moment, the proof strip and the How it works expander are right. Three problems in the three app tiles:
+
+1. Zombie Subscriptions: its pulse drawing is drawn so small inside the tile that the dots and the line are hard to see. Scale the tile drawing to the full width of the tile (the alert cards already scale it; reuse that, for example the existing money.scale_to or the SVG viewBox, not a new figure) and make the line and dots at least as thick as on the alert card.
+
+2. Phantom Invoices: the lantern table in the tile cuts the supplier name (Suministros Ibéricos Aurora, S.L. shows as Suministros Ibérico). In the tile only, let long cell text wrap inside its cell instead of being cut, or show fewer columns, so every visible value is readable in full. The alert cards stay as they are.
+
+3. Vampire Fees: its tile lists seven source-ref chips, so the three tiles have very different heights. In each tile show at most three chips and then one line such as and 4 more cited rows (the number computed from the alert's source refs, not written by hand). Keep the alert cards unchanged. Make the three tiles the same height (CSS on the tile row), with the counts at the bottom.
+
+Tests: update or add tests for the three points (the tile drawing uses the scaled size, the wrap rule exists for the tile lantern, at most three chips plus the computed remainder line). Record this in .kiro/specs/haunted-design/tasks.md as a polish task of the 15 Nov section.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed.

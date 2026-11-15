@@ -28,7 +28,7 @@ from ledger_kit.explainer import Explanation, explain_with_meta
 from ledger_kit.live_guard import MARK_STYLE, TRICK_QUESTIONS
 from ledger_kit.models import Alert
 from ledger_kit.replay import HOME_EXAMPLE_MARKS, Recording, ReplayClient
-from ledger_kit.ui import landing, theme
+from ledger_kit.ui import landing, signatures, theme
 from ledger_kit.ui.landing import Moment, moment_html, struck_marks, tile_html, tiles_html
 from ledger_kit.ui.reference_app import rows_for_refs
 from ledger_kit.ui.signatures import (
@@ -578,7 +578,9 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
     zombie_alert = home_tiles.pick_alert(zombie.alerts)
     assert zombie_alert is not None
     cited, _missing = rows_for_refs(zombie.debit_ledger, zombie_alert.source_refs)
-    heartbeat = heartbeat_svg(cited, zombie_alert.data.get("cancellation_date"))
+    heartbeat = heartbeat_svg(
+        cited, zombie_alert.data.get("cancellation_date"), width=signatures.TILE_WIDTH
+    )
 
     vampire = _vampire()
     vampire_alert = home_tiles.pick_alert(vampire.alerts)
@@ -592,8 +594,14 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
         settings.ordered_alerts(alert for result in phantom.results for alert in result.alerts)
     )
     assert phantom_alert is not None
+    # The Phantom tile is specified to show the tile variant: the source ref plus the first two
+    # lantern columns, with only the free-text columns allowed to wrap.
+    view = settings.lantern_view(phantom_alert, phantom)
+    columns = home_tiles.tile_lantern_columns(phantom_alert, view)
     lantern = lantern_html(
-        settings.lantern_view(phantom_alert, phantom), settings.lantern_lit_columns(phantom_alert)
+        view[columns],
+        settings.lantern_lit_columns(phantom_alert),
+        text_columns=[c for c in columns if c in home_tiles.TILE_TEXT_COLUMNS],
     )
     return {
         "zombie": (signature_block(heartbeat, ZOMBIE_CAPTION), zombie_alert),
@@ -603,7 +611,14 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
 
 
 def _with_chips(drawing: str, alert: Alert) -> str:
-    return f'{drawing}<div class="gl-tile-refs">{refs_chips_html(alert.source_refs)}</div>'
+    """The drawing, then at most three chips and one computed line for the rest of the refs."""
+    refs = alert.source_refs
+    more = len(refs) - 3
+    rest = ""
+    if more > 0:
+        noun = "row" if more == 1 else "rows"
+        rest = f'<div class="gl-tile-more">and {more} more cited {noun}</div>'
+    return f'{drawing}<div class="gl-tile-refs">{refs_chips_html(refs[:3])}{rest}</div>'
 
 
 def test_each_tile_has_the_drawing_its_app_makes_for_one_real_alert() -> None:

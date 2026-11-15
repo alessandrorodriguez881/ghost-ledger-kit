@@ -18,9 +18,10 @@ cannot be built is left out and Home renders without it.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 import apps.phantom_invoices.detectors  # noqa: F401  (registers the pi.* detectors)
@@ -37,6 +38,7 @@ from ledger_kit.ui.landing import Moment
 from ledger_kit.ui.reference_app import rows_for_refs
 from ledger_kit.ui.signatures import (
     PHANTOM_CAPTION,
+    TILE_WIDTH,
     VAMPIRE_CAPTION,
     ZOMBIE_CAPTION,
     bites_svg,
@@ -55,6 +57,15 @@ VAMPIRE_CONFIG = ROOT / "apps" / "vampire_fees" / "config.toml"
 # The order in which every app page lists its alerts: critical first, then warning, then info.
 SEVERITY_RANK: dict[str, int] = {"critical": 0, "warning": 1, "info": 2}
 
+# A tile shows at most this many source-ref chips; the rest is one line with the computed count.
+TILE_MAX_CHIPS: int = 3
+
+# The lantern of the Phantom tile shows the source ref and at most this many compared columns.
+TILE_MAX_COMPARED: int = 2
+# Columns of free text: only these may wrap, and only between words. Every other cell (number,
+# amount, date, invoice number, source ref, IBAN) stays on one line.
+TILE_TEXT_COLUMNS: frozenset[str] = frozenset({"supplier_name", "counterparty"})
+
 
 def pick_alert(alerts: Iterable[Alert]) -> Alert | None:
     """Return the alert a tile draws: the first one in the order the page lists them.
@@ -65,12 +76,26 @@ def pick_alert(alerts: Iterable[Alert]) -> Alert | None:
     return min(alerts, key=lambda alert: SEVERITY_RANK[alert.severity], default=None)
 
 
+def tile_refs_html(refs: Sequence[str]) -> str:
+    """Return the chips of a tile: at most ``TILE_MAX_CHIPS``, then one line for the rest.
+
+    The line is ``and N more cited rows`` with N computed from the refs; the alert card keeps
+    every chip. '' for no ref.
+    """
+    chips = refs_chips_html(refs[:TILE_MAX_CHIPS])
+    more = len(refs) - TILE_MAX_CHIPS
+    if more <= 0:
+        return chips
+    noun = "row" if more == 1 else "rows"
+    return f'{chips}<div class="gl-tile-more">and {more} more cited {noun}</div>'
+
+
 def _tile(drawing: str, alert: Alert) -> str:
     """Return the drawing of one tile with the chips of the alert's source refs; '' for none."""
     if not drawing:
         return ""
-    chips = refs_chips_html(alert.source_refs)
-    return f'{drawing}<div class="gl-tile-refs">{chips}</div>'
+    refs = tile_refs_html(alert.source_refs)
+    return f'{drawing}<div class="gl-tile-refs">{refs}</div>'
 
 
 def _zombie_tile() -> str:
@@ -88,7 +113,7 @@ def _zombie_tile() -> str:
     if alert is None:
         return ""
     cited, _missing = rows_for_refs(pipeline.debit_ledger, alert.source_refs)
-    drawing = heartbeat_svg(cited, alert.data.get("cancellation_date"))
+    drawing = heartbeat_svg(cited, alert.data.get("cancellation_date"), width=TILE_WIDTH)
     return _tile(signature_block(drawing, ZOMBIE_CAPTION), alert)
 
 
@@ -122,14 +147,38 @@ def _phantom_alerts(pipeline: pi_settings.Pipeline) -> list[Alert]:
     return pi_settings.ordered_alerts(found)
 
 
+def tile_lantern_columns(alert: Alert, view: pd.DataFrame) -> list[str]:
+    """Return the columns of the tile lantern: the source ref and at most two compared columns.
+
+    The compared columns are the first ``TILE_MAX_COMPARED`` of the detector's lantern columns
+    (``lantern_lit_columns``) that the view of this alert holds, in the order of the mapping. A
+    detector that is not in the mapping gives the first of the columns the view shows after the
+    row names. Nothing is hand-picked per detector.
+    """
+    present = [str(column) for column in view.columns]
+    lit = pi_settings.lantern_lit_columns(alert)
+    if lit is None:
+        candidates = [name for name in present if name not in pi_settings.LANTERN_NAMING]
+    else:
+        candidates = [name for name in lit if name in present]
+    return ["source_ref", *candidates[:TILE_MAX_COMPARED]]
+
+
 def _phantom_tile() -> str:
-    """The lantern of the first alert of the Phantom Invoices demo, drawn as its card does."""
+    """The lantern of the first alert of the Phantom Invoices demo, drawn as its card does.
+
+    The tile is narrow, so its table keeps the source ref and at most two compared columns.
+    """
     pipeline = _phantom_pipeline()
     alert = pick_alert(_phantom_alerts(pipeline))
     if alert is None:
         return ""
+    view = pi_settings.lantern_view(alert, pipeline)
+    columns = tile_lantern_columns(alert, view)
     lit = pi_settings.lantern_lit_columns(alert)
-    lantern = lantern_html(pi_settings.lantern_view(alert, pipeline), lit)
+    lantern = lantern_html(
+        view[columns], lit, text_columns=[c for c in columns if c in TILE_TEXT_COLUMNS]
+    )
     return _tile(signature_block(lantern, PHANTOM_CAPTION), alert)
 
 
