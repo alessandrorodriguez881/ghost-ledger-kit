@@ -28,6 +28,9 @@ from ledger_kit.models import Alert
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "data" / "live_runs"
+# The run the apps replay by default (16 Nov, with the placeholder rule).
+REPLAY_RUN = RUNS / "2026-11-16_llama3.2-3b_calc2.json"
+# The run of 11 Nov: the history that the guard specs cite (kept, pinned, no longer the replay).
 COMMITTED_RUN = RUNS / "2026-11-11_llama3.2-3b_demo.json"
 OLD_RUNS = (
     RUNS / "2026-11-10_llama3.2-3b.json",

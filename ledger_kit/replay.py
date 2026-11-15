@@ -27,8 +27,9 @@ from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
 from ledger_kit.live_guard import TRICK_QUESTIONS
 
 ROOT = Path(__file__).resolve().parents[1]
-# The one recorded run the apps replay: the only place the file name is written.
-DEFAULT_REPLAY_RUN_PATH: Path = ROOT / "data" / "live_runs" / "2026-11-11_llama3.2-3b_demo.json"
+# The one recorded run the apps replay: the only place the file name is written. It is the run of
+# 16 Nov, recorded with the placeholder rule; older runs stay committed as history.
+DEFAULT_REPLAY_RUN_PATH: Path = ROOT / "data" / "live_runs" / "2026-11-16_llama3.2-3b_calc2.json"
 # The path read at call time; a test may point it elsewhere, DEFAULT_REPLAY_RUN_PATH stays as is.
 REPLAY_RUN_PATH: Path = DEFAULT_REPLAY_RUN_PATH
 

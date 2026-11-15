@@ -39,6 +39,21 @@ EXPECTED_FALLBACK: dict[str, set[str]] = {
         "V42",
         "V43",
     },
+    # The run the apps replay (session 28d): recorded with the placeholder rule, 43 records, 33
+    # accepted and 10 on the template. Observed with today's guard and explained record by record
+    # in .kiro/specs/model-computes/tasks.md, task MC25.
+    "2026-11-16_llama3.2-3b_calc2.json": {
+        "Z03",
+        "Z04",
+        "Z05",
+        "Z22",
+        "P27",
+        "P32",
+        "V37",
+        "V41",
+        "V42",
+        "V43",
+    },
 }
 
 

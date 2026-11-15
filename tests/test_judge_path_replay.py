@@ -23,6 +23,7 @@ from judge_path_support import (
     FIXTURE_MODEL_NAME,
     INVENTED,
     OLD_RUNS,
+    REPLAY_RUN,
     SCRIPTS,
     Z1_ALERT_ID,
     accepted_text,
@@ -83,8 +84,9 @@ def _verdict(case, text: str, question: str | None = None) -> Explanation:
 
 def test_the_run_path_is_one_named_constant() -> None:
     # The root conftest patches REPLAY_RUN_PATH for every test; the default is never patched.
-    assert replay.DEFAULT_REPLAY_RUN_PATH == COMMITTED_RUN
-    assert replay.DEFAULT_REPLAY_RUN_PATH.name == "2026-11-11_llama3.2-3b_demo.json"
+    assert replay.DEFAULT_REPLAY_RUN_PATH == REPLAY_RUN
+    assert replay.DEFAULT_REPLAY_RUN_PATH.name == "2026-11-16_llama3.2-3b_calc2.json"
+    assert replay.DEFAULT_REPLAY_RUN_PATH != COMMITTED_RUN  # the 11 Nov file is history now
     assert replay.DEFAULT_REPLAY_RUN_PATH.parent == ROOT / "data" / "live_runs"
     # Without a patch the call-time path is that same constant.
     assert replay.REPLAY_RUN_PATH != replay.DEFAULT_REPLAY_RUN_PATH  # patched by conftest
@@ -412,9 +414,10 @@ def test_a_changed_file_is_read_again(tmp_path: Path) -> None:
 # --- the committed file stays usable ----------------------------------------------------------
 
 
-def test_every_alert_id_of_the_committed_run_is_raised_by_the_demo() -> None:
+@pytest.mark.parametrize("path", [REPLAY_RUN, COMMITTED_RUN], ids=lambda p: p.name)
+def test_every_alert_id_of_the_committed_run_is_raised_by_the_demo(path: Path) -> None:
     """A recording whose alert id no demo alert has would silently never be shown."""
-    run = load_run(COMMITTED_RUN)
+    run = load_run(path)
     if run is None:
         pytest.skip("the committed run file is not there yet")
     missing = [

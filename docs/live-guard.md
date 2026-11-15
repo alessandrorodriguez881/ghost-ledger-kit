@@ -161,10 +161,12 @@ The record keeps what the old guard did. `tests/test_explainer_live_run.py` repl
 through the current guard.
 
 To re-record with the scope of the file the replay shows,
-`data/live_runs/2026-11-11_llama3.2-3b_demo.json` (every demo card once, plus the three questions on
+`data/live_runs/2026-11-16_llama3.2-3b_calc2.json` (every demo card once, plus the three questions on
 the first critical card of each app), set the variables of Option B and run
 `python scripts/record_live_run.py --out data/live_runs/NEW.json` (`--dry-run` lists the records
-and calls nothing). Each file holds the raw answers of one run, not a rate.
+and calls nothing). Each file holds the raw answers of one run, not a rate. The older runs, such as
+`data/live_runs/2026-11-11_llama3.2-3b_demo.json`, stay committed as the history the specs cite;
+only the 16 Nov file is replayed.
 
 ## Limits
 

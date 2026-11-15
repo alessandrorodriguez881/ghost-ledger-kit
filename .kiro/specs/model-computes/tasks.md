@@ -361,3 +361,89 @@ If the first `pytest` run disagrees, write here, record by record, why, and corr
 **Covers**: all of session 28c
 
 Fill in after running the checks. One line per call; do not write what was not run.
+
+## Session 28d — the replay switches to the re-recorded run
+
+Decision record: after 28c the owner re-recorded with `scripts/record_live_run.py` (llama3.2:3b on
+Ollama, CPU, 43 records, `guard_version` `calc2`) and committed
+`data/live_runs/2026-11-16_llama3.2-3b_calc2.json`: 33 accepted, 10 fallback. Its cards without a
+question answer as in the 11 Nov file (same prompt, temperature 0); the trick questions show the
+new behaviour (Z20 computed, five others refused with `calc_not_allowed`). A visitor without a key
+sees that, so it becomes the replay. Session 28d could not run commands either: the hooks lint each
+file and run the tests on stop, and the pinned set of MC25 was derived by reading.
+
+### Task MC23 — The replay file
+
+**Covers**: the judge-path replay (`ledger_kit/replay.py`)
+
+- [x] `ledger_kit/replay.py`: `DEFAULT_REPLAY_RUN_PATH` points to the 16 Nov file. The Home example
+  (`DEFAULT_HOME_EXAMPLE_PATH`, record P3 of 10 Nov) does not change. No older run file is removed
+  or edited.
+- [x] `tests/judge_path_support.py`: `REPLAY_RUN` (the 16 Nov file) is added; `COMMITTED_RUN` stays
+  the 11 Nov file, named as history. `tests/test_judge_path_replay.py` pins the default against
+  `REPLAY_RUN` and checks that the alert ids of both files are raised by the demo;
+  `tests/test_home_example.py` checks that the replay is the 16 Nov file and the 11 Nov file is
+  still readable. The tests about the 11 Nov file itself (`test_guard_index_cause.py`, the Home
+  note test, `test_record_live_run.py`, whose format reference is that file) keep naming it.
+- [x] The replay shows a computed figure like a live answer: the three `app.py` files already draw
+  `Explanation.computed` and `ProbeResult.computed` (task MC3) and the replay goes through the same
+  `explain_with_meta`, so no app changed. `tests/test_replay_calc2.py` proves it for Z20: accepted,
+  two computations with the line `† computed by the kit: 5 x yearly_cost 107,88 EUR = 539,40 EUR,
+  from the alert fields.`, and the Zombie page shows the figure and both lines after the replay
+  press.
+
+### Task MC24 — Documentation
+
+- [x] `README.md`: judge step 4, the *Arithmetic* bullet of *What the guard does not check* and the
+  *No key needed, real model output* paragraph (file name, one sentence on the history).
+  `tests/test_readme.py` read first; the Decisions rows are untouched. `tests/test_home_example.py`
+  pins step 4 and the bullet; it follows the new text.
+- [x] `docs/live-guard.md`, end of *The first real run*: the replayed file is the 16 Nov one and
+  the older runs stay committed.
+
+### Task MC25 — Record of the recorded verdicts of the 16 Nov file
+
+`tests/test_recorded_verdicts.py` pins the new file:
+
+| Run file | Pinned fallback ids |
+|---|---|
+| `2026-11-16_llama3.2-3b_calc2.json` | Z03, Z04, Z05, Z22, P27, P32, V37, V41, V42, V43 |
+
+The other four files keep their sets. 43 records: 33 end on the model's text, 10 on the template.
+Derived by reading each raw answer and the `observed_*` fields written by the guard of the
+recording (`calc2`), which is today's guard. Expectation until the first `pytest` run.
+
+On the template (ten):
+
+| Record | What the answer holds | Verdict |
+|---|---|---|
+| Z03 | no placeholder; `the yearly cost of the "STREAMING" service is $359.76` | `figure_not_found`, token `$`: the rows name EUR, so the currency sign is rejected. The same as on the 11 Nov file |
+| Z04 | no placeholder; `The price change is attributed to the IPC290751 CPI series ...` | `price_index_as_cause`, the sentence is the token. The same as on the 11 Nov file |
+| Z05 | no placeholder; `The price change is attributed to the CPI series IPC290751 ...` | `price_index_as_cause`, same as Z04 |
+| Z22 | `[[calc: 8.99 + 8.99 + 8.99]]`, question `with_fees` | `calc_not_allowed`, part `8.99`: 8.99 is not a number of the question, and the cancellation alert has no numeric field equal to 8.99 |
+| P27 | no placeholder; `September 18th and 24th, 2026` | `figure_not_found`, tokens `24` and `2026`. The same as on the 11 Nov file |
+| P32 | `[[calc: 484.00 * 2 * 5]]`, question `forecast` | `calc_not_allowed`, part `2`: a whole number the question does not give, although `invoice_count` is 2 (DN-MC-16) |
+| V37 | no placeholder; `from January 2025 to October 2026` | `figure_not_found`, tokens `2025` and `2026`: bare years in no row or field |
+| V41 | `[[calc: (106.00 + 61.00 + 45.00) * 5]]`, question `forecast` | `calc_not_allowed`, part `total = interest_total + fee_total`: a total added to its own parts |
+| V42 | `[[calc: 12.40 + 18.65]]`, question `next_month` | `calc_not_allowed`, part `12.40`: neither figure is a field of the overdraft alert |
+| V43 | `[[calc: interest_total - 61.00]]`, question `with_fees` | `calc_not_allowed`, part `interest_total used more than once`: 61.00 is only `interest_total` |
+
+On the model's text, and different from the 11 Nov pin (Z20 leaves the set, Z22, P32, V41, V42 and
+V43 join it):
+
+| Record | What the answer holds | Verdict |
+|---|---|---|
+| Z20 | `[[calc: 5 * yearly_cost]]`, `[[calc: 5 * 107.88]]`, question `forecast` | accepted: the question gives five, 107.88 is only `yearly_cost`, each placeholder uses it once; both give `539,40 EUR†` with the formula `5 x yearly_cost 107,88 EUR = 539,40 EUR`. Rejected on the 11 Nov file, where the model wrote 539.40 by hand |
+| Z21 | `The next charge is expected to be €8.99 ...` | accepted: 8.99 is in the cited rows, no placeholder |
+
+The other 31 records (all `observed_source` `llm`, no placeholder, the same answers as the 11 Nov
+file for the cards) keep the verdict they had. Of the pinned ids, Z03, Z04, Z05, P27 and V37 are
+the same five that today's guard gives on the 11 Nov file among the cards without a question.
+
+If the first `pytest` run disagrees, write here, record by record, why, and correct the set.
+
+### Task MC26 — Record of Kiro calls of session 28d (for the reviewer to fill in)
+
+**Covers**: all of session 28d
+
+Fill in after running the checks. One line per call; do not write what was not run.

@@ -84,12 +84,14 @@ def test_home_example_returns_record_p3_with_the_model_and_the_date_of_its_file(
     assert recording.raw_answer == p3["raw_answer"]
 
 
-def test_the_cards_and_the_panel_still_replay_the_2026_11_11_file() -> None:
-    assert replay.DEFAULT_REPLAY_RUN_PATH.name == "2026-11-11_llama3.2-3b_demo.json"
+def test_the_cards_and_the_panel_replay_the_2026_11_16_file_and_keep_the_11_nov_one() -> None:
+    assert replay.DEFAULT_REPLAY_RUN_PATH.name == "2026-11-16_llama3.2-3b_calc2.json"
     assert replay.DEFAULT_REPLAY_RUN_PATH != replay.DEFAULT_HOME_EXAMPLE_PATH
-    run = replay.load_run(COMMITTED_RUN)
-    assert run is not None and run.date == "2026-11-11"
-    assert run.first_rejected_probe() is not None  # unchanged
+    run = replay.load_run(replay.DEFAULT_REPLAY_RUN_PATH)
+    assert run is not None and run.date == "2026-11-16"
+    assert run.first_rejected_probe() is not None
+    history = replay.load_run(COMMITTED_RUN)  # still committed, still readable
+    assert history is not None and history.date == "2026-11-11"
 
 
 def test_todays_guard_rejects_the_home_example_with_the_rate_and_the_total() -> None:
@@ -337,8 +339,10 @@ STEP_1 = (
     "tile shows that app's own drawing, and the rest of the text is under *How it works*."
 )
 STEP_4_ADDED = (
-    "The model's arithmetic is right (107.88 × 5 = 539.40) and the guard still rejects it: it "
-    "does no arithmetic and lets through only figures it finds in the rows."
+    "The model asks the kit for `yearly_cost` × 5 in a placeholder, the kit computes 539,40 EUR "
+    "and shows the formula (`5 x yearly_cost 107,88 EUR = 539,40 EUR`); a figure the model "
+    "writes itself is still checked against the rows, and the recording also holds rejected "
+    "calculations, for example a total added to its own parts."
 )
 PROMISE = (
     "Ghost Ledger Kit is built around one promise: an LLM touches the explanation layer only. "
@@ -383,6 +387,8 @@ def test_readme_has_the_section_on_what_the_guard_does_not_check() -> None:
     assert text.index("**The proof, live.**") < text.index("## What the guard does not check")
     assert "MUSICBOX costs 10.99 EUR every year" in section
     assert "107.88 × 5 = 539.40" in section
+    assert "The guard itself does none." in section
+    assert "only when the model asks the kit through a placeholder" in section
     assert "`three months`" in section and "`one of them`" in section
     assert "`3 months` in digits is rejected" in section
     assert "`twenty-first`" in section
