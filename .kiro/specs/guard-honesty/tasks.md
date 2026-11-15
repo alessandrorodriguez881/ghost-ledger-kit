@@ -118,3 +118,37 @@ What the reviewer saw for the earlier rows:
 
 - [x] README tests, then the README (line 3, judge steps 1 and 4, the promise sentence, the new
   section, a Decisions row) and the one item of `docs/live-guard.md`.
+
+## Part 3 — session 25
+
+### Task GH10 — The index is context, not a cause
+
+**Covers**: REQ-GH-23, §7
+
+- [x] Create `tests/test_guard_index_cause.py`: the exact Z04 and Z05 sentences, English and
+  Spanish cases, what must stay accepted (index without a cause, cause without an index, the
+  kit's fixed CPI sentences), the reason shown by the panel verdict and the replay badge,
+  Hypothesis properties.
+- [x] `ledger_kit/index_cause.py`; `Explanation.rejected_reason` and the check in
+  `explain_with_meta`; `ProbeResult.reason`, `VERDICT_REJECTED_INDEX_CAUSE_PREFIX` and
+  `verdict_line`; `card_badge`.
+
+### Task GH11 — Regression net and documentation
+
+**Covers**: REQ-GH-14, REQ-GH-23
+
+- [x] `tests/test_recorded_verdicts.py`: Z04 and Z05 join the pinned set of
+  `2026-11-11_llama3.2-3b_demo.json`; each record is explained in the verdict log of design §5.
+- [x] README (section What the guard does not check, one sentence; Hackathon: `three different
+  apps (two of them read the same bank statement)`) and `docs/live-guard.md` (one item).
+- [x] Run `ruff check .`, `ruff format --check .` and `pytest` (session 25 could not run them;
+  the hooks lint and run the tests). If a test or a document states how many recorded demo answers
+  are accepted or rejected, update it and say so here.
+  Reviewer's run after session 25: ruff clean; 3,973 passed, 1 skipped, 1 failed
+  (`tests/ingestion/test_normaliser.py::test_date_round_trip_plain`, Hypothesis DeadlineExceeded,
+  447.76 ms against the 200 ms default, while the laptop was busy). The file alone and the two
+  test files of this task pass (71 passed). Unrelated to the guard; fixed in 25b by a Hypothesis
+  profile with `deadline=None` (root `conftest.py`). AppTest check of the Zombie demo with no key:
+  the CLOUDVAULT price-increase card shows the fixed template with the neutral CPI sentence, and
+  the badge says the recorded answer was rejected because it names the price index as the cause,
+  quoting the sentence, for Z04 and Z05.

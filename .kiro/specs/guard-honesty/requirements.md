@@ -226,7 +226,7 @@ of a badge or of a verdict. Ids are `REQ-GH-nn`; acceptance examples are `AE-GH-
     | `2026-11-10_llama3.2-3b.json` | Z4, Z6, P3, V1, V2 |
     | `2026-11-10_llama3.2-3b_run2.json` | Z4b, Z6b |
     | `2026-11-10_llama3.2-3b_run3.json` | Z3c, Z4c |
-    | `2026-11-11_llama3.2-3b_demo.json` | Z03, Z20, P27, V37 |
+    | `2026-11-11_llama3.2-3b_demo.json` | Z03, Z04, Z05, Z20, P27, V37 (Z04 and Z05 since session 25, REQ-GH-23) |
 
 ## 4 — Documentation
 
@@ -301,6 +301,57 @@ P3 with `5` and `617.51` among the tokens (`tests/test_recorded_verdicts.py` pin
   right sum that is in no row. The README shall no longer contain `inventing 539.40`,
   `can never introduce a figure` or `traceable to an exact row`.
   - AE-GH-22: `MUSICBOX costs 10.99 EUR every year` is in the new section as the meaning example.
+
+## 6 — Part 3 (session 25): the price index is context, not a cause
+
+A fresh jury of 14 Nov found that the README promises the CPI sentence of `zs.price_increase` is
+context, not a verdict, while two real model answers of
+`data/live_runs/2026-11-11_llama3.2-3b_demo.json` turn the official context into a cause, and
+today's guard accepts both because it checks figures and every figure in them is allowed:
+
+- **Z04** (CLOUDVAULT): `The price change is attributed to the IPC290751 CPI series, which is
+  based on the 2025 base year.`
+- **Z05** (STREAMFLEX INTL): `The price change is attributed to the CPI series IPC290751, which
+  started in May 2026.`
+
+Every committed run file was searched: these are the only two answers that name the index next to
+a cause word.
+
+- **REQ-GH-23** *If* one sentence of a model answer names the price index and also gives a cause
+  phrase, *then* `explain_with_meta` shall reject the answer exactly like an answer with an
+  invented figure: `source` is `fallback`, the text is the filled fixed template, `raw_answer`
+  keeps the model's text, `rejected_numbers` holds each offending sentence as written, in text
+  order, and `rejected_reason` is `price_index_as_cause`. For a rejection by a figure, a date,
+  an IBAN or a currency, `rejected_reason` shall stay empty.
+  - **Index terms** (any case, with or without accents, whole words): `IPC`, any IPC series id
+    such as `IPC290751`, `CPI`, `consumer price index`, `price index`, `inflation`, `índice de
+    precios`, `inflación`.
+  - **Cause phrases** (same rules): `attributed`, `attributable`, `due to`, `caused by`, `because
+    of`, `driven by`, `explained by`, `a result of`, `debido a`, `causado por`, `se debe a`
+    (`debido al` and `se debe al` read as the same phrases).
+  - A sentence ends at `.`, `!` or `?` followed by white space, or at a line break.
+  - The check shall not reject: a sentence about the index with no cause phrase, a cause phrase
+    with no index in the same sentence, and the kit's own fixed CPI sentences
+    (`CPI_SENTENCE` and `CPI_SENTENCE_LAG` of the zombie app), which say `changed by`.
+  - The Provoke panel (`live_guard.verdict_line`) and the replay badge (`replay.card_badge`) shall
+    say why the card fell back (the answer names the price index as the cause of the price
+    change) and show the sentence; the highlight marks it in the raw answer. The text of every
+    other badge and verdict stays as it is.
+  - The check is in `explain_with_meta`, after the number guard, not in `_passes_number_guard`:
+    `check_figures` (the Exorcise drafts, `scripts/ledger_scan.py`) and Night Watch are not changed.
+  - Documented limit: it reads one sentence at a time and a fixed list of words; a cause written
+    in other words, or across two sentences, is not seen. The guard still does not check meaning.
+  - AE-GH-23
+
+    | Text | Verdict | Tokens |
+    |---|---|---|
+    | the Z04 sentence above | rejected | the sentence |
+    | the Z05 sentence above | rejected | the sentence |
+    | `The increase is due to inflation.` | rejected | the sentence |
+    | `El aumento se debe a la inflación.` | rejected | the sentence |
+    | `The CPI gives context for these months.` | accepted | |
+    | `The price rose because the plan changed.` | accepted | |
+    | the fixed CPI sentence of a filled template | accepted | |
 
 ## Out of scope
 

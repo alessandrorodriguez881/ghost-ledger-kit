@@ -41,7 +41,7 @@ The explanation is decorative. It never feeds back into the alert logic, and it 
 
 ## What the guard does not check
 
-- **Meaning.** It checks that each figure is in the cited rows or the alert data, not what the sentence says about it. `MUSICBOX costs 10.99 EUR every year` passes on a monthly 10.99 charge.
+- **Meaning.** It checks that each figure is in the cited rows or the alert data, not what the sentence says about it. `MUSICBOX costs 10.99 EUR every year` passes on a monthly 10.99 charge. The one exception: it rejects an answer that names the price index as the cause of the price change, because the kit promises the index is context only.
 - **Arithmetic.** It does none. A right result that is in no row is rejected (107.88 × 5 = 539.40), and a figure that is in the rows passes whatever the sentence does with it.
 - **Number words.** English and Spanish only. Any number above ten, or written with more than one word, is checked; ten or less only next to a currency or a percent. So `three months` and `one of them` pass, while `3 months` in digits is rejected. Ordinals and other languages are not read, so a day written as `twenty-first` is not checked. An amount with cents in words is rejected even when right.
 - **Truth.** An accepted answer is not a statement that it is true.
@@ -240,6 +240,6 @@ Released under the MIT licence, see `LICENSE`. The INE data keeps the INE licenc
 
 ## Hackathon
 
-Kiroween 2026, category Skeleton Crew: one template, three very different apps. A personal-finance tool for individuals, a bank-fee tool and an invoice-checking tool for small Spanish businesses are built on the same three layers and the same guarantee.
+Kiroween 2026, category Skeleton Crew: one template, three different apps (two of them read the same bank statement). A personal-finance tool for individuals, a bank-fee tool and an invoice-checking tool for small Spanish businesses are built on the same three layers and the same guarantee.
 
 Tools used: [Streamlit](https://docs.streamlit.io/), [pytest](https://docs.pytest.org/), [Hypothesis](https://hypothesis.readthedocs.io/) and [Ruff](https://docs.astral.sh/ruff/).

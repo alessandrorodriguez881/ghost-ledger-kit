@@ -23,7 +23,7 @@ EXPECTED_FALLBACK: dict[str, set[str]] = {
     "2026-11-10_llama3.2-3b.json": {"Z4", "Z6", "P3", "V1", "V2"},
     "2026-11-10_llama3.2-3b_run2.json": {"Z4b", "Z6b"},
     "2026-11-10_llama3.2-3b_run3.json": {"Z3c", "Z4c"},
-    "2026-11-11_llama3.2-3b_demo.json": {"Z03", "Z20", "P27", "V37"},
+    "2026-11-11_llama3.2-3b_demo.json": {"Z03", "Z04", "Z05", "Z20", "P27", "V37"},
 }
 
 

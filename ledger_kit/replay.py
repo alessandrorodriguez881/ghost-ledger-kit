@@ -23,6 +23,7 @@ from types import MappingProxyType, SimpleNamespace
 from typing import Any, Literal, Self
 
 from ledger_kit.explainer import Explanation
+from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
 from ledger_kit.live_guard import TRICK_QUESTIONS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -332,7 +333,12 @@ def card_badge(recording: Recording, explanation: Explanation) -> tuple[str, str
     if explanation.source == "llm":
         return "llm", BADGE_ACCEPTED.format(model=recording.model_name, date=recording.date)
     numbers = ""
-    if explanation.rejected_numbers:
+    if explanation.rejected_reason == REASON_INDEX_AS_CAUSE:
+        numbers = (
+            " (the answer names the price index as the cause of the price change: "
+            f"{' '.join(explanation.rejected_numbers)})"
+        )
+    elif explanation.rejected_numbers:
         numbers = (
             " (not found in the cited rows or the alert data: "
             f"{', '.join(explanation.rejected_numbers)})"

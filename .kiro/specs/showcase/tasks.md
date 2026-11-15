@@ -79,6 +79,7 @@ Runs recorded for SC6 (session 24b):
 - Browser check with the new config: Home and Vampire Fees made no request outside localhost;
   before the change the browser sent three requests to `webhooks.fivetran.com`.
 - The workflows themselves have not run on GitHub yet.
+- Session 25b: Hypothesis deadline off for shared runners (profile `ghost-ledger`, `deadline=None`, in the root `conftest.py`; `tests/test_hypothesis_profile.py`; note in `testing.md`).
 - `tests.yml` now also runs `ruff format --check .` and the coverage command (REQ-SC-14,
   `tests/test_publish_ready.py` updated).
 

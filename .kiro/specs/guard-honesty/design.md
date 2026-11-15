@@ -98,6 +98,9 @@ without an entry fails `test_every_committed_run_file_is_pinned`.
 | Date | File | Change of the set | Reason |
 |---|---|---|---|
 | session 21a | all four | none expected: the pinned sets are those of the guard before number words | part 1 |
+| session 25 | `2026-11-11_llama3.2-3b_demo.json` | **Z04** accepted → fallback | The answer says `The price change is attributed to the IPC290751 CPI series, which is based on the 2025 base year.` The figures (IPC290751, 2025) are allowed, so the number guard accepted it; the sentence turns the index, which the kit gives as context only, into the cause of the price change. REQ-GH-23. |
+| session 25 | `2026-11-11_llama3.2-3b_demo.json` | **Z05** accepted → fallback | The answer says `The price change is attributed to the CPI series IPC290751, which started in May 2026.` Same reason. REQ-GH-23. |
+| session 25 | the three 2026-11-10 files | none | No answer of these files names the index next to a cause phrase (searched by the reviewer); the pinned sets stay. |
 
 ## §6 Part 2 (session 21b)
 
@@ -119,3 +122,31 @@ the cards and the Provoke panel keep the 2026-11-11 file (`REPLAY_RUN_PATH`).
 
 **Sentences.** The Home block quotes `Recording.sentence_with` for each mark (`5%`, `617.51`), so
 for 617.51 it quotes the first line of the answer that holds it (`A = 617.51`).
+
+## §7 Part 3 (session 25): the index as a cause (REQ-GH-23)
+
+| File | Change |
+|---|---|
+| `ledger_kit/index_cause.py` | **new**, standard library only: `find_index_as_cause(text)`, `INDEX_TERMS`, `CAUSE_PHRASES`, `REASON_INDEX_AS_CAUSE` |
+| `ledger_kit/explainer.py` | `Explanation.rejected_reason` (default `""`); `explain_with_meta` runs the check after the number guard |
+| `ledger_kit/live_guard.py` | `ProbeResult.reason` (default `""`), `VERDICT_REJECTED_INDEX_CAUSE_PREFIX`; `verdict_line` picks it for this reason |
+| `ledger_kit/replay.py` | `card_badge` names the reason for this rejection |
+| tests | new `tests/test_guard_index_cause.py`; `tests/test_recorded_verdicts.py` pins Z04 and Z05 |
+| `README.md`, `docs/live-guard.md` | one sentence each |
+
+**Why a sentence-level check outside the number guard.** The number guard compares figures with an
+allowed set; the problem here has no wrong figure. A cause needs both parts in one sentence, so the
+check splits the answer into sentences (`.`, `!`, `?` followed by white space, or a line break),
+folds each (lower case, no accents) and asks for one index term and one cause phrase. It lives in
+`explain_with_meta` so that `check_figures`, the Exorcise drafts, `ledger_scan` and Night Watch,
+which read fixed texts of the kit, keep the behaviour they have.
+
+**How the reason is recorded.** The offending sentences go into `rejected_numbers`, as a rejected
+token does, so every place that marks or lists tokens (the highlight, the replay badge, the Provoke
+panel) shows them with no new code path. `rejected_reason` tells those places that the tokens are
+not figures, so the panel and the badge do not claim that the sentence was "not found in the cited
+rows". The three apps' own live badge (`guard_badge`) still lists the tokens under its usual text;
+it is not changed in this session.
+
+**The kit's own sentence.** `CPI_SENTENCE` and `CPI_SENTENCE_LAG` say `changed by`, which is not a
+cause phrase; a test fills both templates from the demo alerts and checks that they pass.

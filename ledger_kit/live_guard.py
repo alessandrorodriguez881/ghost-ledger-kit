@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 from ledger_kit.explainer import LLM_TIMEOUT_SECONDS, Explanation, llm_timeout_seconds
+from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
 
 # Courtesy cap on model calls per browser session (a reload resets it; not a security control).
 LIVE_ASKS_PER_SESSION_LIMIT: int = 30
@@ -52,6 +53,10 @@ VERDICT_ACCEPTED = (
 )
 VERDICT_REJECTED_PREFIX = (
     "🛑 Guard verdict: rejected. Not found in the cited rows or the alert data: "
+)
+VERDICT_REJECTED_INDEX_CAUSE_PREFIX = (
+    "🛑 Guard verdict: rejected. The answer names the price index as the cause of the price "
+    "change; the kit gives the index as context only: "
 )
 MSG_LIMIT = (
     f"Limit of {LIVE_ASKS_PER_SESSION_LIMIT} questions per session reached. "
@@ -143,6 +148,7 @@ class ProbeResult:
     verdict: Verdict
     rejected_numbers: tuple[str, ...]
     template_text: str
+    reason: str = ""  # Explanation.rejected_reason: "" for a figure, else why the tokens were
 
 
 def probe_result(question: TrickQuestion, meta: Explanation, template_text: str) -> ProbeResult:
@@ -154,7 +160,12 @@ def probe_result(question: TrickQuestion, meta: Explanation, template_text: str)
     else:
         verdict = "rejected"
     return ProbeResult(
-        question.id, meta.raw_answer, verdict, tuple(meta.rejected_numbers), template_text
+        question.id,
+        meta.raw_answer,
+        verdict,
+        tuple(meta.rejected_numbers),
+        template_text,
+        meta.rejected_reason,
     )
 
 
@@ -163,7 +174,10 @@ def verdict_line(result: ProbeResult) -> str:
     if result.verdict == "accepted":
         return VERDICT_ACCEPTED
     if result.verdict == "rejected":
-        return VERDICT_REJECTED_PREFIX + ", ".join(f"`{t}`" for t in result.rejected_numbers)
+        prefix = VERDICT_REJECTED_PREFIX
+        if result.reason == REASON_INDEX_AS_CAUSE:
+            prefix = VERDICT_REJECTED_INDEX_CAUSE_PREFIX
+        return prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
     return ""
 
 

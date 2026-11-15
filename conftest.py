@@ -10,9 +10,16 @@ same two names.
 from pathlib import Path
 
 import pytest
+from hypothesis import settings
 
 from ledger_kit import replay
 from ledger_kit.ui import first_run
+
+# Timing on shared CI runners varies, so no property test may fail on a deadline. Only the
+# deadline is set here: each property test keeps the max_examples it sets itself.
+HYPOTHESIS_PROFILE = "ghost-ledger"
+settings.register_profile(HYPOTHESIS_PROFILE, deadline=None)
+settings.load_profile(HYPOTHESIS_PROFILE)
 
 NO_RUN_FILE = Path(__file__).resolve().parent / "data" / "live_runs" / "no-replay-in-tests.json"
 

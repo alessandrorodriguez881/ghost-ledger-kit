@@ -12,6 +12,7 @@ from typing import Literal
 
 import pandas as pd
 
+from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE, find_index_as_cause
 from ledger_kit.ingestion.iso4217 import NUMERIC_TO_ALPHA
 from ledger_kit.models import Alert
 from ledger_kit.number_words import NumberPhrase, find_number_phrases
@@ -55,6 +56,9 @@ class Explanation:
     rejected_numbers: tuple[str, ...]  # tokens the guard found and rejected
     # The model's text as received (accepted or rejected); "" when it did not answer.
     raw_answer: str = field(default="", compare=False, repr=False)
+    # Why the answer was rejected when the tokens are not figures ("" for a figure); today only
+    # REASON_INDEX_AS_CAUSE, with the offending sentences as the tokens.
+    rejected_reason: str = ""
 
 
 def explain(
@@ -103,6 +107,17 @@ def explain_with_meta(
         _log.warning("Number guard rejected LLM response for alert %s: %s", alert.id, rejected)
         return Explanation(
             text=fallback, source="fallback", rejected_numbers=rejected, raw_answer=raw
+        )
+
+    caused = find_index_as_cause(raw)
+    if caused:
+        _log.warning("Price index named as cause, answer rejected for alert %s", alert.id)
+        return Explanation(
+            text=fallback,
+            source="fallback",
+            rejected_numbers=caused,
+            raw_answer=raw,
+            rejected_reason=REASON_INDEX_AS_CAUSE,
         )
 
     return Explanation(text=raw, source="llm", rejected_numbers=(), raw_answer=raw)

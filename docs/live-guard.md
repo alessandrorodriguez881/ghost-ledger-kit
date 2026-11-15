@@ -124,6 +124,12 @@ What the guard does and does not do:
   `por` is part of the percent words `por ciento` and `por cien`, never a number of its own; and a
   number in words that counts the cited rows (`twelve debit transactions`, when twelve rows are
   cited) or names one of the card's own rows (`rows one and two`, `row twelve`) is not checked.
+- It does not check meaning, with one exception: an answer is rejected when one sentence names the
+  price index (`IPC`, an `IPC` series id, `CPI`, `consumer price index`, `price index`, `inflation`,
+  or in Spanish `índice de precios`, `inflación`) and also gives a cause (`attributed`, `due to`,
+  `caused by`, `because of`, `driven by`, `explained by`, `a result of`, `debido a`, `causado por`,
+  `se debe a`). The kit gives the index as context only, so the card shows the fixed template and
+  the verdict says why. A sentence about the index with no cause, and a cause with no index, pass.
 - It was changed only after a real run, never to make the demo look better: an invented amount is
   still caught wherever it stands in an answer.
 

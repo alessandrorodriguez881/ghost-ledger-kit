@@ -144,3 +144,4 @@ pytest --cov=ledger_kit --cov=apps/zombie_subscriptions --cov=apps/phantom_invoi
 - Coverage must not drop below **80%** across the repository.
 - `ruff check` and `ruff format --check` must pass with zero warnings.
 - Hypothesis `max_examples` is set to 200 in CI via `settings(max_examples=200)` on each property test.
+- The Hypothesis deadline is off (`deadline=None`) because timing on shared CI runners varies. The root `conftest.py` registers and loads the profile `ghost-ledger`, which covers `tests/` and every `apps/*/tests/`; `tests/test_hypothesis_profile.py` asserts it. `max_examples` stays 200 on each property test.
