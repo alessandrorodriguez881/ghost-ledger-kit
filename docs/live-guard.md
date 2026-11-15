@@ -160,6 +160,12 @@ the CPU only: temperature 0, a 120 second timeout, eleven questions. The raw ans
 The record keeps what the old guard did. `tests/test_explainer_live_run.py` replays every answer
 through the current guard.
 
+To re-record with the scope of the file the replay shows,
+`data/live_runs/2026-11-11_llama3.2-3b_demo.json` (every demo card once, plus the three questions on
+the first critical card of each app), set the variables of Option B and run
+`python scripts/record_live_run.py --out data/live_runs/NEW.json` (`--dry-run` lists the records
+and calls nothing). Each file holds the raw answers of one run, not a rate.
+
 ## Limits
 
 - The first call to a local model can take longer than the default 10 seconds while the model loads.

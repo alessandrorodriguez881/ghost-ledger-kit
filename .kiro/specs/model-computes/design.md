@@ -199,3 +199,40 @@ Limits of §7 (the README states the first two):
   phrase not in the list (`per annum`, `every quarter`, `anuales`) is not read.
 - Numbers written in words are not checked by this rule (the number guard still checks their
   value).
+
+## §8 The recording script (session 28a, REQ-MC-27 to REQ-MC-34)
+
+`scripts/record_live_run.py` imports the three apps' settings, detectors and explain support and
+`ledger_kit` (public names), as `scripts/ledger_scan.py` does. It imports no SDK: with no injected
+client it passes `client=None` to `explain_with_meta`, so the explainer builds the one real client
+(`max_retries=0`, `llm_timeout_seconds()`) exactly as for a page. `main(argv, *, client, clock,
+today, out)` takes the client, the clock, the date and the output stream as parameters, so the
+tests run it with a fake client and a fake clock.
+
+| Step | What it does |
+|---|---|
+| cards | each app's `run_pipeline` on its CSV demo (zombie with `load_cpi`), the rows and template its page uses |
+| `plan()` | per app (Z, P, V): every card in page order, then the three trick questions on the first critical card |
+| `ask()` | `explain_with_meta(alert, rows, fallback_template=..., client=..., row_columns=..., question=...)` |
+| `record()` | the record fields of the 11 Nov file plus `observed_reason`, `observed_calcs` |
+| write | once, at the end, with `open("x")`: an existing file is never replaced |
+
+DN-MC-11 *Page order.* Cards are sorted by severity (critical, warning, info) with a stable sort,
+so ties keep the pipeline order. That is the order of the 11 Nov file as it reads; the tests pin
+only the scope (the 43 pairs of alert id and question id, and the count per app letter), so a
+different tie order would change ids, never the scope.
+
+DN-MC-12 *`observed_reason`.* It is `Explanation.rejected_reason` when the kit gives one
+(`calc_not_allowed`, `period_mismatch`, `price_index_as_cause`). The kit gives `""` for a figure
+not found, so the script writes `figure_not_found` there, and `no_answer` when the raw answer is
+empty, so an empty `observed_reason` always means accepted. A failed call is written with
+`observed_source` `fallback`, the value the explainer returns (the 11 Nov file wrote `no_answer`
+there by hand; the replay skips an empty answer either way).
+
+DN-MC-13 *`--tag` goes into `guard_version`.* The script does not run git; the person recording
+writes the commit there. `model` is the model name the panel shows (`LEDGER_KIT_LLM_MODEL`, else
+the default); a server version or model id can be added to the file by hand after the run.
+
+DN-MC-14 *No new run is committed here.* The script records; the owner runs it with a model and
+decides whether a new file replaces the replay file (`DEFAULT_REPLAY_RUN_PATH` in
+`ledger_kit/replay.py`). Nothing of the replay changes in this session.

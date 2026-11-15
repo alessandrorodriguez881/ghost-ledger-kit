@@ -175,3 +175,48 @@ Z19, three correct answers; that is why §7 ties a phrase to the nearest figure 
 **Covers**: all of session 27b
 
 Fill in after running the checks. One line per call; do not write what was not run.
+
+## Session 28a — the recording script
+
+Decision record: third part of the owner's choice of 15 Nov (improvement A of the adversarial
+review of 14 Nov: re-record the answers with the new prompt), drafted by Claude Code. Requirements
+group 7 of `requirements.md`, design §8. Session 28a could not run commands either: the hooks lint
+each file and run the tests on stop.
+
+### Task MC12 — Tests first
+
+**Covers**: REQ-MC-27 to REQ-MC-33, §8
+
+- [x] Create `tests/test_record_live_run.py` (fake client only, no network). Tier 1: the plan has
+  the scope of the 11 Nov file (43 records, the same pairs of alert id and question id, the same
+  count per app letter, ids `[ZPV]\d{2}`); the three questions on the first critical card of each
+  app, after its cards; the dry run lists 43 records, writes nothing and calls nothing; a run with
+  a fixed answer writes the top-level fields of the 11 Nov file in its order and every record with
+  its fields plus `observed_reason` and `observed_calcs` (the zombie forecast probe accepted with
+  `yearly_cost 107,88 EUR x 5 = 539,40 EUR`, a card rejected with `calc_not_allowed`), the file
+  absent while the run goes on, one printed line per record; `--out` on an existing file refused,
+  nothing asked or written. Tier 2: a client that raises on the first record gives that record as
+  a fallback with an empty raw answer and `no_answer`, and the run continues; no key and no client
+  refused before asking; a missing folder refused; `--out` required; `figure_not_found`.
+
+### Task MC13 — The script
+
+**Covers**: REQ-MC-27 to REQ-MC-33, §8
+
+- [x] Create `scripts/record_live_run.py` (§8).
+
+### Task MC14 — Documentation
+
+**Covers**: REQ-MC-34
+
+- [x] `README.md`, the *No key needed, real model output* paragraph: two sentences (how to
+  re-record; one run, not a rate). `tests/test_readme.py` read first: both paths named in
+  backticks exist.
+- [x] `docs/live-guard.md`, end of *The first real run*: the same in two sentences. It names no new
+  environment variable and no percentage (`tests/test_live_guard_docs.py`).
+
+### Task MC15 — Record of Kiro calls of session 28a (for the reviewer to fill in)
+
+**Covers**: all of session 28a
+
+Fill in after running the checks. One line per call; do not write what was not run.

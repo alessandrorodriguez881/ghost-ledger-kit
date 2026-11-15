@@ -197,6 +197,47 @@ Vocabulary of this group:
   still not checked, with one example from the tests that still passes. `docs/live-guard.md` is
   changed only if it repeats the example.
 
+## 7 — Re-recording the real-model runs (session 28a)
+
+**Decision record.** Third part of the owner's choice of 15 Nov (improvement A of the adversarial
+review of 14 Nov: re-record the answers with the new prompt). Drafted by Claude Code, decided by
+the owner. Today `data/live_runs/2026-11-11_llama3.2-3b_demo.json` was recorded with a script that
+is not in the repository; this group puts one in, so anyone can re-record.
+
+- **REQ-MC-27** The system shall provide `scripts/record_live_run.py`, run with the kit's own
+  Python. Its scope shall be the scope of the 11 Nov file: the three CSV demos (Zombie
+  Subscriptions with the CPI context of its page), every alert card once, in page order, plus the
+  three trick questions of `ledger_kit/live_guard.py` on the first critical card of each app. The
+  docstring shall say so.
+  - AE-MC-27: the planned records are 43, and their pairs (alert id, question id) are the pairs of
+    the 11 Nov file.
+- **REQ-MC-28** Each record shall be asked exactly as the apps ask it: `explain_with_meta` with the
+  real client of the explainer, the app's fallback template, its row columns and, for a probe, the
+  question text. Endpoint, key, model and timeout shall come from `OPENAI_BASE_URL`,
+  `OPENAI_API_KEY`, `LEDGER_KIT_LLM_MODEL` and `LEDGER_KIT_LLM_TIMEOUT`; temperature 0 and no retry,
+  as in the explainer. If `OPENAI_API_KEY` is not set, then the script shall refuse and ask nothing.
+- **REQ-MC-29** The file shall keep the top-level fields of the 11 Nov file, in its order (`what`,
+  `date`, `model`, `machine`, `settings`, `guard_version`, `note`, `python`, `records`), and the
+  fields of each of its records, with two new fields before `raw_answer`: `observed_reason` (the
+  rejection reason; empty when accepted) and `observed_calcs` (the kit's calculations, each with
+  expression, formula and result; empty when none). `raw_answer` is the answer exactly as received,
+  `seconds` the time of the call.
+- **REQ-MC-30** Record ids shall be the app letter (`Z`, `P`, `V`) and a two-digit number counted
+  over the whole run; `question_id` and `question` as in the 11 Nov file (`null` for a card).
+- **REQ-MC-31** Arguments: `--out` (required); `--machine` (free text written into `machine`);
+  `--tag` (free text written into `guard_version`); `--dry-run`, which lists every record it would
+  ask (id, app, alert id, title, question) and calls nothing.
+- **REQ-MC-32** If `--out` names an existing file, then the script shall refuse, ask nothing and
+  write nothing. It shall print one line per record while it runs and write the file only at the
+  end, so a failed run leaves nothing half-written.
+- **REQ-MC-33** When the call of one record fails (an error, a timeout, an empty answer), the
+  record shall be written as a fallback with an empty `raw_answer` and the reason `no_answer`, and
+  the run shall continue.
+- **REQ-MC-34** `README.md` (the *No key needed, real model output* paragraph) and
+  `docs/live-guard.md` (the section on the first real run) shall say in one or two sentences how to
+  re-record with the script and a local model, and that a recording is the raw answers of one run,
+  not a rate. `tests/test_readme.py` and `tests/test_live_guard_docs.py` keep passing.
+
 ## Not in this spec
 
 - No change to a detector, a threshold, the templates or the Exorcise drafts.
