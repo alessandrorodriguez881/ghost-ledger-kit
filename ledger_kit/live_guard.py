@@ -11,7 +11,12 @@ from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 from ledger_kit.calc import REASON_CALC_NOT_ALLOWED, Computation
-from ledger_kit.explainer import LLM_TIMEOUT_SECONDS, Explanation, llm_timeout_seconds
+from ledger_kit.explainer import (
+    LLM_TIMEOUT_SECONDS,
+    REASON_PERIOD_MISMATCH,
+    Explanation,
+    llm_timeout_seconds,
+)
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
 
 # Courtesy cap on model calls per browser session (a reload resets it; not a security control).
@@ -63,6 +68,10 @@ VERDICT_REJECTED_CALC_PREFIX = (
     "🛑 Guard verdict: rejected. The answer asks the kit for a calculation it will not make "
     "(only the numeric fields of the alert, whole numbers of the question and + - * / are "
     "allowed): "
+)
+VERDICT_REJECTED_PERIOD_PREFIX = (
+    "🛑 Guard verdict: rejected. The answer gives a figure a period that contradicts the alert "
+    "field it matches (the figure, then the period words): "
 )
 SHOWN_LABEL = "Answer as shown, with the figures the kit computed:"
 MSG_LIMIT = (
@@ -197,6 +206,8 @@ def verdict_line(result: ProbeResult) -> str:
             prefix = VERDICT_REJECTED_INDEX_CAUSE_PREFIX
         elif result.reason == REASON_CALC_NOT_ALLOWED:
             prefix = VERDICT_REJECTED_CALC_PREFIX
+        elif result.reason == REASON_PERIOD_MISMATCH:
+            prefix = VERDICT_REJECTED_PERIOD_PREFIX
         return prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
     return ""
 

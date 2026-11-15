@@ -133,6 +133,70 @@ keywords: *shall*, *when*, *while*, *where*, *if ... then*. All data is syntheti
   changed and what did not; the Kiro table shall count 18 specs and name this one; the Decisions
   table shall have the row of 15 Nov. `tests/test_readme.py` keeps passing.
 
+## 6 — The period of a figure (session 27b)
+
+**Decision record.** Second part of the owner's choice of 15 Nov (improvement A of the adversarial
+review of 14 Nov): each figure is tied to its field, so a monthly charge cannot be called yearly.
+Drafted by Claude Code, decided by the owner.
+
+**The problem.** The README section *What the guard does not check* said: `MUSICBOX costs 10.99
+EUR every year` passes on a monthly 10.99 charge, because the guard only checks that 10.99 is in
+the cited rows or the alert data. It never asks what the sentence says the figure is.
+
+Vocabulary of this group:
+
+- **Stated period** of a field: the period the alert itself gives it (REQ-MC-18). A field with no
+  stated period is never checked by this group.
+- **Period phrase**: one of the phrases of REQ-MC-19, read as whole words in any case.
+- **Clause**: a part of a sentence between commas or semicolons followed by a space, or dashes
+  between spaces. A sentence ends at `.`, `!` or `?` followed by white space, or at a line break.
+
+- **REQ-MC-17** When the number guard has accepted an answer, the explainer shall check, before the
+  index-as-cause check, that no period phrase contradicts the stated period of the field its figure
+  matches. If one does, then the answer shall be rejected: the card shows the filled fallback
+  template, `Explanation.rejected_reason` is `REASON_PERIOD_MISMATCH = "period_mismatch"`, and
+  `rejected_numbers` holds, for each contradiction, the figure and then the phrase as written.
+  - AE-MC-17: `MUSICBOX costs 10.99 EUR every year (bank.csv:0).` on a `zs.recurring_charge`
+    alert with `interval_type` `monthly` and `current_amount` `10.99` is rejected with
+    `("10.99", "every year")` and reason `period_mismatch`.
+- **REQ-MC-18** The stated periods shall be: the per-charge amount fields (`current_amount`,
+  `old_median_amount`, `new_amount`, `old_amount`, `first_paid_amount`) carry the alert's
+  `interval_type` when it is `weekly`, `monthly`, `quarterly` or `yearly`; `yearly_cost` and any
+  other field whose name contains `yearly` or `per_year` carry `yearly`. Every other field has no
+  stated period. The full list per detector is in design §7.
+- **REQ-MC-19** The period phrases shall be: English `per week`, `weekly`, `every week` (weekly);
+  `per month`, `a month`, `monthly`, `every month` (monthly); `per quarter`, `quarterly`
+  (quarterly); `per year`, `a year`, `yearly`, `annually`, `every year` (yearly). Spanish
+  `a la semana`, `semanal` (weekly); `al mes`, `mensual`, `cada mes` (monthly); `trimestral`,
+  `al trimestre` (quarterly); `al año`, `anual`, `cada año` (yearly). A phrase inside a longer
+  word or identifier (`yearly_cost`, `monthlyfee`) is not a phrase.
+- **REQ-MC-20** A period phrase shall be tied to the one figure nearest to it in its clause,
+  counted in characters between the two, with a currency symbol or code written next to the figure
+  counted as part of it. A phrase in a clause with no figure, or as near to two figures, is not
+  checked.
+  - AE-MC-20: `€10.99 per month and €131.88 per year` passes; `A recurring charge of €10.99 has
+    been detected, with a yearly cost of €131.88.` passes; `The total yearly cost is €131.88,
+    indicating that six monthly charges have been made` passes.
+- **REQ-MC-21** A figure shall be checked only when the fields it matches (equal `Decimal` value)
+  all have stated periods and those periods are one and the same. A figure that matches fields of
+  two different periods (for example a monthly `new_amount` of 12.00 and an `extra_cost_per_year`
+  of 12.00), or also a numeric field with no stated period, or no field at all (a figure only in
+  the cited rows), is not checked.
+- **REQ-MC-22** A sentence with no period phrase shall not be checked. A computed figure
+  (`[[calc: ...]]`, read as the marker `COMPUTED`) and a number written in words shall never be
+  checked by this rule; a computed figure still takes part in REQ-MC-20 as the nearest figure.
+- **REQ-MC-23** The check shall be pure and shall never raise, whatever the text. It shall not
+  change the number guard, `check_figures` (the Exorcise drafts) or the index-as-cause check.
+- **REQ-MC-24** The *Provoke the LLM* panel shall name a period rejection with its own verdict
+  sentence (`VERDICT_REJECTED_PERIOD_PREFIX`), so it is not called a figure that was not found.
+- **REQ-MC-25** No recorded verdict shall change silently. `tests/test_recorded_verdicts.py` is not
+  edited; if a recorded answer now ends on the template, the record is added to its pinned set and
+  explained record by record in `tasks.md` (task MC10).
+- **REQ-MC-26** `README.md`, *What the guard does not check*: the MUSICBOX example shall be
+  rewritten so it stays true: a period that contradicts the field is now rejected, other meaning is
+  still not checked, with one example from the tests that still passes. `docs/live-guard.md` is
+  changed only if it repeats the example.
+
 ## Not in this spec
 
 - No change to a detector, a threshold, the templates or the Exorcise drafts.

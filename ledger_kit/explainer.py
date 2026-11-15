@@ -12,7 +12,12 @@ from typing import Literal
 
 import pandas as pd
 
-from ledger_kit.calc import REASON_CALC_NOT_ALLOWED, Computation, resolve_calculations
+from ledger_kit.calc import (
+    GUARD_MARKER,
+    REASON_CALC_NOT_ALLOWED,
+    Computation,
+    resolve_calculations,
+)
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE, find_index_as_cause
 from ledger_kit.ingestion.iso4217 import NUMERIC_TO_ALPHA
 from ledger_kit.models import Alert
@@ -58,8 +63,9 @@ class Explanation:
     # The model's text as received (accepted or rejected); "" when it did not answer.
     raw_answer: str = field(default="", compare=False, repr=False)
     # Why the answer was rejected when the tokens are not figures ("" for a figure): the index named
-    # as a cause (REASON_INDEX_AS_CAUSE, the offending sentences as tokens) or a placeholder the
-    # kit will not compute (REASON_CALC_NOT_ALLOWED, the offending parts as tokens).
+    # as a cause (REASON_INDEX_AS_CAUSE, the offending sentences as tokens), a placeholder the
+    # kit will not compute (REASON_CALC_NOT_ALLOWED, the offending parts as tokens) or a period
+    # that contradicts the field a figure matches (REASON_PERIOD_MISMATCH, figure then phrase).
     rejected_reason: str = ""
     # The calculations the kit made for an accepted answer, in text order; () when it made none.
     computed: tuple[Computation, ...] = ()
@@ -131,6 +137,18 @@ def explain_with_meta(
         _log.warning("Number guard rejected LLM response for alert %s: %s", alert.id, rejected)
         return Explanation(
             text=fallback, source="fallback", rejected_numbers=rejected, raw_answer=raw
+        )
+
+    # Every figure is now known; the period words around it must not contradict its field.
+    mismatched = find_period_mismatches(calc.guard_text, alert)
+    if mismatched:
+        _log.warning("Period contradicts its field, answer rejected for alert %s", alert.id)
+        return Explanation(
+            text=fallback,
+            source="fallback",
+            rejected_numbers=mismatched,
+            raw_answer=raw,
+            rejected_reason=REASON_PERIOD_MISMATCH,
         )
 
     caused = find_index_as_cause(calc.guard_text)
@@ -566,6 +584,186 @@ def check_figures(
     """
     narrow_rows = _select_llm_columns(rows, row_columns)
     return _passes_number_guard(text, alert, narrow_rows, row_columns)
+
+
+# --- The period of a figure (model-computes REQ-MC-17 to REQ-MC-26) ---------------------------
+
+# The reason recorded on an answer that gives a figure a period its field contradicts.
+REASON_PERIOD_MISMATCH: str = "period_mismatch"
+# The values of Alert.data["interval_type"] that state a period.
+PERIOD_INTERVAL_TYPES: tuple[str, ...] = ("weekly", "monthly", "quarterly", "yearly")
+# Per-charge amount fields: one charge of the series, so they carry the alert's interval_type.
+PER_CHARGE_FIELDS: frozenset[str] = frozenset(
+    {"current_amount", "old_median_amount", "new_amount", "old_amount", "first_paid_amount"}
+)
+# A field whose name holds one of these parts is a yearly figure, whatever the interval.
+YEARLY_FIELD_PARTS: tuple[str, ...] = ("yearly", "per_year")
+# The period phrases read in an answer, English and Spanish, whole words, any case.
+PERIOD_PHRASES: dict[str, tuple[str, ...]] = {
+    "weekly": ("per week", "weekly", "every week", "a la semana", "semanal"),
+    "monthly": ("per month", "a month", "monthly", "every month", "al mes", "mensual", "cada mes"),
+    "quarterly": ("per quarter", "quarterly", "trimestral", "al trimestre"),
+    "yearly": (
+        "per year",
+        "a year",
+        "yearly",
+        "annually",
+        "every year",
+        "al año",
+        "anual",
+        "cada año",
+    ),
+}
+
+_PHRASE_PERIOD: dict[str, str] = {
+    phrase: period for period, phrases in PERIOD_PHRASES.items() for phrase in phrases
+}
+_PHRASE_ALTERNATIVES = "|".join(
+    r"\s+".join(re.escape(word) for word in phrase.split())
+    for phrase in sorted(_PHRASE_PERIOD, key=len, reverse=True)
+)
+_PERIOD_PHRASE_RE = re.compile(r"(?<!\w)(?:" + _PHRASE_ALTERNATIVES + r")(?!\w)", re.IGNORECASE)
+_PERIOD_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|\n+")
+# A clause ends at a comma or a semicolon before a space, or at a dash between spaces.
+_CLAUSE_SPLIT_RE = re.compile(r"[,;](?=\s)|\s[-\u2013\u2014]\s")
+# Spans that are not figures, blanked (same length) before figures are read.
+_NOT_FIGURE_PATTERNS = (
+    _IBAN_RE,
+    _DATE_ISO_RE,
+    _DATE_EU_RE,
+    _DATE_MDY_RE,
+    _DATE_DMY_RE,
+    _DATE_MD_PART_RE,
+    _DATE_DM_PART_RE,
+)
+# A currency right before or after a figure belongs to it ("€10.99", "10,99 EUR", "5 euros").
+_CURRENCY_BEFORE_RE = re.compile(r"[€$£]\s*$")
+_CURRENCY_AFTER_RE = re.compile(r"\s*[€$£]|\s+(?:[A-Z]{3}|[Ee]uros?)(?![A-Za-z])")
+_FIELD_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+@dataclass(frozen=True)
+class _Figure:
+    """One figure of a clause: its span (with its currency), as written, and its value."""
+
+    start: int
+    end: int
+    text: str
+    value: Decimal | None  # None for the marker of a computed figure: never checked
+
+
+def _field_number(value: object) -> Decimal | None:
+    """The value of a numeric field (Decimal, int, plain-number text), else None."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, Decimal):
+        return value if value.is_finite() else None
+    if isinstance(value, int):
+        return Decimal(value)
+    if isinstance(value, str) and _FIELD_NUMBER_RE.fullmatch(value.strip()):
+        return Decimal(value.strip())
+    return None
+
+
+def field_periods(data: Mapping[str, object]) -> dict[str, str]:
+    """Return {field name: period} for the fields of `data` whose period the alert states."""
+    interval = str(data.get("interval_type", "")).strip().lower()
+    periods: dict[str, str] = {}
+    for key in data:
+        name = str(key).lower()
+        if any(part in name for part in YEARLY_FIELD_PARTS):
+            periods[str(key)] = "yearly"
+        elif name in PER_CHARGE_FIELDS and interval in PERIOD_INTERVAL_TYPES:
+            periods[str(key)] = interval
+    return periods
+
+
+def _blank(pattern: re.Pattern[str], text: str) -> str:
+    """Replace each match of `pattern` by as many spaces, so offsets do not move."""
+    return pattern.sub(lambda m: " " * len(m.group(0)), text)
+
+
+def _clause_figures(clause: str) -> list[_Figure]:
+    """The digit figures and computed-figure markers of one clause, with their currency."""
+    figures: list[_Figure] = []
+    work = clause
+    for pattern in (_NUM_EU_RE, _NUM_PLAIN_RE):
+        for m in pattern.finditer(work):
+            start, end = m.start(), m.end()
+            before = _CURRENCY_BEFORE_RE.search(clause, 0, start)
+            if before is not None:
+                start = before.start()
+            after = _CURRENCY_AFTER_RE.match(clause, end)
+            if after is not None:
+                end = after.end()
+            figures.append(_Figure(start, end, m.group(0), _parse_decimal(m.group(0))))
+        work = _blank(pattern, work)
+    for m in re.finditer(re.escape(GUARD_MARKER), clause):
+        figures.append(_Figure(m.start(), m.end(), m.group(0), None))
+    return figures
+
+
+def _gap(figure: _Figure, phrase: re.Match[str]) -> int:
+    """Characters between a figure and a phrase (0 when they touch)."""
+    return max(phrase.start() - figure.end, figure.start - phrase.end(), 0)
+
+
+def _refs_pattern(refs: Sequence[str]) -> re.Pattern[str] | None:
+    """The source refs as one pattern, longest first, as the number guard reads them."""
+    if not refs:
+        return None
+    return re.compile(r"(?<![\w.])(?:" + "|".join(re.escape(r) for r in refs) + r")(?!\d)")
+
+
+def find_period_mismatches(text: str, alert: Alert) -> tuple[str, ...]:
+    """Return, for each period phrase that contradicts its figure's field, figure then phrase.
+
+    In each clause a period phrase belongs to the one figure nearest to it (a tie: to none). It
+    is checked when that figure matches fields of exactly one stated period and no numeric field
+    with no stated period. Computed figures (the marker) and number words are never checked.
+    Tokens are kept in the order found, each once.
+    """
+    named = field_periods(alert.data)
+    if not named:
+        return ()
+    stated: dict[Decimal, set[str]] = {}
+    unstated: set[Decimal] = set()
+    for key, raw in alert.data.items():
+        value = _field_number(raw)
+        if value is None:
+            continue
+        if str(key) in named:
+            stated.setdefault(value, set()).add(named[str(key)])
+        else:
+            unstated.add(value)
+    refs = sorted({r for r in alert.source_refs if r}, key=len, reverse=True)
+    ref_re = _refs_pattern(refs)
+    found: list[str] = []
+    for sentence in _PERIOD_SENTENCE_RE.split(text):
+        prepared = _without_non_figures(sentence, alert)
+        for pattern in _NOT_FIGURE_PATTERNS:
+            prepared = _blank(pattern, prepared)
+        if ref_re is not None:
+            prepared = _blank(ref_re, prepared)
+        for clause in _CLAUSE_SPLIT_RE.split(prepared):
+            figures = _clause_figures(clause)
+            if not figures:
+                continue
+            for phrase in _PERIOD_PHRASE_RE.finditer(clause):
+                gaps = [_gap(figure, phrase) for figure in figures]
+                nearest = [f for f, g in zip(figures, gaps, strict=True) if g == min(gaps)]
+                if len(nearest) != 1:
+                    continue  # two figures as near: the phrase is ambiguous
+                figure = nearest[0]
+                if figure.value is None or figure.value in unstated:
+                    continue
+                periods = stated.get(figure.value, set())
+                if len(periods) != 1:
+                    continue  # no stated period, or two different ones: not checked
+                said = _PHRASE_PERIOD.get(" ".join(phrase.group(0).casefold().split()))
+                if said is not None and said not in periods:
+                    found.extend((figure.text, phrase.group(0)))
+    return tuple(dict.fromkeys(found))
 
 
 # --- Numbers that are not figures (row citations, counts of cited rows, list markers) -----------

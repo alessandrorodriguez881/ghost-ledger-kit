@@ -8,11 +8,11 @@ Section references (§) in `tasks.md` point here; REQ ids point to `requirements
 |---|---|
 | `ledger_kit/calc.py` | **new**: `resolve_calculations`, `CalcOutcome`, `Computation`, `Operand`, `numeric_fields`, `question_integers`, constants |
 | `ledger_kit/utils/money.py` | one new helper `combine(operator, left, right)` (the one step of arithmetic) |
-| `ledger_kit/explainer.py` | system prompt rule; `explain_with_meta` resolves placeholders first; `Explanation.computed`; `_MONEY_FIELD_RE` |
-| `ledger_kit/live_guard.py` | `computed_lines`, `VERDICT_REJECTED_CALC_PREFIX`, `SHOWN_LABEL`; `ProbeResult.computed` and `shown_text` |
+| `ledger_kit/explainer.py` | system prompt rule; `explain_with_meta` resolves placeholders first; `Explanation.computed`; `_MONEY_FIELD_RE`; (27b) `find_period_mismatches`, `field_periods`, `REASON_PERIOD_MISMATCH` and the period constants (§7) |
+| `ledger_kit/live_guard.py` | `computed_lines`, `VERDICT_REJECTED_CALC_PREFIX`, `SHOWN_LABEL`; `ProbeResult.computed` and `shown_text`; (27b) `VERDICT_REJECTED_PERIOD_PREFIX` |
 | `apps/*/app.py` (three) | the caption lines under a card answer; the shown answer in the panel |
 | `README.md` | one paragraph, the Specs row, one Decisions row |
-| tests (new files only) | `tests/test_calc.py`, `tests/test_explainer_calc.py` |
+| tests (new files only) | `tests/test_calc.py`, `tests/test_explainer_calc.py`; (27b) `tests/test_explainer_period.py` |
 
 `calc.py` imports `number_words` and `utils.money` only; the explainer imports `calc`, never the
 other way round. `live_guard.py` imports `calc` for the types. No new module calls a model.
@@ -24,12 +24,13 @@ raw = _call_llm(...)
 calc = resolve_calculations(raw, alert.data, question=question, money_fields=<:money fields of the template>)
 if calc.rejected:       fallback, rejected_numbers = calc.rejected, rejected_reason = "calc_not_allowed"
 number guard on calc.guard_text      # placeholders read as COMPUTED; same guard, same rows
+period check on calc.guard_text      # (27b, §7) a period that contradicts a figure's field
 index-as-cause on calc.guard_text
 accept: text = calc.text, computed = calc.computed
 ```
 
-An answer with no placeholder has `guard_text == text == raw`, so the three later steps are the
-steps of today (REQ-MC-11).
+An answer with no placeholder has `guard_text == text == raw`, so the later steps read the answer
+as received (REQ-MC-11). The period check (§7, session 27b) is the one step added since.
 
 DN-MC-01 *Why the calculation is resolved before the number guard.* The guard must not read the
 digits inside a placeholder (`5`, `1.05`) as figures of the model. A rejected placeholder is
@@ -103,3 +104,98 @@ DN-MC-05 *`money.py` stays the only place of monetary arithmetic.* `calc.py` cal
 - A question number can be any number of the question, also one that is not a period count.
 - The currency is that of `Alert.data["currency"]` or `EUR`; there is no conversion.
 - The model may also fail to use the placeholder; then the answer is judged as today.
+
+## §7 The period of a figure (session 27b, REQ-MC-17 to REQ-MC-26)
+
+All of it is in `ledger_kit/explainer.py`, section *The period of a figure*:
+`find_period_mismatches(text, alert)`, `field_periods(data)`, the constants
+`REASON_PERIOD_MISMATCH`, `PERIOD_INTERVAL_TYPES`, `PER_CHARGE_FIELDS`, `YEARLY_FIELD_PARTS` and
+`PERIOD_PHRASES`. The panel gets one verdict sentence, `VERDICT_REJECTED_PERIOD_PREFIX` in
+`ledger_kit/live_guard.py`. No other module changes.
+
+DN-MC-06 *Where the check runs.* In `explain_with_meta`, after the number guard and before the
+index-as-cause check, on the same `calc.guard_text`:
+
+```
+calc = resolve_calculations(...)       # a bad placeholder: calc_not_allowed
+number guard on calc.guard_text        # an unknown figure: rejected tokens, reason ""
+find_period_mismatches(calc.guard_text, alert)   # period_mismatch: figure, phrase
+find_index_as_cause(calc.guard_text)   # price_index_as_cause
+```
+
+After the number guard, because the period check needs every figure to be a known one: an invented
+figure is still reported as a figure, as before, and the period check only judges figures the guard
+already let through. Before the index-as-cause check, because both read meaning and the period one
+is about a figure, the closer of the two to what the guard has always done. On `guard_text`,
+because a computed figure is the marker `COMPUTED` there: it is never checked (REQ-MC-22) but it
+still stands where the figure stands, so a phrase next to it is tied to it and not to a farther
+figure. `check_figures` (the Exorcise drafts) does not run it: a draft is a fixed template filled
+by the kit, not a model answer.
+
+DN-MC-07 *A phrase belongs to the nearest figure of its clause, not to every figure of the
+sentence.* The task said "in the sentence that holds the figure". Read literally, that rejects
+correct recorded answers: `The total yearly cost of this charge is €107.88, indicating that six
+monthly charges have been made.` (record Z11 of `2026-11-11_llama3.2-3b_demo.json`, the same in
+Z19) holds the yearly figure and the word `monthly` in one sentence, and `A recurring charge of
+€2.99 has been detected for GLOWBILL, with a total yearly cost of €35.88.` (Z09) holds the monthly
+figure and the word `yearly`. The rule therefore narrows the sentence twice: to the clause (a comma
+or semicolon before a space, or a spaced dash, ends it), and inside the clause to the one figure
+nearest to the phrase. A currency written next to a figure (`€10.99`, `10,99 EUR`) counts as part
+of the figure, so in `10,99 EUR al mes y 131,88 EUR al año` the phrase `al mes` is one character
+from its figure and three from the next one. A tie ties the phrase to nobody. The price: `costs
+10.99 EUR, every year` (the phrase alone after a comma) is not caught; see §7 limits.
+
+DN-MC-08 *Which fields carry which period.* Read from the detectors of the three apps on 15 Nov.
+The library cannot import the apps, so the rule is by field name (REQ-MC-18) and this table is
+what it gives today:
+
+| Detector | Field | Stated period |
+|---|---|---|
+| `zs.recurring_charge` | `current_amount` | the alert's `interval_type` (`weekly`, `monthly`, `quarterly`, `yearly`) |
+| | `yearly_cost` | yearly |
+| | `charge_count`, dates, names, `is_active` | none |
+| `zs.price_increase` | `old_median_amount`, `new_amount` | the alert's `interval_type` |
+| | `extra_cost_per_year`, `yearly_cost` | yearly |
+| | `price_change_percent`, every `cpi_*` field (also `cpi_base_year`, whose name has `year` but neither `yearly` nor `per_year`), the months | none |
+| `zs.duplicate_subscription` | `yearly_cost` | yearly |
+| | `series_count`, names | none (the alert has no `interval_type`: its series may differ) |
+| `zs.free_trial_to_paid` | `first_paid_amount` | the alert's `interval_type` |
+| | `yearly_cost` | yearly |
+| | `trial_amount` (one token charge, not a charge of the series), `days_before_first_charge` | none |
+| `zs.charges_after_cancellation` | `yearly_cost` | yearly |
+| | `total_charged_after`, `post_cancellation_count`, `cancellation_date` | none (no `interval_type`) |
+| `vf.recurring_fee` | `current_amount` | the alert's `interval_type` (`monthly`, `quarterly`, `yearly`) |
+| | `yearly_cost` | yearly |
+| | `charge_count`, dates, names | none |
+| `vf.fee_increase` | `old_amount`, `new_amount` | the alert's `interval_type` |
+| | `extra_cost_per_year`, `yearly_cost` | yearly |
+| | `increase_percent`, dates | none |
+| `vf.overdraft_cost` | every field (`interest_total`, `fee_total`, `total`, the counts, the dates) | none |
+| `vf.fee_summary` | `yearly_equivalent` (only for a span of 90 days or more) | yearly |
+| | `total_fees`, `fee_count`, `span_days`, dates | none |
+| `pi.duplicate_invoice`, `pi.iban_change`, `pi.vat_error`, `pi.reconciliation` | every field | none: no `interval_type` and no yearly field; `days_apart` and `days_past_due` count days, they are not a period of a cost |
+
+So the check can fire on the zombie and vampire alerts above and never on a phantom alert.
+
+DN-MC-09 *Ambiguous figures are left alone.* A figure is checked only when every field it matches
+has a stated period and all of them say the same (REQ-MC-21). A monthly `new_amount` of 12.00 next
+to an `extra_cost_per_year` of 12.00 could be either, so neither phrase rejects it. A yearly
+interval is not ambiguous: its `current_amount` and `yearly_cost` are both yearly, so `a month`
+next to it is rejected. A figure that also equals a numeric field with no stated period (a count
+of 12, say) is left alone too: the model may be quoting that field.
+
+DN-MC-10 *The recorded verdicts.* Every committed answer was read against this rule, record by
+record, before the code was written (task MC10). None ends on the template because of it, so the
+pinned sets of `tests/test_recorded_verdicts.py` are expected to stay as they are; the first
+`pytest` run confirms it.
+
+Limits of §7 (the README states the first two):
+
+- It checks the period only, not other meaning: `MUSICBOX raised its price to 10.99 EUR per month`
+  passes on an alert where nothing rose.
+- A figure that matches no field with a stated period is not checked: on the duplicate-subscription
+  card 10.99 is only in the cited rows, so `MUSICBOX costs 10.99 EUR every year` still passes there.
+- A phrase separated from its figure by a comma (`10.99 EUR, every year`) is not tied to it, and a
+  phrase not in the list (`per annum`, `every quarter`, `anuales`) is not read.
+- Numbers written in words are not checked by this rule (the number guard still checks their
+  value).
