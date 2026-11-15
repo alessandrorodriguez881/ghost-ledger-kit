@@ -44,6 +44,7 @@ ghost-ledger-kit/
 │       ├── money.py                # Decimal arithmetic helpers, rounding, formatting
 │       └── anonymise.py            # PII scrubbing utilities
 ├── apps/
+│   ├── home_tiles.py               # Bridge for the Home page: runs each app's demo pipeline for one cited-row drawing per tile and the recorded moment
 │   ├── zombie_subscriptions/       # App 1: personal recurring-charge detector
 │   │   ├── __init__.py
 │   │   ├── app.py                  # Streamlit entry point (path bootstrap at top)

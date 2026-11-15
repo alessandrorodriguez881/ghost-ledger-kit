@@ -11,7 +11,9 @@ Pure module: no Streamlit. It reads four committed files and nothing else, never
 - ``data/public/ine_cpi_ipc290751.json``: the INE consumer price index snapshot;
 - the Home example of ``ledger_kit/replay.py`` (guard-honesty): one recorded answer of a real
   model that assumed an interest rate found in no row and built a total on it, with the number
-  guard rejecting it; the 107.88 × 5 = 539.40 note says the guard does no arithmetic.
+  guard rejecting it; the 107.88 × 5 = 539.40 note says the guard does no arithmetic. Home now
+  shows it as the moment (``moment_html``, session 26): the same recording, with the verdict and
+  the template that ``apps/home_tiles.py`` gets from today's guard.
 
 A file that is missing or malformed gives ``n/a`` for its fact (or no example) and never an
 exception. The number of tests is not shown anywhere: it changes with every session.
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import html
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
@@ -193,8 +196,12 @@ def proof_strip_html(facts: list[Fact]) -> str:
     return f'<div class="gl-grid gl-proof">{cards}</div>'
 
 
-def tile_html(tile: Tile) -> str:
-    """Return one app tile: icon and name in the app's accent, purpose, demo numbers."""
+def tile_html(tile: Tile, drawing: str = "") -> str:
+    """Return one app tile: icon and name in the app's accent, purpose, drawing, demo numbers.
+
+    `drawing` is the ready markup of the app's signature (``apps/home_tiles.py`` builds it with
+    the functions of ``signatures.py``); '' leaves the tile as it was, without a drawing.
+    """
     stats = "".join(
         f'<div><div class="gl-figure">{html.escape(figure)}</div>'
         f'<div class="gl-label">{html.escape(label)}</div></div>'
@@ -205,13 +212,16 @@ def tile_html(tile: Tile) -> str:
         f'<div class="gl-tile-head">{icon(tile.accent.icon, size=38, decorative=True)}'
         f'<span class="gl-tile-name">{html.escape(tile.accent.title)}</span></div>'
         f'<div class="gl-note">{html.escape(tile.purpose)}</div>'
+        f"{drawing}"
         f'<div class="gl-stats">{stats}</div></div>'
     )
 
 
-def tiles_html(tiles: tuple[Tile, ...] = TILES) -> str:
-    """Return the grid of the three app tiles."""
-    return f'<div class="gl-grid gl-tiles">{"".join(tile_html(tile) for tile in tiles)}</div>'
+def tiles_html(tiles: tuple[Tile, ...] = TILES, drawings: Mapping[str, str] | None = None) -> str:
+    """Return the grid of the three app tiles; `drawings` maps an accent key to its markup."""
+    shown = drawings or {}
+    cards = "".join(tile_html(tile, shown.get(tile.accent.key, "")) for tile in tiles)
+    return f'<div class="gl-grid gl-tiles">{cards}</div>'
 
 
 def diagram_html() -> str:
@@ -298,5 +308,108 @@ def example_html(recording: Recording | None) -> str:
         f"{html.escape(rate)} and built {html.escape(total)} on it. "
         "The number guard: <b>rejected</b>.</div>"
         f'<div class="gl-example-note">{html.escape(EXAMPLE_NOTE)}</div>'
+        "</div>"
+    )
+
+
+# --- the moment of Home (haunted-design, session 26) ------------------------------------------
+
+MOMENT_STAMP = "Rejected by the number guard."
+MOMENT_TEMPLATE_LABEL = "Fixed template shown instead"
+MOMENT_NOTE = (
+    "A recorded answer: no model is called. The number guard ran now on the recorded text. It "
+    "checks figures, not wording."
+)
+
+
+@dataclass(frozen=True)
+class Moment:
+    """What the moment of Home shows: the recording, today's rejected tokens, the template text.
+
+    ``apps/home_tiles.py`` builds it from the guard's own verdict, so nothing here is a figure
+    the page wrote: the answer is the recording, the template is what the guard showed instead.
+    """
+
+    recording: Recording
+    rejected: tuple[str, ...]  # Explanation.rejected_numbers of the replay through today's guard
+    template: str  # Explanation.text: the filled fixed template
+
+
+def struck_marks(rejected: Sequence[str]) -> tuple[str, ...]:
+    """Return the marks of the Home example whose number the guard rejected, in mark order.
+
+    ``5%`` is struck because the guard rejects ``5``; ``617.51`` because it rejects ``617.51``.
+    """
+    tokens = set(rejected)
+    return tuple(mark for mark in HOME_EXAMPLE_MARKS if mark.rstrip("%") in tokens)
+
+
+def _strike_in(sentence: str, marks: Sequence[str]) -> str:
+    """Return the sentence as escaped HTML; each whole occurrence of a mark is a strike mark.
+
+    The class ``gl-strike-1`` or ``gl-strike-2`` (the position of the mark in
+    ``HOME_EXAMPLE_MARKS``) only sets the delay of the strike in the CSS.
+    """
+    parts = []
+    for seg in highlight_segments(sentence, marks):
+        if not seg.flagged:
+            parts.append(html.escape(seg.text))
+            continue
+        position = next(
+            (n for n, mark in enumerate(HOME_EXAMPLE_MARKS, start=1) if mark in seg.text), 1
+        )
+        parts.append(
+            f'<mark class="gl-strike gl-strike-{position}" style="{MARK_STYLE}">'
+            f"{html.escape(seg.text)}</mark>"
+        )
+    return "".join(parts)
+
+
+def moment_html(moment: Moment | None) -> str:
+    """Return the moment of Home, or '' when the recording cannot carry it.
+
+    The label (model and date of the recording, and that no model is called), the preset
+    question, the sentences of the answer that hold the invented figures, each figure marked; a
+    stamp that names the struck figures; the fixed template the guard showed instead; a note.
+    The CSS strikes the marks, then shows the stamp, then the template (``MOMENT_CSS``); the
+    markup holds the final state. '' for None, for a question that is not a preset, for a
+    guard that rejected none of the marks, for a mark that is not in the raw answer and for an
+    empty template.
+    """
+    if moment is None:
+        return ""
+    recording = moment.recording
+    question = recording.question_text
+    struck = struck_marks(moment.rejected)
+    template = " ".join(moment.template.split())
+    if question is None or not struck or not template:
+        return ""
+    if any(mark not in recording.raw_answer for mark in struck):
+        return ""
+    total = HOME_EXAMPLE_MARKS[-1]
+    sentences: list[str] = []
+    for mark in struck:
+        # the rate is quoted where it first appears, the total where the model concludes
+        if mark == total:
+            found = recording.last_sentence_with(mark)
+        else:
+            found = recording.sentence_with(mark)
+        if found is not None and found not in sentences:
+            sentences.append(found)
+    quotes = " ".join(f"“{_strike_in(sentence, struck)}”" for sentence in sentences)
+    source = f"{recording.model_name}, {recording.date}"
+    label = f"One recorded answer of {source}. No model is called."
+    figures = ", ".join(html.escape(mark) for mark in struck)
+    return (
+        '<div class="gl-moment">'
+        f'<div class="gl-moment-label">{html.escape(label)}</div>'
+        f'<div class="gl-moment-q">Question: {html.escape(question)}</div>'
+        f'<div class="gl-moment-answer">The model wrote: {quotes}</div>'
+        f'<div class="gl-stamp"><b>{html.escape(MOMENT_STAMP)}</b> '
+        f"Struck out: {figures}. Not in any cited row or alert field.</div>"
+        '<div class="gl-moment-after">'
+        f'<div class="gl-label">{html.escape(MOMENT_TEMPLATE_LABEL)}</div>'
+        f'<div class="gl-moment-template">{html.escape(template)}</div></div>'
+        f'<div class="gl-moment-note">{html.escape(MOMENT_NOTE)}</div>'
         "</div>"
     )

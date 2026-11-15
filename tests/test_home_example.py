@@ -331,8 +331,10 @@ LINE_3 = (
     "not meaning (see What the guard does not check)."
 )
 STEP_1 = (
-    "1. Open Home. It shows one recorded answer of a real model (`llama3.2:3b`) that assumed a "
-    "5% interest rate found in no row and built 617.51 on it, and the number guard rejecting it."
+    "1. Open Home. Within three seconds it shows one recorded answer of a real model "
+    "(`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and "
+    "the number guard striking both figures out and showing a fixed template instead. Each app "
+    "tile shows that app's own drawing, and the rest of the text is under *How it works*."
 )
 STEP_4_ADDED = (
     "The model's arithmetic is right (107.88 × 5 = 539.40) and the guard still rejects it: it "

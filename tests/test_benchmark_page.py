@@ -268,10 +268,12 @@ def _imported_modules(path: Path) -> set[str]:
 def test_the_entry_imports_no_runner_app_or_detector_code() -> None:
     imported = _imported_modules(REPO_ROOT / "streamlit_app.py")
 
-    for name in imported:
+    allowed = {"apps", "apps.home_tiles"}  # the one bridge to the demo data of the apps
+    for name in imported - allowed:
         root = name.split(".")[0]
         assert root not in {"scripts", "apps", "pandas"}, name
         assert not name.startswith("ledger_kit.detectors"), name
+    assert "apps.home_tiles" in imported
 
 
 def test_the_entry_reads_the_results_with_the_standard_library_json() -> None:

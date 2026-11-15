@@ -24,7 +24,10 @@ Ids are `REQ-SC-nn`. EARS keywords: *shall*, *when*, *while*, *where*, *if ... t
   *Simulate a hallucinating LLM* idea, (d) the two apps exist, and (e) all data is synthetic.
 - **REQ-SC-03** When the user opens an app page, the system shall run that app's own `app.py`
   unchanged in behaviour, and each app shall still work alone with
-  `streamlit run apps/<name>/app.py`. The showcase shall not import either app.
+  `streamlit run apps/<name>/app.py`. The showcase shall not import either app. *(Amended in
+session 26b: `streamlit_app.py` imports exactly one app-side module, `apps.home_tiles`, and no
+other app module, no detector and no benchmark runner. Reason: the drawings of the Home tiles
+come from each app's own demo pipeline, so they show only cited rows and no figure of their own.)*
 - **REQ-SC-04** The two apps shall share no widget key and no `st.session_state` key.
 - **REQ-SC-05** When the user leaves an app page and comes back, the app shall still show the
   demo data and the sidebar values it had (Streamlit drops the state of widgets that a run does

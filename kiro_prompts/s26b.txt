@@ -1,0 +1,9 @@
+Session 26b, fixes after my review of session 26. My run after your call: ruff clean, 4,025 passed, 1 skipped, 2 failed.
+
+1. tests/test_home_moment.py::test_the_moment_ends_within_three_seconds_and_starts_after_about_one fails on floating point: assert 1.7 >= (1.3 + 0.4), because 1.3 + 0.4 is 1.7000000000000002. Compare in whole milliseconds (or with a tolerance of 1 ms); keep the rule itself (starts after about one second, ends within three seconds).
+
+2. tests/test_benchmark_page.py::test_the_entry_imports_no_runner_app_or_detector_code fails: AssertionError apps, assert apps not in the set of top-level imports of streamlit_app.py (apps, pandas, scripts). You already allowed exactly the import of apps.home_tiles in the other entry test; do the same here: allow only apps.home_tiles, still forbid importing any app module directly, the benchmark runner and the detectors. Amend the showcase spec requirement that says the entry page imports neither app (record the amendment and the reason: the tile drawings come from each app's own demo pipeline so they only show cited rows), fix the sentence of the streamlit_app.py module docstring that says this file imports neither app, and add apps/home_tiles.py with one short description to the layout in .kiro/steering/structure.md.
+
+3. .kiro/specs/haunted-design/tasks.md: record my run above and these two fixes in one line each.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed.

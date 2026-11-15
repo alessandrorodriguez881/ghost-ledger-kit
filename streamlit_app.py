@@ -4,7 +4,8 @@ Run with: ``streamlit run streamlit_app.py``
 
 ``st.navigation`` offers five pages: Home and Benchmark (functions written below) and the three
 apps, whose ``app.py`` files run unchanged as pages. Each app still works alone with
-``streamlit run apps/<name>/app.py``. This file imports neither app (spec: showcase) and none of
+``streamlit run apps/<name>/app.py``. This file imports no app module except ``apps.home_tiles``
+(the bridge that runs the demo data of the apps for the Home tiles and the moment) and none of
 the benchmark code: the Benchmark page only shows ``data/benchmark/results.json``.
 
 The look comes from ``ledger_kit/ui`` (spec haunted-design): the menu icons are drawn by the
@@ -24,7 +25,7 @@ from typing import Any, NamedTuple
 
 import streamlit as st
 
-from ledger_kit import replay
+from apps import home_tiles
 from ledger_kit.ui import landing, theme
 
 
@@ -51,6 +52,7 @@ PAGES: tuple[PageSpec, ...] = (
 )
 
 HOME_TITLE = "Ghost Ledger Kit"
+HOW_IT_WORKS = "How it works"  # the closed expander below the tiles
 
 PROMISE = (
     "Financial apps that cannot make up a number: every figure comes from a row you can check."
@@ -122,26 +124,27 @@ def _start_here() -> None:
 
 
 def home() -> None:
-    """Render Home: promise, story, recorded example, Start here, proof strip, apps, layers."""
+    """Render Home: promise, the moment, proof strip, app tiles, then How it works (closed)."""
     theme.apply_theme(theme.KIT)
     theme.show_masthead(theme.KIT)
     st.title(HOME_TITLE)
     _markdown(f'<div class="gl-promise">{html.escape(PROMISE)}</div>')
-    _markdown(landing.story_html(STORY))
-    example = landing.example_html(replay.home_example())
-    if example:
-        _markdown(example)
-    _start_here()
+    moment = landing.moment_html(home_tiles.home_moment())
+    if moment:
+        _markdown(moment)
     theme.show_section("scales", "Proof, read from the committed files")
     _markdown(landing.proof_strip_html(landing.proof_facts(results_path=RESULTS_PATH)))
     theme.show_section("ghost", "Three apps, one contract")
-    _markdown(landing.tiles_html())
-    theme.show_section("candle", "How a figure reaches the screen")
-    _markdown(landing.diagram_html())
-    st.markdown(LAYERS)
-    st.info(TRY_IT)
-    st.caption(SYNTHETIC_NOTE)
-    st.caption(INE_NOTE)
+    _markdown(landing.tiles_html(drawings=home_tiles.tile_signatures()))
+    with st.expander(HOW_IT_WORKS, expanded=False):
+        _markdown(landing.story_html(STORY))
+        _start_here()
+        theme.show_section("candle", "How a figure reaches the screen")
+        _markdown(landing.diagram_html())
+        st.markdown(LAYERS)
+        st.info(TRY_IT)
+        st.caption(SYNTHETIC_NOTE)
+        st.caption(INE_NOTE)
 
 
 NO_RESULTS = "No usable benchmark results. Run: python scripts/benchmark.py"

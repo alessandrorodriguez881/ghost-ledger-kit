@@ -116,10 +116,28 @@ def test_no_app_has_its_own_requirements_file() -> None:
     assert not (REPO_ROOT / "ledger_kit" / "requirements.txt").exists()
 
 
-def test_the_entry_page_imports_neither_app() -> None:
-    """streamlit_app.py runs the apps as pages; it does not import them (REQ-SC-03)."""
-    for module, _names in _imports(ENTRY):
-        assert module.split(".")[0] != "apps", module
+def test_the_entry_page_imports_no_app_but_the_bridge() -> None:
+    """streamlit_app.py runs the apps as pages; the one app module it imports is the bridge.
+
+    ``apps.home_tiles`` runs the demo data of the apps for the Home tiles and the moment
+    (REQ-HD-23). No other module outside an app folder may import an app.
+    """
+    for module, names in _imports(ENTRY):
+        if module.split(".")[0] != "apps":
+            continue
+        assert module == "apps" and names == ["home_tiles"], (module, names)
+
+
+def test_only_the_bridge_outside_the_app_folders_imports_an_app() -> None:
+    """Under apps/, a file that is not in an app folder is the bridge, and nothing else is."""
+    loose = sorted(path.name for path in (REPO_ROOT / "apps").glob("*.py"))
+
+    assert loose == ["__init__.py", "home_tiles.py"]
+    modules = {module for module, _names in _imports(REPO_ROOT / "apps" / "home_tiles.py")}
+    assert any(module.startswith("apps.") for module in modules)
+    for path in sorted((REPO_ROOT / "ledger_kit").rglob("*.py")):
+        offenders = [m for m, _n in _imports(path) if m.split(".")[0] == "apps"]
+        assert offenders == [], path.name
 
 
 def test_apps_never_import_each_other() -> None:

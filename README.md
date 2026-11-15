@@ -9,7 +9,7 @@ Financial apps where an LLM may word the explanation but cannot slip in a figure
 
 No key and no install are needed on the public app.
 
-1. Open Home. It shows one recorded answer of a real model (`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and the number guard rejecting it.
+1. Open Home. Within three seconds it shows one recorded answer of a real model (`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and the number guard striking both figures out and showing a fixed template instead. Each app tile shows that app's own drawing, and the rest of the text is under *How it works*.
 2. Open Zombie Subscriptions. The demo loads by itself.
 3. Each card shows a drawing from its cited rows and the recorded real answer, re-checked by today's number guard and labelled *No model called*.
 4. On the GYMPLUS card, open *Provoke the LLM* and replay the five-year question. The model's arithmetic is right (107.88 × 5 = 539.40) and the guard still rejects it: it does no arithmetic and lets through only figures it finds in the rows.
@@ -209,6 +209,7 @@ This is a student project. I set the goal, picked the idea from two options an A
 | 12 Nov | Make the hooks run in the CLI build (lint after every write, tests on stop, a log in the repo) | Claude Code, after the adversarial review found that the hooks never ran | Claude Code, within my general go-ahead to keep improving the project |
 | 13 Nov | Read number words in the guard, and make the Home example a real invention, after a fresh jury showed that 539.40 is right arithmetic and that five hundred and forty euros passed | Claude Code, after the fresh jury | Claude Code, within my go-ahead to keep working through the night |
 | 13 Nov | Give each app its own drawing on every alert card (a pulse for Zombie, bites for Vampire, a lantern for Phantom), drawn only from the cited rows and checked by the number guard, after the fresh jury found the three apps looked the same | Claude Code, after the fresh jury | Claude Code, within my go-ahead to keep working through the night |
+| 15 Nov | Home with one clear moment: the recorded invention appears and the guard strikes it out in under three seconds; the rest of the text moves into How it works; each app tile shows its own drawing | the adversarial review of 14 Nov, drafted by Claude Code | Me |
 
 ## How we used Kiro
 

@@ -96,7 +96,8 @@ grids that wrap, Streamlit columns that wrap below 1100 pixels, no horizontal pa
   `max-width: 800px` rule for the headings and the grids.
 
 **REQ-HD-13** The system shall use no animation. The only decoration is a static, very faint fog
-gradient behind the content.
+gradient behind the content. (Amended in session 26: the moment of Home, REQ-HD-18, is the one
+exception, carried by the style block of Home only.)
 - Example: the CSS has no `animation`, `@keyframes` or `transition` property.
 
 ### Constraints
@@ -109,3 +110,85 @@ figures, `source_refs`, widget keys, alert texts, the explainer and the number g
 **REQ-HD-15** Every page of the showcase (Home, the three apps with and without demo data,
 Benchmark) shall render without an exception, and each page injects exactly one `<style>` block.
 - Example: `AppTest` runs of the five pages end with `not at.exception`.
+
+---
+
+# Session 26: Home with one clear moment (15 Nov)
+
+## Why
+
+The owner chose this on 15 Nov from the three improvements that a fresh jury proposed on 14 Nov
+(the jury: Design 5 of 10, too much text, the three apps look alike, a judge should get the point
+in three seconds without reading). It is a Home-page change only: the order of the page, one
+animated moment, less text above the fold and one drawing per app tile.
+
+## Scope
+
+In: `streamlit_app.py` (`home`), `ledger_kit/ui/landing.py` and `theme.py`, one new module
+`apps/home_tiles.py` (the bridge to the demo data of the apps), the tests that pin the Home layout,
+`README.md` (the For judges step 1 and one Decisions row).
+
+Out: the three apps, the detectors, the explainer and the number guard, `replay.py`, the committed
+run files, `signatures.py`, every dependency, every network request.
+
+## Requirements (EARS)
+
+**REQ-HD-16** The Home page shall show, in this order: the title, the one-line promise, the
+moment, the proof strip, the three app tiles, and one closed expander named `How it works`.
+- Example: in `AppTest`, the index of the title is lower than the promise, the moment, the proof
+  strip, the tiles and the expander, in that order.
+
+**REQ-HD-17** The moment shall show the recorded real answer that `replay.home_example()` returns
+(record P3 of `data/live_runs/2026-11-10_llama3.2-3b.json`) as the model wrote it, with each
+invented figure (`HOME_EXAMPLE_MARKS`) highlighted; then a stamp `Rejected by the number guard`
+that names the struck figures; then the fixed template the guard showed instead; and the honest
+note that the answer is recorded and no model is called.
+- Example: the markup holds two `gl-strike` marks, one `gl-stamp` with `5%` and `617.51`, and one
+  `gl-moment-template`; the label says `No model is called`.
+
+**REQ-HD-18** The system shall play the moment with CSS only: about one second after the page
+loads each invented figure is struck through, then the stamp appears, then the template; all of it
+ends within three seconds and plays once. Where the visitor prefers reduced motion
+(`prefers-reduced-motion: reduce`), the system shall show the final state at once. The system
+shall use no JavaScript, no component and no new package. This is the one animation of the
+showcase and it is carried by the CSS of Home only: REQ-HD-13 holds for every other page.
+- Example: the largest `delay + duration` of the moment rules is at most 3 s; the first delay is
+  about 1 s; every animation has the iteration count 1; the reduced-motion rule sets
+  `animation: none`.
+
+**REQ-HD-19** The moment shall write no figure of its own. Every figure on screen comes from the
+recording or from the alert. The verdict is today's number guard run on the recorded text and the
+alert that the record names (a Phantom Invoices demo alert), through the same call as a card
+replay. If the file is missing or malformed, the alert is not found, the guard no longer rejects
+the answer, or a mark is not in the answer, then the system shall draw no moment and the rest of
+Home shall render.
+- Example: every number in the visible text of the moment is in the raw answer or in the filled
+  template; with no run file Home has no `gl-moment` and still has the proof strip and tiles.
+
+**REQ-HD-20** The system shall move the three-line story, the Start here link, the diagram with
+its heading, the layers text, the try-it box, the synthetic note and the INE note into the
+expander `How it works`, below the tiles, in that order and with the same words. Nothing is
+deleted. The proof strip stays right under the moment.
+- Example: the expander holds `STORY`, `START_HERE`, `LAYERS`, `TRY_IT`, `SYNTHETIC_NOTE` and
+  `INE_NOTE` unchanged; the INE attribution still appears once on the page.
+
+**REQ-HD-21** Each app tile shall show the signature drawing of its own app (the pulse for Zombie
+Subscriptions, the lantern for Phantom Invoices, the bites for Vampire Fees), drawn by the same
+`signatures.py` functions and from the same cited rows as the alert cards, for one real alert of
+that app's demo data. The alert is the first alert in the order the page lists them: the first
+critical alert, else the first warning, else the first info. The tile also shows that alert's
+`source_refs` as chips. The tile keeps its title, colour, one line and demo numbers.
+- Example: the Zombie tile holds `gl-heartbeat`, the Vampire tile `gl-bites`, the Phantom tile
+  `gl-lantern`; each tile's drawing equals the drawing the app page makes for the same alert.
+
+**REQ-HD-22** The system shall build the three tile drawings once per process (`st.cache_data`)
+and Home shall render within the timeout of the existing Home tests (60 s). A failure of one
+drawing shall leave that tile without a drawing and shall not stop Home.
+- Example: after `tile_signatures.clear()`, two runs of Home call `run_pipeline` of Zombie
+  Subscriptions once.
+
+**REQ-HD-23** `apps/home_tiles.py` shall be the only module outside the three app folders that
+imports an app. `streamlit_app.py` shall import no app module except `apps.home_tiles`, and
+`ledger_kit` shall import no app.
+- Example: `test_the_entry_page_imports_no_app_but_the_bridge` and
+  `test_ledger_kit_imports_no_app_after_this_change`.

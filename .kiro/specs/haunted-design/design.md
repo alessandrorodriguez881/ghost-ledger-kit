@@ -70,7 +70,70 @@ are separate markdown elements that start with `<div`, which also keeps them out
 | `test_pi_app_logic`, `test_vf_app_logic` titles; coffin card emoji | Titles; `🧛 BANCO FICTICIO` becomes the icon and the name. |
 | `test_showcase_theme` | The palette now also lives in `ledger_kit/ui/theme.py`, so that file joins the sources the theme colours are looked up in. |
 
+## Session 26: Home with one clear moment (chosen by the owner on 15 Nov)
+
+The owner chose this change on 15 Nov from the three improvements of the fresh jury of 14 Nov.
+
+**New and changed files.**
+
+| File | Change |
+|---|---|
+| `ledger_kit/ui/landing.py` | `Moment`, `struck_marks`, `moment_html` (pure); `tile_html` and `tiles_html` take an optional drawing per tile. `example_html` and `EXAMPLE_NOTE` stay, unused by Home. |
+| `ledger_kit/ui/theme.py` | `MOMENT_CSS` (the only `@keyframes` of the showcase), added to the style block of Home only; two small tile rules in `BASE_CSS`. |
+| `apps/home_tiles.py` | New. `tile_signatures()` (cached), `home_moment()`, `pick_alert()`. |
+| `streamlit_app.py` | `home()` in the new order; the expander `How it works`. |
+
+**Decisions.**
+
+- **DN-HD-11 The bridge.** The tile drawings need each app's own pipeline (the detectors live in
+  the apps), and `ledger_kit` may not import an app. `apps/home_tiles.py` is the one module that
+  imports the three apps' `settings` and detectors, and `streamlit_app.py` imports only it. It
+  imports the three detector packages at module level, so a registry snapshot that a test
+  restores still holds the detectors.
+- **DN-HD-12 One alert per tile, in a fixed way.** `pick_alert` takes the alerts in the order the
+  page lists them (critical, warning, info, stable inside a severity) and returns the first. The
+  drawing is made by the same functions as the card (`rows_for_refs`, `heartbeat_svg` with the
+  alert's `cancellation_date`, `bites_svg`, `lantern_view` with `lantern_lit_columns`).
+- **DN-HD-13 The verdict of the moment is computed, not copied.** `home_moment()` runs
+  `explain_alert` of Phantom Invoices on the alert named by record P3, with a `ReplayClient`, as a
+  card replay does. The struck figures are the marks of `HOME_EXAMPLE_MARKS` whose number is in
+  `Explanation.rejected_numbers` (`5%` is struck because `5` is rejected). The template shown is
+  `Explanation.text`. It is not cached, because the example path is read at call time and tests
+  point it elsewhere; the pipeline under it is cached with `st.cache_resource`.
+- **DN-HD-14 `EXAMPLE_NOTE` is not on Home.** It writes `107.88 × 5 = 539.40`, figures of another
+  recording, and REQ-HD-19 allows no figure of its own. The README step 4 and the Provoke panel
+  still carry that point.
+- **DN-HD-15 Animation by `transform` and `opacity` only.** The strike is a `::after` bar that
+  grows with `scaleX`, so it needs no layout and no `text-decoration` animation. The base style of
+  each piece is its final state; the keyframes only name the `from` state with `fill-mode: both`,
+  so a browser without animation, and the reduced-motion rule (`animation: none`), show the end.
+  Timeline: strikes at 1.0 s and 1.3 s (0.4 s each), stamp at 1.7 s, template at 2.1 s, end 2.5 s.
+- **DN-HD-16 The diagram moves with the layers text.** It was below the tiles with that text and
+  has the same heading, so the heading, the diagram and the layers text go into the expander
+  together.
+- **DN-HD-17 Tile signature size.** The shared rule gives a signature `min-width: 30rem`; inside
+  a tile that would scroll sideways, so a tile rule sets it to 0. The drawing is smaller and its
+  dates are small; the full size is on the alert card.
+
+**Tests that had to change (the only ones).**
+
+| Test | Why |
+|---|---|
+| `test_judge_path_pages` Home tests, `test_the_start_here_link...` | The story and the link are in the expander; the order is the new one. |
+| `test_ui_theme::test_nothing_animates` | The one animation is allowed, only in the Home style block and only inside `MOMENT_CSS`. |
+| `test_showcase_requirements::test_the_entry_page_imports_neither_app` | The entry imports exactly `apps.home_tiles` (REQ-HD-23). |
+| `test_home_example` README step 1 | The step text changed with Home. |
+
+No honesty test is weakened: the number guard, the recorded verdict tests and the `example_html`
+tests are unchanged.
+
 ## Not verified without a browser
+
+The animation timing, the strike bar over the highlighted figure, the stamp rotation and the
+size of the drawings inside a tile are checked by the user in a browser, with and without
+`prefers-reduced-motion`.
+
+## Not verified without a browser (earlier sessions)
 
 Raw inline `<svg>` inside `st.markdown`, the sidebar link selectors, the container-key class
 position and the favicon are checked by the user in the browser at 1400 and 800 px.

@@ -2,7 +2,8 @@
 
 One module owns the palette, the accent of each app, the single ``<style>`` block every page
 injects, and the small HTML helpers (masthead, section heading, card, severity badge). Nothing
-here loads a font, an image or a script from the network, and nothing animates.
+here loads a font, an image or a script from the network, and nothing animates, with one
+exception: the moment of Home (``MOMENT_CSS``, only in the style block of the kit accent).
 
 The helpers that build markup (``masthead_html``, ``card_html`` ...) are pure strings; the few
 that call Streamlit are ``apply_theme``, ``set_page``, ``show_masthead``, ``show_section`` and
@@ -412,6 +413,9 @@ BASE_CSS: str = """
 .stApp .gl-tile-name { font-size: 1.25rem; color: #e8dcc0; }
 .stApp .gl-stats { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 0.7rem; }
 .stApp .gl-stats .gl-figure { font-size: 1.8rem; margin: 0; }
+.stApp .gl-tile .gl-signature { margin: 0.6rem 0 0.2rem; padding: 0.4rem 0.5rem 0.3rem; }
+.stApp .gl-tile .gl-signature svg.gl-sig-svg { min-width: 0; }
+.stApp .gl-tile-refs { margin-top: 0.2rem; }
 .stApp .gl-diagram { margin: 0.4rem 0 1rem; }
 .stApp .gl-diagram svg { width: 100%; height: auto; color: #e8dcc0; }
 .stApp .gl-diagram text { font-family: Georgia, "Times New Roman", serif; fill: currentColor; }
@@ -433,6 +437,61 @@ BASE_CSS: str = """
   .stApp .gl-ref-chip { font-size: 0.75rem; padding: 0.05rem 0.5rem; }
   .stApp table.gl-lantern { font-size: 0.75rem; }
   .stApp [data-testid="stMainBlockContainer"] { padding: 3.5rem 1rem 4rem; }
+}
+"""
+
+# The one animation of the showcase: the moment of Home (REQ-HD-18). Only the Home style block
+# carries it. The base style of every piece is its final state; a keyframe names only the `from`
+# state, and `both` keeps that state during the delay. Timeline: the strikes start at 1.0 s and
+# 1.3 s and last 0.4 s each, the stamp starts at 1.7 s, the template at 2.1 s, everything is over
+# at 2.5 s. Each animation runs once. `prefers-reduced-motion` shows the final state at once.
+MOMENT_CSS: str = """
+.stApp .gl-moment {
+  background: var(--gl-wash), #1c1829;
+  border: 1px solid var(--gl-line);
+  border-left: 3px solid #ffb347;
+  border-radius: 6px;
+  margin: 0.4rem 0 1.4rem;
+  padding: 0.9rem 1.2rem 1rem;
+}
+.stApp .gl-moment-label, .stApp .gl-moment-q, .stApp .gl-moment-note {
+  color: #b9ae95;
+  font-size: 0.9rem;
+}
+.stApp .gl-moment-answer { font-size: 1.2rem; line-height: 1.7; margin: 0.6rem 0 0.4rem; }
+.stApp .gl-moment mark.gl-strike { border-radius: 0.2rem; position: relative; }
+.stApp .gl-moment mark.gl-strike::after {
+  animation: gl-strike 0.4s ease-out 1s 1 both;
+  background: #b3122e;
+  content: "";
+  height: 3px;
+  left: -2px;
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform-origin: left center;
+}
+.stApp .gl-moment mark.gl-strike-2::after { animation-delay: 1.3s; }
+.stApp .gl-moment .gl-stamp {
+  animation: gl-stamp 0.4s ease-out 1.7s 1 both;
+  border: 2px solid #ffb347;
+  border-radius: 4px;
+  color: #ffd166;
+  font-size: 1.05rem;
+  margin: 0.5rem 0 0.8rem;
+  padding: 0.35rem 0.8rem;
+  transform: rotate(-1deg);
+  width: fit-content;
+}
+.stApp .gl-moment .gl-moment-after { animation: gl-fade 0.4s ease-out 2.1s 1 both; }
+.stApp .gl-moment-template { margin: 0.2rem 0 0.6rem; }
+@keyframes gl-strike { from { transform: scaleX(0); } }
+@keyframes gl-stamp { from { opacity: 0; transform: rotate(-1deg) scale(1.6); } }
+@keyframes gl-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .stApp .gl-moment mark.gl-strike::after,
+  .stApp .gl-moment .gl-stamp,
+  .stApp .gl-moment .gl-moment-after { animation: none; }
 }
 """
 
@@ -485,6 +544,8 @@ def theme_css(accent: Accent, app_css: str = "") -> str:
     The card box and the accent rules carry a `.stApp` prefix for the same reason.
     """
     parts = [_accent_vars(".stApp", accent), app_css, BASE_CSS, _nav_css()]
+    if accent is KIT:
+        parts.append(MOMENT_CSS)
     if accent is KIT or accent is BENCHMARK:
         parts += [_accent_vars(f".stApp .gl-tile-{tile.key}", tile) for tile in TILE_ACCENTS]
     return "<style>\n" + "\n".join(part.strip("\n") for part in parts if part) + "\n</style>"

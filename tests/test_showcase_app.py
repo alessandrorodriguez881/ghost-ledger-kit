@@ -6,6 +6,7 @@ reads the system clock or the network; the demo files are the committed syntheti
 
 import re
 import sys
+import time
 import types
 from collections.abc import Iterator
 from pathlib import Path
@@ -124,6 +125,23 @@ def test_entry_page_starts_without_exception() -> None:
     assert not at.exception
     assert at.title[0].value == "Ghost Ledger Kit"
     assert not at.error
+
+
+def test_home_renders_within_the_timeout_and_a_second_run_does_too() -> None:
+    """Home draws three signatures and runs the apps' demo data once; it must not get slow.
+
+    The tile drawings are built once per process (REQ-HD-22), so the second run has no pipeline
+    to run. Both runs must end inside the timeout that every other Home test already uses.
+    """
+    started = time.monotonic()
+    at = _run()
+    first = time.monotonic() - started
+    at.run()
+    second = time.monotonic() - started - first
+
+    assert not at.exception
+    assert first < TIMEOUT_SECONDS and second < TIMEOUT_SECONDS
+    assert len(_starting(at, '<div class="gl-grid gl-tiles">')) == 1
 
 
 def test_there_are_exactly_five_pages_in_order() -> None:

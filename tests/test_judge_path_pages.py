@@ -416,23 +416,28 @@ def _first(items: list[tuple[str, str]], kind: str, start: str = "") -> int:
     return next(i for i, (t, v) in enumerate(items) if t == kind and v.startswith(start))
 
 
+def _expander_items(at: AppTest) -> list[tuple[str, str]]:
+    """The elements inside the How it works expander, in order, as (type, value)."""
+    [expander] = [e for e in at.expander if e.label == streamlit_app.HOW_IT_WORKS]
+    return [
+        (child.type, str(getattr(child, "value", "")))
+        for _index, child in sorted(expander.children.items())
+    ]
+
+
 def _home_order(at: AppTest) -> dict[str, int]:
+    """Index in the page body of each part of Home that stays above the expander."""
     items = _main_items(at)
-    link = next(
-        i
-        for i, (t, v) in enumerate(items)
-        if t == "page_link" or v == streamlit_app.START_HERE_FALLBACK
-    )
     return {
         "title": _first(items, "title"),
         "promise": _first(items, "markdown", '<div class="gl-promise">'),
-        "story": _first(items, "markdown", '<div class="gl-story">'),
-        "link": link,
         "proof": _first(items, "markdown", '<div class="gl-grid gl-proof">'),
+        "tiles": _first(items, "markdown", '<div class="gl-grid gl-tiles">'),
+        "how": _first(items, "expander"),
     }
 
 
-def test_home_starts_with_the_story_then_the_recorded_example_then_the_link(
+def test_home_starts_with_the_promise_then_the_moment_then_proof_tiles_and_how_it_works(
     judge_path: Path,
 ) -> None:
     at = AppTest.from_file(ENTRY, default_timeout=TIMEOUT_SECONDS).run()
@@ -440,35 +445,39 @@ def test_home_starts_with_the_story_then_the_recorded_example_then_the_link(
     assert not at.exception
     order = _home_order(at)
     items = _main_items(at)
-    order["example"] = _first(items, "markdown", '<div class="gl-example">')
+    order["moment"] = _first(items, "markdown", '<div class="gl-moment">')
     assert (
         order["title"]
         < order["promise"]
-        < order["story"]
-        < order["example"]
-        < order["link"]
+        < order["moment"]
         < order["proof"]
+        < order["tiles"]
+        < order["how"]
     )
-    [story] = [v for t, v in items if v.startswith('<div class="gl-story">')]
+    [moment] = [v for t, v in items if v.startswith('<div class="gl-moment">')]
+    assert "One recorded answer of llama3.2:3b, 2026-11-10." in moment  # the committed P3
+    assert f"Question: {TRICK_QUESTIONS[0].text}" in moment  # the five-year question
+    assert "5%</mark>" in moment and "617.51</mark>" in moment
+    assert "Rejected by the number guard." in moment and 'class="gl-moment-note"' in moment
+    # the story, the link and the layers text moved into the expander; nothing is above the tiles
+    assert not any(v.startswith('<div class="gl-story">') for _t, v in items)
+    inside = _expander_items(at)
+    [story] = [v for t, v in inside if v.startswith('<div class="gl-story">')]
     assert story.count("<p>") == len(streamlit_app.STORY) == 3
     assert all(line in story for line in streamlit_app.STORY)
-    [example] = [v for t, v in items if v.startswith('<div class="gl-example">')]
-    assert "One recorded answer of llama3.2:3b, 2026-11-10." in example  # the committed P3
-    assert f"Question: {TRICK_QUESTIONS[0].text}" in example  # the five-year question
-    assert "You asked" not in example
-    assert "5%</mark>" in example and "617.51</mark>" in example
-    assert "<b>rejected</b>" in example and 'class="gl-example-note"' in example
 
 
-def test_home_without_a_run_file_keeps_the_story_and_drops_the_example() -> None:
+def test_home_without_a_run_file_drops_the_moment_and_keeps_the_rest() -> None:
     assert replay.home_example() is None  # the root conftest points the example at no file
     at = AppTest.from_file(ENTRY, default_timeout=TIMEOUT_SECONDS).run()
 
     assert not at.exception
     items = _main_items(at)
+    assert not any(v.startswith('<div class="gl-moment">') for _t, v in items)
     assert not any(v.startswith('<div class="gl-example">') for _t, v in items)
     order = _home_order(at)
-    assert order["title"] < order["promise"] < order["story"] < order["link"] < order["proof"]
+    assert order["title"] < order["promise"] < order["proof"] < order["tiles"] < order["how"]
+    assert any(v.startswith('<div class="gl-story">') for _t, v in _expander_items(at))
 
 
 def test_the_proof_strip_shows_percentages_with_one_decimal() -> None:
@@ -486,10 +495,11 @@ def test_the_proof_strip_shows_percentages_with_one_decimal() -> None:
 def test_the_start_here_link_names_zombie_subscriptions() -> None:
     at = AppTest.from_file(ENTRY, default_timeout=TIMEOUT_SECONDS).run()
 
-    items = _main_items(at)
+    items = _expander_items(at)  # the link moved into How it works (REQ-HD-20)
     [link] = [(t, v) for t, v in items if t == "page_link" or "Start here" in v]
     assert streamlit_app.START_HERE.endswith("Zombie Subscriptions")
     assert link[0] == "page_link" or link[1] == streamlit_app.START_HERE_FALLBACK
+    assert not [1 for t, v in _main_items(at) if t == "page_link"]
 
 
 def test_the_start_here_link_has_the_tombstone_icon_and_body_text_size() -> None:

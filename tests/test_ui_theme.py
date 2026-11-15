@@ -154,11 +154,19 @@ def test_no_external_font_style_sheet_script_or_url() -> None:
     assert urls and all(url.startswith("data:image/svg+xml;base64,") for url in urls)
 
 
-def test_nothing_animates() -> None:
-    css = theme_css(KIT).lower()
-
+def test_nothing_animates_but_the_moment_of_home() -> None:
+    """The one animation is the moment of Home: no other page carries one (REQ-HD-13, 18)."""
+    for accent in (*APPS, BENCHMARK):
+        css = theme_css(accent).lower()
+        for word in ("animation", "@keyframes", "transition"):
+            assert word not in css, (accent.key, word)
+    home = theme_css(KIT)
+    moment = theme.MOMENT_CSS.strip("\n")
+    assert moment in home
+    rest = home.replace(moment, "").lower()
     for word in ("animation", "@keyframes", "transition"):
-        assert word not in css
+        assert word not in rest
+    assert "transition" not in theme.MOMENT_CSS
 
 
 def test_the_only_decoration_is_a_static_fog_gradient() -> None:
