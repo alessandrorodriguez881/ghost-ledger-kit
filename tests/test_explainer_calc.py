@@ -221,8 +221,25 @@ def test_a_placeholder_without_any_question_has_no_constants() -> None:
     assert result.rejected_numbers == ("5",)
 
 
-def test_a_placeholder_with_no_constant_needs_no_question() -> None:
+def test_a_placeholder_with_no_constant_needs_a_question_for_any_arithmetic() -> None:
+    # A-MC-04: on a card with no question a placeholder is one field and no operator.
     result = _ask("GYMPLUS: [[calc: yearly_cost - current_amount]] (bank.csv:0).", None)
+
+    assert result.source == "fallback"
+    assert result.rejected_numbers == ("yearly_cost - current_amount",)
+    assert result.rejected_reason == REASON_CALC_NOT_ALLOWED
+    assert result.computed == ()
+
+
+def test_a_single_field_needs_no_question() -> None:
+    result = _ask("GYMPLUS: [[calc: yearly_cost]] (bank.csv:0).", None)
+
+    assert result.source == "llm"
+    assert result.computed[0].result == Decimal("107.88")
+
+
+def test_a_placeholder_with_no_constant_computes_with_a_question() -> None:
+    result = _ask("GYMPLUS: [[calc: yearly_cost - current_amount]] (bank.csv:0).")
 
     assert result.source == "llm"
     assert result.computed[0].result == Decimal("98.89")

@@ -238,10 +238,91 @@ is not in the repository; this group puts one in, so anyone can re-record.
   re-record with the script and a local model, and that a recording is the raw answers of one run,
   not a rate. `tests/test_readme.py` and `tests/test_live_guard_docs.py` keep passing.
 
+## 8 — Amendments from the first real run (session 28b)
+
+**Decision record.** The owner ran `scripts/record_live_run.py` on 15 Nov with `llama3.2:3b` on
+Ollama (CPU, 22 minutes, 43 records) and committed the file as
+`data/live_runs/2026-11-15_llama3.2-3b_calc.json`: 30 answers accepted, 13 on the fixed template,
+and no calculation accepted at all. The amendments below are numbered like A-LG-01 to A-LG-03 of
+live-guard and cite the records of that file by id (`observed_reason` of each is `calc_not_allowed`
+unless said otherwise). They change what the kit does with a placeholder and what the prompt says;
+they change no detector, no template and no rule of the number guard.
+
+- **REQ-MC-35 (A-MC-01, the prompt).** The system prompt shall hold the placeholder rule of
+  REQ-MC-01 only when a question is asked. A card with no question (or an empty one) shall get the
+  prompt it had before 15 Nov, word for word. The user message is unchanged.
+  - Records: Z03, Z04 and Z06 are plain cards, asked with no question. Given the rule in the
+    prompt, the model wrapped a figure of the alert in a placeholder (`[[calc: 359.76]]`) or made up
+    arithmetic (`[[calc: 179.88 * 12]]`), and the whole answer was rejected. Those cards were
+    accepted before the rule existed.
+  - AE-MC-35: with `question=None` and with `""` the system message equals the old prompt; with a
+    question it is the old prompt, a space and `CALC_PROMPT_RULE`.
+- **REQ-MC-36 (A-MC-02, a figure of the alert).** *When* a number written with a decimal point in a
+  placeholder equals the value of exactly one numeric field of the alert, the kit shall read it as
+  that field: the provenance line names the field, not the literal. *If* it equals two or more
+  fields with different names, *then* it is ambiguous and the answer shall be rejected as today,
+  with the number as written. *If* it equals no field, *then* it shall be rejected as today. A
+  whole number written without a decimal point keeps REQ-MC-05: it has to be a whole number of the
+  question.
+  - Records: Z03 `[[calc: 359.76]]` is `yearly_cost`. Z04 `[[calc: 155.88 + 36.00]]` is
+    `yearly_cost + extra_cost_per_year`. Z20 `[[calc: 5 * yearly_cost]]` is right, and
+    `[[calc: 5 * 107.88]]` is the same field written as a literal: that second one rejected the
+    whole answer. P32 `[[calc: 484.00 * 2 * 5]]`: 484.00 is `total` but the 2 is invented; the
+    alert has a field `invoice_count` that is 2, and the 2 must not be read as that field (DN-MC-16).
+  - AE-MC-36: Z03 and Z20 are accepted with their computed figures; P32 is rejected with the part
+    `2`.
+- **REQ-MC-37 (A-MC-03, double counting).** *If*, in one placeholder, a sum adds a field to two or
+  more other fields of the same sum whose values add up to it, *then* the answer shall be rejected
+  with `calc_not_allowed`, the offending part being `total = part + part` (the field and the
+  fields it is made of). This catches this one pattern and not every reasoning error; the formula
+  is always shown, so a reader can check it.
+  - Records: V41 `[[calc: (106.00 + 61.00 + 45.00) * 5]]` adds `total` (106.00) to its own parts
+    `interest_total` (61.00) and `fee_total` (45.00).
+  - AE-MC-37: V41 is rejected with `total = interest_total + fee_total`.
+- **REQ-MC-38 (the pinned set).** `tests/test_recorded_verdicts.py` shall pin the new file with the
+  set of record ids that end on the fixed template under the guard after these amendments, each one
+  explained record by record in `tasks.md` (task MC18). The replay's default file
+  (`DEFAULT_REPLAY_RUN_PATH`) and `data/live_runs/2026-11-11_llama3.2-3b_demo.json` are not
+  changed; the replay switches only after a re-record with these amendments, if it is better.
+  - Record Z21 `[[calc: 8.99 + (amount - 8.99)]]` stays rejected: 8.99 is the charge of the rows
+    but no numeric field of the cancellation alert, and `amount` is no field either.
+
+## 9 — Amendments from the review of session 28b (session 28c)
+
+**Decision record.** The owner's review of session 28b found that the rule *a literal is read as the
+field* lets the small model's nonsense through as a computed figure. Amendments A-MC-04 and
+A-MC-05 follow, citing the records of the same file. No detector, template or number-guard rule
+changes.
+
+- **REQ-MC-39 (A-MC-04, no arithmetic on a card with no question).** *While* no question (or an
+  empty one) is asked, a placeholder shall be accepted only if it is a single numeric field by name
+  or a single figure that equals exactly one numeric field, with no operator at all (a minus sign
+  included). *If* it holds any arithmetic, *then* the answer shall be rejected with
+  `calc_not_allowed`, the offending part being the expression as written. A part rejected by an
+  earlier rule (an unknown field, a whole number the question does not give) is reported as before.
+  - Records: Z04 `[[calc: 155.88 + 36.00]]` is `yearly_cost + extra_cost_per_year`; `yearly_cost`
+    already includes the increase, so the sum shown would be a double-counted total, `191,88 EUR`.
+    Z04 is a plain card. Z03 `[[calc: 359.76]]` stays accepted.
+  - AE-MC-39: Z04 is rejected with the part `155.88 + 36.00`.
+- **REQ-MC-40 (A-MC-05, each field once).** *If*, in one placeholder, a numeric field is used more
+  than once, a figure read as that field (REQ-MC-36) counting as a use of it, *then* the answer
+  shall be rejected with `calc_not_allowed`, the offending part being `NAME used more than once`.
+  Two placeholders of one answer are checked each on its own. This applies with and without a
+  question.
+  - Records: V43 `[[calc: interest_total - 61.00]]` is the interest total minus itself, `0,00 EUR`.
+    Z21 `[[calc: 8.99 + (amount - 8.99)]]` has the shape of one field used three times; on the real
+    alert it is already rejected earlier (8.99 is no field, REQ-MC-38), so its part is unchanged.
+    Z20 `[[calc: 5 * yearly_cost]]` uses the field once in each placeholder and stays accepted.
+  - AE-MC-40: V43 is rejected with the part `interest_total used more than once`; a question-mode
+    `5 * yearly_cost` is accepted.
+- **REQ-MC-41 (the pinned set).** The pinned set of the 15 Nov file shall gain the records these
+  amendments send to the template, explained record by record in `tasks.md` (task MC21).
+
 ## Not in this spec
 
 - No change to a detector, a threshold, the templates or the Exorcise drafts.
-- No change to `tests/test_recorded_verdicts.py`, to a recorded run file or to the Home example.
+- No change to `tests/test_recorded_verdicts.py` (except to pin a new run file, REQ-MC-38), to a
+  recorded run file or to the Home example.
 - The model is not told the result, and the kit does not ask it again: one attempt as ever.
 - Percent signs, powers, rounding functions and any constant the question does not contain stay
   unavailable by design.

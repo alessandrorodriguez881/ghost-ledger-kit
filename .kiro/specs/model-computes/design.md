@@ -236,3 +236,102 @@ the default); a server version or model id can be added to the file by hand afte
 DN-MC-14 *No new run is committed here.* The script records; the owner runs it with a model and
 decides whether a new file replaces the replay file (`DEFAULT_REPLAY_RUN_PATH` in
 `ledger_kit/replay.py`). Nothing of the replay changes in this session.
+
+## §9 Amendments from the first real run (session 28b, REQ-MC-35 to REQ-MC-38)
+
+Source: `data/live_runs/2026-11-15_llama3.2-3b_calc.json`, one run of `llama3.2:3b`: 30 accepted,
+13 on the template, no calculation accepted. Files: `ledger_kit/calc.py` (A-MC-02, A-MC-03),
+`ledger_kit/explainer.py` (A-MC-01: `CALC_PROMPT_RULE` and one `if question:`), tests, no app.
+
+DN-MC-15 *A-MC-01: the rule goes in only with a question.* `_call_llm` builds the prompt it had
+before 15 Nov, ending at `...in YYYY-MM-DD form.`, and appends `" " + CALC_PROMPT_RULE` when
+`question` is not empty, the same test that adds the question to the user message. The rule text is
+the one of 27a, moved into the constant. Z03, Z04 and Z06 show why: given the rule, a 3B model
+uses it where nothing needs arithmetic. A card without a question cannot ask for a total, so it
+does not need the rule. An answer to a card that still holds a placeholder is read by the same
+evaluator as before (the model may write one unprompted), now with A-MC-02 and A-MC-03.
+
+DN-MC-16 *A-MC-02: which numbers are read as a field.* Only a number written with a decimal point
+(`[0-9]+\.[0-9]+`, parsed as `Decimal` from its text, never through `float`) is looked up among the
+numeric fields. A whole number written without one keeps the question rule, even when a field has
+that value. The reason is P32: `[[calc: 484.00 * 2 * 5]]` on the duplicate-invoice alert, which has
+`invoice_count` = 2. Read literally, "a number equal to exactly one numeric field is that field"
+would accept the invented 2 as `invoice_count`, and the 3B model would get the invoice twice
+counted into a forecast. A figure the model copies from an alert is an amount or a percentage and
+carries its decimals (`359.76`, `36.00`, `61.00`); a count the model wants has to come from the
+question. The cost: an alert field that holds a whole amount (`10`) cannot be written as the
+literal `10`, only by name or as `10.00`. The lookup is by value, `Decimal` equality, so `100.0`
+equals `100.00`.
+
+Order in `_constant`: an `int` is judged by the question and nothing else; a decimal is looked up
+(0 fields: rejected with its text, 1 field: that field, 2 or more: ambiguous, rejected with its
+text); anything else (`1e2`, `.5`, `1_0.5`, a string, a `bool`) is rejected with its text. The
+operand and the formula use the field's name and its shown value (`5 x yearly_cost 107,88 EUR`),
+so the provenance line never repeats the literal as the model wrote it. A field of the same value
+written by name keeps working when another field has the same value (`total * 5`).
+
+DN-MC-17 *A-MC-03: double counting.* After a successful walk, `_Evaluator.double_count` visits
+every `+` node. For each chain of `+` (parentheses are the same chain: `(a + b) + c`) it keeps the
+leaves that were read as fields, by name, once each. For a field `t` of the chain it looks for a
+set of two or more other fields of the chain, none of value zero, whose values sum to the value of
+`t` (`sum_amounts`, `DOUBLE_COUNT_MIN_PARTS = 2`). The first `t` found, in order of first use, is
+the one reported, with the first set of that size, as `t = a + b`. It rejects with
+`REASON_CALC_NOT_ALLOWED` and that string as the offending part, so the panel verdict says why in
+the kit's own words. A part of value zero is no part (`0 + x = x` would make every field a
+"total" of itself).
+
+This catches this one pattern, not every reasoning error. It does not see a total and its parts
+in two different sums (`total * (a + b)`), a total minus its parts, a sum over a product
+(`(total * 2) + a + b`), a part of a part, or two fields that are the same quantity under
+different names. The kit never checks that a formula answers the question; the formula is always
+shown under the answer (`computed_lines`), so a reader can check it.
+
+DN-MC-18 *What the amendments let through, on purpose.* Three recorded answers now come out
+accepted and say little. Z04 `155.88 + 36.00` is `yearly_cost + extra_cost_per_year`: two fields
+of the alert, added, not a total the model has any reason to want. V43 `interest_total - 61.00`
+is the interest total minus itself, `0,00 EUR†`. Z20 writes the same product twice. Each is a
+calculation over alert fields with its formula shown, which is what REQ-MC-03 to REQ-MC-09 allow;
+none invents a figure. Whether they should be stopped is a separate decision (a field minus itself,
+two fields of different periods in one sum); this session adds neither rule.
+**Superseded in session 28c for Z04 and V43** (DN-MC-21, DN-MC-22); Z20 stays accepted.
+
+DN-MC-19 *Earlier tests that had to follow A-MC-01.* Five existing assertions said the system
+message with a question equals the one without: two in `tests/test_explainer_question.py` and the
+`card_system` assertion in each of the three apps' `test_*_live_guard.py` (case 2). They now say:
+equal to the card's message plus a space and `CALC_PROMPT_RULE`. Nothing else in them changed.
+
+DN-MC-20 *No re-record here.* `DEFAULT_REPLAY_RUN_PATH`, the 11 Nov file, the Home example and the
+docs are untouched. The new file is pinned in `tests/test_recorded_verdicts.py` (task MC18).
+
+## §10 Amendments from the review of 28b (session 28c, REQ-MC-39 to REQ-MC-41)
+
+Files: `ledger_kit/calc.py` only (`_compute` gets `arithmetic`, `_Evaluator` counts uses), tests,
+the pinned set. `explain_with_meta` already passes `question`; `resolve_calculations` reads
+`bool(question)`, the same test `_call_llm` uses to add the rule and the question.
+
+DN-MC-21 *A-MC-04: a plain card holds no arithmetic.* Given no question, the prompt has no
+placeholder rule (A-MC-01), so a placeholder there is unprompted. The only reading worth keeping is
+a field the model wraps (Z03 `[[calc: 359.76]]`); everything with an operator is the model
+inventing a calculation (Z04: `yearly_cost` already includes the increase, so adding
+`extra_cost_per_year` shows a double-counted `191,88 EUR`). The check is on the parsed tree: the
+body must be a `Name` or a `Constant`, so a unary minus is an operator too. It runs after the walk
+and after the double-count check, so a part rejected earlier (Z06 `12`) keeps the part it had; the
+part of this rejection is the expression as written.
+
+DN-MC-22 *A-MC-05: a field once per placeholder.* `_use_field` counts the uses of each field, a
+figure read as a field (A-MC-02) included, so `interest_total - 61.00` (V43) and `8.99 + (amount -
+8.99)` (the Z21 shape) are a field used twice and three times. `FIELD_MAX_USES = 1`. The part is
+`NAME used more than once`, the first field in order of first use. It runs after A-MC-04 and applies
+with a question too: `5 * yearly_cost` uses one field once and stays accepted. Counted per
+placeholder: the same field in two placeholders of one answer is fine (Z20). Cost: `a * b + a * c`
+over fields is rejected; a question that needs a field twice has to be asked in two placeholders.
+Z21 on the real alert is rejected earlier, by A-MC-02 (8.99 is no field), so DN-MC-22 does not
+change its part; the Z21 shape is tested on a synthetic alert that has the field.
+
+DN-MC-23 *Earlier tests that had to follow.* `test_a_placeholder_with_no_constant_needs_no_question`
+of `tests/test_explainer_calc.py` expected arithmetic on a plain card to compute; it is now three
+tests (rejected without a question, one field accepted without one, arithmetic computed with one).
+`test_the_same_field_twice_is_not_double_counting` of `tests/test_calc_amendments.py` now expects
+the A-MC-05 rejection. `test_explain_alert_appends_the_question_and_sends_only_row_columns` of the
+phantom app compared system prompts that A-MC-01 made different: it expects the question-mode
+prompt (the plain prompt, a space and `CALC_PROMPT_RULE`) and keeps its row-column checks.

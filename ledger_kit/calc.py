@@ -7,9 +7,18 @@ field of the alert, a constant must be a whole number of the question (digits, o
 Spanish words), and the only operations are + - * / and a minus sign. Anything else rejects the
 whole answer. Pure: no model call, no Streamlit, no I/O; the explainer decides what to do with the
 outcome. `resolve_calculations` never raises.
+
+Session 28b (A-MC-02, A-MC-03): a number written with a decimal point that equals the value of
+exactly one numeric field is read as that field; and a sum may not add a field to the fields it is
+made of.
+
+Session 28c (A-MC-04, A-MC-05): on a card with no question a placeholder holds one field or one
+figure equal to one field and no operator; and in one placeholder each field is used once, a figure
+read as a field counting as that field.
 """
 
 import ast
+import itertools
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -17,7 +26,13 @@ from decimal import Decimal, localcontext
 from typing import Any
 
 from ledger_kit.number_words import find_number_phrases
-from ledger_kit.utils.money import apply_sign, combine, format_amount, round_to_cents
+from ledger_kit.utils.money import (
+    apply_sign,
+    combine,
+    format_amount,
+    round_to_cents,
+    sum_amounts,
+)
 
 # The reason the explainer records on an answer whose placeholder is not allowed
 # (`Explanation.rejected_reason`); the offending parts are the rejected tokens.
@@ -30,6 +45,12 @@ CALC_EXPRESSION_MAX_CHARS: int = 200
 CALC_PRECISION: int = 40
 # A question integer longer than this is not a whole number worth reading (keeps `int()` small).
 QUESTION_INTEGER_MAX_DIGITS: int = 9
+# Double counting (A-MC-03): a field added to at least this many other fields whose values sum to
+# it, all added in the same sum, is rejected. A part of value zero is no part.
+DOUBLE_COUNT_MIN_PARTS: int = 2
+# One placeholder uses each field at most this many times (A-MC-05): a field minus itself or the
+# same field three times is no calculation.
+FIELD_MAX_USES: int = 1
 # What the number guard reads in place of a valid placeholder: letters only, so it is no figure.
 GUARD_MARKER: str = "COMPUTED"
 # Written right after a computed figure in the text shown to the user.
@@ -48,6 +69,9 @@ NOT_MONEY_NAME_PARTS: frozenset[str] = frozenset(
 _PLACEHOLDER_RE = re.compile(r"\[\[\s*calc\s*:(?P<expression>[^\[\]]*)\]\]", re.IGNORECASE)
 _OPENING_RE = re.compile(r"\[\[\s*calc", re.IGNORECASE)
 _PLAIN_NUMBER_RE = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
+# A figure copied from the alert is written with a decimal point (`107.88`, `484.00`); a plain
+# whole number is a count and has to come from the question (A-MC-02).
+_DECIMAL_LITERAL_RE = re.compile(r"[0-9]+\.[0-9]+")
 # A whole number of the question: not part of a decimal, a date or a longer number.
 _QUESTION_INTEGER_RE = re.compile(
     r"(?<![0-9.,/-])[0-9]{1,"
@@ -183,6 +207,10 @@ class _Evaluator:
         self._money_fields = money_fields
         self._currency = currency
         self.operands: dict[str, Operand] = {}
+        # How many times each field is used in the expression (a figure read as a field counts).
+        self.uses: dict[str, int] = {}
+        # The field each leaf of the tree was read as (a name, or a figure equal to one field).
+        self._leaf_fields: dict[ast.AST, str] = {}
 
     def _part(self, node: ast.AST) -> str:
         """The source text of a node (its type name when it cannot be cut out)."""
@@ -208,23 +236,80 @@ class _Evaluator:
         if isinstance(node, ast.Name):
             return self._field(node)
         if isinstance(node, ast.Constant):
-            if type(node.value) is not int:
-                raise _Reject(self._part(node))
+            return self._constant(node)
+        raise _Reject(self._part(node))
+
+    def _constant(self, node: ast.Constant) -> _Value:
+        """A whole number of the question, or a decimal figure that is one numeric field."""
+        if type(node.value) is int:
             if node.value not in self._constants:
                 raise _Reject(str(node.value))
             return _Value(Decimal(node.value), False, str(node.value))
-        raise _Reject(self._part(node))
+        text = self._part(node)
+        if type(node.value) is float and _DECIMAL_LITERAL_RE.fullmatch(text):
+            literal = Decimal(text)
+            names = [name for name, value in self._fields.items() if value == literal]
+            if len(names) == 1:  # two fields with the same value: ambiguous, rejected
+                return self._use_field(names[0], node)
+        raise _Reject(text)
 
     def _field(self, node: ast.Name) -> _Value:
         """A numeric field of the alert."""
-        name = node.id
-        if name not in self._fields:
-            raise _Reject(name)
+        if node.id not in self._fields:
+            raise _Reject(node.id)
+        return self._use_field(node.id, node)
+
+    def _use_field(self, name: str, node: ast.AST) -> _Value:
+        """Use the field `name` at `node` (a name, or a figure read as that field)."""
         value = self._fields[name]
         money = _is_money(name, self._money_fields)
         shown = format_amount(value, self._currency) if money else _plain(value)
         self.operands.setdefault(name, Operand(name, value, shown))
+        self._leaf_fields[node] = name
+        self.uses[name] = self.uses.get(name, 0) + 1
         return _Value(value, money, f"{name} {shown}")
+
+    def reused_field(self) -> str | None:
+        """The first field used more than once, as `name used more than once`, else None."""
+        for name, count in self.uses.items():
+            if count > FIELD_MAX_USES:
+                return f"{name} used more than once"
+        return None
+
+    def double_count(self, tree: ast.AST) -> str | None:
+        """The first sum that adds a field to fields it is made of, as `total = a + b`, else None.
+
+        It looks at each sum (a chain of `+`, parentheses included) for a field leaf whose value
+        equals the sum of DOUBLE_COUNT_MIN_PARTS or more other field leaves of the same sum. It
+        catches this one pattern, not every reasoning error.
+        """
+        for node in ast.walk(tree):
+            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+                found = self._double_count_in(self._sum_leaves(node))
+                if found is not None:
+                    return found
+        return None
+
+    def _sum_leaves(self, node: ast.AST) -> list[ast.AST]:
+        """The terms of a chain of `+`, in order."""
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            return self._sum_leaves(node.left) + self._sum_leaves(node.right)
+        return [node]
+
+    def _double_count_in(self, leaves: list[ast.AST]) -> str | None:
+        """Look for a field of one sum that equals the sum of other fields of the same sum."""
+        named: dict[str, Decimal] = {}
+        for leaf in leaves:
+            name = self._leaf_fields.get(leaf)
+            if name is not None:
+                named.setdefault(name, self._fields[name])
+        for total, value in named.items():
+            parts = [(name, part) for name, part in named.items() if name != total and part != 0]
+            for size in range(DOUBLE_COUNT_MIN_PARTS, len(parts) + 1):
+                for combo in itertools.combinations(parts, size):
+                    if sum_amounts(part for _name, part in combo) == value:
+                        return f"{total} = " + " + ".join(name for name, _part in combo)
+        return None
 
     def _binary(self, node: ast.BinOp) -> _Value:
         """One of + - * /; any other operator (a power, a modulo, a shift) is rejected."""
@@ -252,8 +337,13 @@ def _compute(
     constants: frozenset[int],
     money_fields: frozenset[str],
     currency: str,
+    arithmetic: bool = True,
 ) -> Computation:
-    """Parse and evaluate one expression; raise _Reject with the offending part."""
+    """Parse and evaluate one expression; raise _Reject with the offending part.
+
+    `arithmetic` is False on a card with no question: only one field, or one figure equal to one
+    field, is accepted (A-MC-04).
+    """
     source = expression.strip()
     if not source or len(source) > CALC_EXPRESSION_MAX_CHARS:
         raise _Reject(source[:CALC_EXPRESSION_MAX_CHARS] or "(empty)")
@@ -266,6 +356,14 @@ def _compute(
         with localcontext() as context:
             context.prec = CALC_PRECISION
             value = evaluator.visit(tree.body)
+            double = evaluator.double_count(tree.body)
+            if double is not None:
+                raise _Reject(double)
+            if not arithmetic and not isinstance(tree.body, ast.Name | ast.Constant):
+                raise _Reject(source)
+            reused = evaluator.reused_field()
+            if reused is not None:
+                raise _Reject(reused)
             result = round_to_cents(value.value)
             shown = evaluator.show_result(value)
     except ArithmeticError as exc:  # overflow, an undefined operation: nothing is computed
@@ -299,7 +397,14 @@ def resolve_calculations(
     for match in matches:
         try:
             computed.append(
-                _compute(match.group("expression"), fields, constants, money_fields, currency)
+                _compute(
+                    match.group("expression"),
+                    fields,
+                    constants,
+                    money_fields,
+                    currency,
+                    arithmetic=bool(question),
+                )
             )
         except _Reject as reject:
             if reject.part not in rejected:

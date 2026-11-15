@@ -24,6 +24,21 @@ EXPECTED_FALLBACK: dict[str, set[str]] = {
     "2026-11-10_llama3.2-3b_run2.json": {"Z4b", "Z6b"},
     "2026-11-10_llama3.2-3b_run3.json": {"Z3c", "Z4c"},
     "2026-11-11_llama3.2-3b_demo.json": {"Z03", "Z04", "Z05", "Z20", "P27", "V37"},
+    # Derived by reading each raw answer (sessions 28b and 28c), explained record by record in
+    # .kiro/specs/model-computes/tasks.md, tasks MC18 and MC21 (Z04 and V43 added by A-MC-04/05).
+    "2026-11-15_llama3.2-3b_calc.json": {
+        "Z04",
+        "Z06",
+        "Z08",
+        "Z21",
+        "Z22",
+        "P32",
+        "V37",
+        "V38",
+        "V41",
+        "V42",
+        "V43",
+    },
 }
 
 

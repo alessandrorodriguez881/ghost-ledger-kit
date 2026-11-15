@@ -12,6 +12,7 @@ from streamlit.testing.v1 import AppTest
 import apps.zombie_subscriptions.detectors  # noqa: F401  (registers the zs.* detectors)
 from apps.zombie_subscriptions.tests import zs_live_fakes as fakes
 from ledger_kit.detectors import _restore_registry, _snapshot_registry
+from ledger_kit.explainer import CALC_PROMPT_RULE
 from ledger_kit.live_guard import (
     CAPTION_OFF,
     CAPTION_URL_WITHOUT_KEY,
@@ -130,7 +131,8 @@ def test_invented_figure_is_marked_and_rejected(monkeypatch: pytest.MonkeyPatch)
     [call] = state.question_calls
     question = TRICK_QUESTIONS[0].text
     assert fakes.user_message(call).endswith(fakes.QUESTION_SEPARATOR + question)
-    assert fakes.system_message(call) in card_system
+    # A-MC-01: a question adds the placeholder rule to the card's system message, nothing else.
+    assert fakes.system_message(call) in {f"{s} {CALC_PROMPT_RULE}" for s in card_system}
     marks = [v for v in _texts(at) if "<mark" in v]
     assert len(marks) == 1 and f"{fakes.INVENTED}</mark>" in marks[0]
     assert any(

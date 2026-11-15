@@ -33,6 +33,15 @@ LLM_MAX_RETRIES: int = 1  # one attempt; callers cache per alert.id
 # Upper bound on the answer length: three plain sentences fit; long echoes of the input do not
 # (a CPU-only local model is slow, a hosted one is paid per token).
 LLM_MAX_TOKENS: int = 200
+# The placeholder rule of the system prompt; added only when a question is asked (A-MC-01).
+CALC_PROMPT_RULE: str = (
+    "When the question needs arithmetic (a total over several periods, a sum, a difference, "
+    "a share), do not compute it: write it as a placeholder [[calc: EXPRESSION]] and the kit "
+    "computes it. EXPRESSION uses only the names of numeric fields of the alert as given in "
+    "the Alert JSON, the operators + - * / and parentheses, and whole numbers that appear in "
+    "the user's question (in digits or words). Never write the result yourself and never "
+    "assume a number the question does not give."
+)
 
 # Default columns sent to the LLM (minimum data, Finance Rule 5 / REQ-EXP-11).
 _LLM_ROW_COLUMNS = ("date", "amount", "flow", "currency", "counterparty", "source_ref")
@@ -982,14 +991,12 @@ def _call_llm(
         f"Cite at least one source reference from: {alert.source_refs}. "
         "Answer in plain prose of at most three sentences: no lists, no JSON, no repetition "
         "of the input. Write source references exactly as given. "
-        "Write every date exactly as given, in YYYY-MM-DD form. "
-        "When the question needs arithmetic (a total over several periods, a sum, a difference, "
-        "a share), do not compute it: write it as a placeholder [[calc: EXPRESSION]] and the kit "
-        "computes it. EXPRESSION uses only the names of numeric fields of the alert as given in "
-        "the Alert JSON, the operators + - * / and parentheses, and whole numbers that appear in "
-        "the user's question (in digits or words). Never write the result yourself and never "
-        "assume a number the question does not give."
+        "Write every date exactly as given, in YYYY-MM-DD form."
     )
+    if question:
+        # Only a question can need arithmetic; a card with no question keeps the prompt it had
+        # before the placeholder rule (A-MC-01).
+        system_prompt += " " + CALC_PROMPT_RULE
     # pandas date_format="iso" would render date cells as "...T00:00:00.000", so every
     # date-holding column is mapped to plain ISO strings first (missing values stay None).
     rows = rows.copy()

@@ -15,7 +15,13 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from ledger_kit.detectors import loaded_source_refs
-from ledger_kit.explainer import Explanation, explain, explain_with_meta, fill_fallback
+from ledger_kit.explainer import (
+    CALC_PROMPT_RULE,
+    Explanation,
+    explain,
+    explain_with_meta,
+    fill_fallback,
+)
 from ledger_kit.models import Alert
 
 _NO_INVENTION = "You must not invent any number, date, name, or amount."
@@ -114,7 +120,8 @@ def test_question_goes_to_the_user_message_only() -> None:
     _, asked = _ask("ok bank.csv:0", question)
     system_plain, user_plain = (m["content"] for m in plain.calls[0]["messages"])
     system_asked, user_asked = (m["content"] for m in asked.calls[0]["messages"])
-    assert system_asked == system_plain
+    # A-MC-01: a question adds the placeholder rule to the system message and nothing else.
+    assert system_asked == system_plain + " " + CALC_PROMPT_RULE
     assert _NO_INVENTION in system_asked
     assert user_asked == user_plain + _SEP + question
     assert user_asked.startswith("Alert: ")
@@ -213,7 +220,12 @@ def test_unknown_valid_date_is_rejected_with_a_question() -> None:
 def test_any_question_leaves_the_system_message_alone(question: str) -> None:
     _, plain = _ask("ok bank.csv:0")
     _, asked = _ask("ok bank.csv:0", question)
-    assert asked.calls[0]["messages"][0] == plain.calls[0]["messages"][0]
+    plain_system = plain.calls[0]["messages"][0]
+    # A-MC-01: only the placeholder rule is added, and only when there is a question.
+    expected = dict(plain_system)
+    if question:
+        expected["content"] = plain_system["content"] + " " + CALC_PROMPT_RULE
+    assert asked.calls[0]["messages"][0] == expected
     assert asked.calls[0]["temperature"] == 0
 
 

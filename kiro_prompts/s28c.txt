@@ -1,0 +1,14 @@
+Session 28c, after my review of session 28b. My run: ruff clean, 4,216 passed, 1 skipped, 1 failed: apps/phantom_invoices/tests/test_pi_live_guard.py::test_explain_alert_appends_the_question_and_sends_only_row_columns, which compares the system prompt sent with a question against the prompt without the placeholder instruction. With a question the instruction is now meant to be there: update that test to expect the question-mode prompt (and keep its check that only row columns are sent).
+
+Two more amendments to model-computes, because your own record-by-record reasoning shows that the literal-as-field rule lets the small model's nonsense through as a computed figure:
+- Z04 (a plain card, no question) would be accepted as 155.88 + 36.00 = 191.88: yearly_cost plus extra_cost_per_year, but yearly_cost already includes the increase, so the kit would show a double-counted total.
+- V43 would be accepted as interest_total - 61.00 = 0.00: a field minus itself.
+- Z21 is 8.99 + (amount - 8.99): the same field three times.
+
+A. On a card without a question no arithmetic is needed: a placeholder there is accepted only if it is a single field or a single literal that equals exactly one field (no operator at all); any arithmetic in a placeholder on a card without a question rejects the answer (calc_not_allowed, reason recorded).
+
+B. In one placeholder each field may appear at most once, counting a literal read as that field; a second use rejects the answer (calc_not_allowed, reason recorded).
+
+Record A and B as numbered amendments citing Z04, V43 and Z21; update the tests (Z04, V43 and Z21 rejected with their reasons; Z03 and Z20 still accepted; a question-mode single-use expression such as 5 * yearly_cost accepted); and update the pinned set of data/live_runs/2026-11-15_llama3.2-3b_calc.json in tests/test_recorded_verdicts.py and the record-by-record explanation in the spec accordingly. Derive the set by reasoning as before; I will correct it from the run if needed.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed and the pinned set.

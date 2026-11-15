@@ -17,6 +17,7 @@ from apps.phantom_invoices.detectors import LABELS  # noqa: F401  (registers the
 from apps.phantom_invoices.explain_support import ROW_COLUMNS, explain_alert
 from apps.phantom_invoices.tests import pi_live_fakes as fakes
 from ledger_kit.detectors import _restore_registry, _snapshot_registry
+from ledger_kit.explainer import CALC_PROMPT_RULE
 from ledger_kit.live_guard import (
     CAPTION_OFF,
     CAPTION_URL_WITHOUT_KEY,
@@ -149,7 +150,8 @@ def test_invented_figure_is_marked_and_rejected(monkeypatch: pytest.MonkeyPatch)
     [call] = state.question_calls
     question = TRICK_QUESTIONS[0].text
     assert fakes.user_message(call).endswith(fakes.QUESTION_SEPARATOR + question)
-    assert fakes.system_message(call) in card_system
+    # A-MC-01: a question adds the placeholder rule to the card's system message, nothing else.
+    assert fakes.system_message(call) in {f"{s} {CALC_PROMPT_RULE}" for s in card_system}
     marks = [v for v in _texts(at) if "<mark" in v]
     assert len(marks) == 1 and f"{fakes.INVENTED}</mark>" in marks[0]
     assert any(
@@ -400,7 +402,7 @@ def test_explain_alert_appends_the_question_and_sends_only_row_columns() -> None
 
     system, user = (m["content"] for m in asked.calls[0]["messages"])
     plain_system, plain_user = (m["content"] for m in plain.calls[0]["messages"])
-    assert system == plain_system
+    assert system == f"{plain_system} {CALC_PROMPT_RULE}"  # A-MC-01: the question-mode prompt
     assert user == plain_user + fakes.QUESTION_SEPARATOR + question
     rows = json.loads(plain_user.split("Source rows:\n", 1)[1])
     assert set(rows[0]) <= set(ROW_COLUMNS)

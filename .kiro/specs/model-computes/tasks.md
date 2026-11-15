@@ -220,3 +220,144 @@ each file and run the tests on stop.
 **Covers**: all of session 28a
 
 Fill in after running the checks. One line per call; do not write what was not run.
+
+## Session 28b — amendments from the first real run
+
+Decision record: the owner recorded `data/live_runs/2026-11-15_llama3.2-3b_calc.json` on 15 Nov
+(llama3.2:3b, Ollama, CPU, 22 minutes, 43 records: 30 accepted, 13 fallback, no calculation
+accepted) and asked for three amendments. Requirements group 8, design §9. Session 28b could not
+run commands either: the hooks lint each file and run the tests on stop, and the pinned set of
+MC18 was derived by reading, not by running.
+
+### Task MC16 — Tests first
+
+**Covers**: REQ-MC-35 to REQ-MC-37, §9
+
+- [x] Create `tests/test_calc_amendments.py`. The raw answers of Z03, Z06, Z20, Z21, P32 and V41
+  are read from the 15 Nov file and replayed through `explain_with_meta` with the real alert of
+  each: Z03 and Z20 accepted with their computed figures and provenance (`yearly_cost 359,76 EUR
+  = 359,76 EUR`; `5 x yearly_cost 107,88 EUR = 539,40 EUR` twice); P32 rejected with `2`; V41
+  rejected with `total = interest_total + fee_total`; Z06 rejected with `12`; Z21 rejected with
+  `8.99` (see MC18, it differs from the expectation of the request). A plain card's system prompt
+  equals the old prompt, written out in the test (also with an empty question); a question adds
+  `CALC_PROMPT_RULE`; the user message is unchanged. Unit tests on synthetic alerts: one field,
+  two fields of the same value (ambiguous, also `100.0`), no field, whole number equal to a field
+  not read as one, non-plain literals, negative literal; double counting in any order and
+  parentheses, one part only, subtraction, separate sums, three parts, a larger set, zero parts,
+  the same field twice, a bad name first, one bad placeholder rejecting the good one. One
+  Hypothesis test (`max_examples=200`): any expression of fields, figures and operators computes
+  or rejects and never raises.
+- [x] Two assertions of `tests/test_explainer_question.py` and the system-message assertion of the
+  three `test_*_live_guard.py` files follow A-MC-01 (DN-MC-19); nothing else in them changed.
+
+### Task MC17 — The amendments
+
+**Covers**: REQ-MC-35 to REQ-MC-37, §9
+
+- [x] `ledger_kit/explainer.py`: `CALC_PROMPT_RULE`; `_call_llm` appends it only when a question is
+  asked (DN-MC-15).
+- [x] `ledger_kit/calc.py`: `_constant`, `_use_field`, `double_count` and its helpers,
+  `DOUBLE_COUNT_MIN_PARTS`, the call in `_compute` (DN-MC-16, DN-MC-17).
+
+### Task MC18 — Record of the recorded verdicts of the 15 Nov file (REQ-MC-38)
+
+`tests/test_recorded_verdicts.py` pins the new file:
+
+| Run file | Pinned fallback ids |
+|---|---|
+| `2026-11-15_llama3.2-3b_calc.json` | Z06, Z08, Z21, Z22, P32, V37, V38, V41, V42 |
+
+**Superseded by session 28c (task MC21):** Z04 and V43 join the set; read the rows below with that.
+
+Derived by reading each raw answer against the alert of today's demo (no shell). 43 records:
+34 end on the model's text, 9 on the template. A record whose answer holds no placeholder keeps
+the verdict the guard of the recording gave it (`observed_source`), because A-MC-01 changes the
+prompt and A-MC-02 and A-MC-03 only read placeholders.
+
+On the template (nine):
+
+| Record | What the answer holds | Verdict after the amendments |
+|---|---|---|
+| Z06 | `[[calc: 179.88 * 12]]`, a card with no question | 179.88 is `yearly_cost`; the `12` is a whole number and the card has no question: `calc_not_allowed`, part `12` (was `179.88`) |
+| Z08 | no placeholder; `between May 2026 and October 2026` | unchanged: `2026` twice is in no row or field, figure not found |
+| Z21 | `[[calc: 8.99 + (amount - 8.99)]]` | `calc_not_allowed`, part `8.99`: the cancellation alert has no numeric field equal to 8.99 (its numeric fields are `post_cancellation_count`, `total_charged_after`, `yearly_cost`) and no field `amount`. **Not accepted, unlike the request expected.** Same part as recorded |
+| Z22 | `[[calc: 8.99 + 8.99 + 8.99]]` | `calc_not_allowed`, part `8.99`, same reason as Z21 |
+| P32 | `[[calc: 484.00 * 2 * 5]]` | 484.00 is `total` (read as the field); `2` is a whole number not in the question, although `invoice_count` is 2 (DN-MC-16): `calc_not_allowed`, part `2` (was `484.00`) |
+| V37 | empty answer after 122.1 s | unchanged: no answer, the template |
+| V38 | no placeholder; `January 5, 2025 ... January 2025` | unchanged: the bare `2025` is in no row or field, figure not found |
+| V41 | `[[calc: (106.00 + 61.00 + 45.00) * 5]]` | 106.00 `total`, 61.00 `interest_total`, 45.00 `fee_total`, 5 from the question; `total` is added to the two fields that make it: `calc_not_allowed`, part `total = interest_total + fee_total` (was `106.00`) |
+| V42 | `[[calc: 12.40 + 18.65]]` | neither figure is a field of the overdraft alert: `calc_not_allowed`, part `12.40` |
+
+Four records that were on the template in the file now end on the model's text:
+
+| Record | Placeholder | Why the new verdict is right |
+|---|---|---|
+| Z03 | `[[calc: 359.76]]` | 359.76 is only `yearly_cost` (the other numeric field is `series_count` 2): computed `359,76 EUR†`. The rest of the answer holds `7731` (in the counterparty of the cited rows), the dates `May 10, 2026` and `October 17, 2026` (cited rows) and `monthly basis`, with no figure in its clause: nothing else to reject |
+| Z04 | `[[calc: 155.88 + 36.00]]` | 155.88 is `yearly_cost`, 36.00 is `extra_cost_per_year`: computed `191,88 EUR†`; no double counting (one other field). The rest reads like Z05, accepted in the same run: 9.99, 12.99, `36.00 per year`, `1.6%`, `2025`, `2026`, `2026-08` are fields of the alert (`old_median_amount`, `new_amount`, `extra_cost_per_year`, `cpi_change_percent`, `cpi_base_year`, `price_end_month`/`cpi_end_month`). **The least certain of the nine decisions: it rests on `1.6` being the `cpi_change_percent` of CLOUDVAULT, which I could not compute without running the demo** |
+| Z20 | `[[calc: 5 * yearly_cost]]`, `[[calc: 5 * 107.88]]` | the question gives five; 107.88 is only `yearly_cost`; both give `539,40 EUR†`. The rest: `€107.88` with `yearly` agrees with `yearly_cost`; `five years` is a lone small number word, not checked |
+| V43 | `[[calc: interest_total - 61.00]]` | 61.00 is only `interest_total`; result `0,00 EUR†`. Accepted by the rules as written; see DN-MC-18 |
+
+The other 30 records (all `observed_source` `llm`, no placeholder) keep their verdict.
+
+If the first `pytest` run disagrees, write here, record by record, why, and correct the set.
+
+### Task MC19 — Record of Kiro calls of session 28b (for the reviewer to fill in)
+
+**Covers**: all of session 28b
+
+Fill in after running the checks. One line per call; do not write what was not run.
+
+## Session 28c — amendments from the review of 28b
+
+Decision record: the owner's review of 28b (ruff clean, 4,216 passed, 1 skipped, 1 failed) asked
+for two more amendments, because the record-by-record reading of the 15 Nov file showed the
+literal-as-field rule letting nonsense through as a computed figure (Z04, V43, Z21), and for the one
+failing test to follow A-MC-01. Requirements group 9 (REQ-MC-39 to REQ-MC-41), design §10. Session
+28c could not run commands either: the hooks lint each file and run the tests on stop, and the
+pinned set of MC21 was derived by reading.
+
+### Task MC20 — Tests first, then the amendments
+
+**Covers**: REQ-MC-39, REQ-MC-40, §10
+
+- [x] `tests/test_calc_amendments.py`: Z04 and V43 replayed from the 15 Nov file and rejected with
+  their parts (`155.88 + 36.00`, `interest_total used more than once`); Z21 stays rejected on the
+  real alert (part `8.99`) and its shape is rejected on a synthetic alert with a field `amount`;
+  Z03 and Z20 still accepted (tests of 28b unchanged); a plain card accepts one field and one
+  figure equal to one field, rejects any operator; an empty question is a plain card; a
+  question-mode `5 * yearly_cost` accepted; a field used twice (by name, by figure, mixed) rejected;
+  the same field in two placeholders accepted; two named fields of equal value accepted. The test
+  `test_the_same_field_twice_is_not_double_counting` now expects the A-MC-05 rejection.
+- [x] `tests/test_explainer_calc.py`: the test that expected arithmetic on a plain card to compute
+  is replaced by three (DN-MC-23).
+- [x] `apps/phantom_invoices/tests/test_pi_live_guard.py`: the failing test now expects the
+  question-mode prompt (the plain prompt, a space, `CALC_PROMPT_RULE`) and keeps its row-column
+  checks.
+- [x] `ledger_kit/calc.py`: `FIELD_MAX_USES`, `_Evaluator.uses` and `reused_field`, the `arithmetic`
+  parameter of `_compute`, the two checks after the double-count check.
+
+### Task MC21 — Record of the recorded verdicts of the 15 Nov file (REQ-MC-41)
+
+| Run file | Pinned fallback ids |
+|---|---|
+| `2026-11-15_llama3.2-3b_calc.json` | Z04, Z06, Z08, Z21, Z22, P32, V37, V38, V41, V42, V43 |
+
+Two records join the nine of MC18 (11 on the template, 32 on the model's text); the other nine rows
+of the MC18 table keep their verdict, because the new checks run after the walk and the
+double-count check and leave the part those rules report unchanged.
+
+| Record | Placeholder | Verdict after A-MC-04 and A-MC-05 |
+|---|---|---|
+| Z04 | `[[calc: 155.88 + 36.00]]`, a plain card | A-MC-04: arithmetic on a card with no question: `calc_not_allowed`, part `155.88 + 36.00` (was accepted as `191,88 EUR†`, `yearly_cost` plus `extra_cost_per_year`, a double-counted total) |
+| V43 | `[[calc: interest_total - 61.00]]`, a question | A-MC-05: 61.00 is only `interest_total`, used twice: `calc_not_allowed`, part `interest_total used more than once` (was accepted as `0,00 EUR†`) |
+| Z21 | `[[calc: 8.99 + (amount - 8.99)]]` | unchanged and already pinned: `calc_not_allowed`, part `8.99`, rejected by A-MC-02 before the new checks because 8.99 is no field of the cancellation alert and `amount` is no field either. **The request expected A-MC-05 to be the one that rejects it; on the real alert it is not reached.** The shape itself is covered on a synthetic alert |
+| Z03 | `[[calc: 359.76]]` | still accepted: a plain card, one figure equal to one field, no operator, one use |
+| Z20 | `[[calc: 5 * yearly_cost]]`, `[[calc: 5 * 107.88]]` | still accepted: a question, each placeholder uses `yearly_cost` once (two placeholders, counted each on its own) |
+
+If the first `pytest` run disagrees, write here, record by record, why, and correct the set.
+
+### Task MC22 — Record of Kiro calls of session 28c (for the reviewer to fill in)
+
+**Covers**: all of session 28c
+
+Fill in after running the checks. One line per call; do not write what was not run.

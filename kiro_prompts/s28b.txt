@@ -1,0 +1,18 @@
+Session 28b: amendments to model-computes from the first real run. I ran scripts/record_live_run.py tonight with llama3.2:3b on Ollama (CPU, 22 minutes, 43 records): 30 accepted, 13 fallback, and no calculation accepted at all. I copied the file to data/live_runs/2026-11-15_llama3.2-3b_calc.json; read it. What the model did with the placeholders:
+- Z03, Z04, Z06 (plain cards, no question): it wrapped a figure from the alert in a placeholder without any arithmetic, for example a total yearly cost of [[calc: 359.76]], and the whole answer was rejected (calc_not_allowed). Before tonight those cards were accepted.
+- Z20 (five years): it wrote [[calc: 5 * yearly_cost]], which is right, and then [[calc: 5 * 107.88]], with the field's value written as a literal, so the whole answer was rejected.
+- Z21: [[calc: 8.99 + (amount - 8.99)]]. P32: [[calc: 484.00 * 2 * 5]] (the 2 is invented). V41: [[calc: (106.00 + 61.00 + 45.00) * 5]], which adds a total and its own two parts.
+
+Amendments, recorded in .kiro/specs/model-computes as numbered amendments that cite these records (the way A-LG-01 to A-LG-03 cite theirs in live-guard), test first:
+
+1. The placeholder instruction goes into the system prompt only when a question is asked. A card without a question gets the prompt it had before 15 Nov, word for word.
+
+2. A number inside a placeholder that equals the value of exactly one numeric field of the alert is read as that field (the provenance line names the field, not the literal). A number equal to two or more fields with different names is ambiguous and rejects the answer as today. Every other constant still has to be a whole number from the question. So Z03 and Z20 would now be accepted and P32 still rejected.
+
+3. Double counting: in one placeholder, a field may not be added to fields whose values sum to it within the same expression (for example a total plus the two parts it is made of, as in V41). Detect it simply: if the expression adds a field whose value equals the sum of two or more other fields that are also added in the same expression, reject with calc_not_allowed and record why. Say in the design note that this catches this one pattern and not every reasoning error, and that the formula is always shown so a reader can check it.
+
+4. Tests: the exact raw answers of Z03, Z20, Z21, P32 and V41 from the file, each with its expected verdict after these amendments (Z03, Z20 and Z21 accepted with their computed figures and provenance; P32 and V41 rejected with their reasons); a plain card's prompt equals the old prompt; the ambiguous literal case.
+
+5. Pin the new file in tests/test_recorded_verdicts.py with the set of record ids that end on the fixed template under today's guard after these amendments, and explain each one record by record in the spec. You cannot run the code, so derive the set by reasoning from each record's raw answer; I will correct it from the test run if it disagrees. Do not change data/live_runs/2026-11-11_llama3.2-3b_demo.json or the replay's default file: the replay switches only after a re-record with these amendments, if it is better.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed and the pinned set you derived.
