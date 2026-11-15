@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
+from ledger_kit.calc import REASON_CALC_NOT_ALLOWED, Computation
 from ledger_kit.explainer import LLM_TIMEOUT_SECONDS, Explanation, llm_timeout_seconds
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
 
@@ -58,6 +59,12 @@ VERDICT_REJECTED_INDEX_CAUSE_PREFIX = (
     "🛑 Guard verdict: rejected. The answer names the price index as the cause of the price "
     "change; the kit gives the index as context only: "
 )
+VERDICT_REJECTED_CALC_PREFIX = (
+    "🛑 Guard verdict: rejected. The answer asks the kit for a calculation it will not make "
+    "(only the numeric fields of the alert, whole numbers of the question and + - * / are "
+    "allowed): "
+)
+SHOWN_LABEL = "Answer as shown, with the figures the kit computed:"
 MSG_LIMIT = (
     f"Limit of {LIVE_ASKS_PER_SESSION_LIMIT} questions per session reached. "
     "Reload the page to start again."
@@ -149,6 +156,15 @@ class ProbeResult:
     rejected_numbers: tuple[str, ...]
     template_text: str
     reason: str = ""  # Explanation.rejected_reason: "" for a figure, else why the tokens were
+    # The accepted answer as shown on a card (placeholders replaced) and the calculations behind
+    # it; both empty when the model asked for none.
+    computed: tuple[Computation, ...] = ()
+    shown_text: str = ""
+
+
+def computed_lines(computed: Sequence[Computation]) -> tuple[str, ...]:
+    """Return the one line of small text for each calculation the kit made (none: no line)."""
+    return tuple(c.line for c in computed)
 
 
 def probe_result(question: TrickQuestion, meta: Explanation, template_text: str) -> ProbeResult:
@@ -166,6 +182,8 @@ def probe_result(question: TrickQuestion, meta: Explanation, template_text: str)
         tuple(meta.rejected_numbers),
         template_text,
         meta.rejected_reason,
+        tuple(meta.computed),
+        meta.text if meta.computed else "",
     )
 
 
@@ -177,6 +195,8 @@ def verdict_line(result: ProbeResult) -> str:
         prefix = VERDICT_REJECTED_PREFIX
         if result.reason == REASON_INDEX_AS_CAUSE:
             prefix = VERDICT_REJECTED_INDEX_CAUSE_PREFIX
+        elif result.reason == REASON_CALC_NOT_ALLOWED:
+            prefix = VERDICT_REJECTED_CALC_PREFIX
         return prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
     return ""
 

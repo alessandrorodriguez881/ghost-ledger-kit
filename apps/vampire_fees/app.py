@@ -56,6 +56,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     NOTE_GUARD_SCOPE,
     PANEL_TITLE,
     RAW_LABEL,
+    SHOWN_LABEL,
     TEMPLATE_LABEL,
     TRICK_QUESTIONS,
     Counts,
@@ -63,6 +64,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     ProbeResult,
     TrickQuestion,
     ask_label,
+    computed_lines,
     counter_caption,
     highlight_html,
     intro_line,
@@ -363,6 +365,11 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
             highlight_html(result.raw_answer, result.rejected_numbers), unsafe_allow_html=True
         )
         st.markdown(verdict_line(result))
+        if result.computed:
+            st.markdown(f"**{SHOWN_LABEL}**")
+            st.write(result.shown_text)
+            for line in computed_lines(result.computed):
+                st.caption(line)
         st.caption(NOTE_GUARD_SCOPE)
     st.markdown(f"**{TEMPLATE_LABEL}**")
     st.write(result.template_text)
@@ -436,6 +443,8 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         st.markdown(f'<div class="vf-alert-title">{title}</div>', unsafe_allow_html=True)
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
         st.write(explanation.text)
+        for line in computed_lines(explanation.computed):
+            st.caption(line)
         st.markdown(
             f'<span class="vf-badge vf-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,

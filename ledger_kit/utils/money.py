@@ -104,6 +104,24 @@ def balance_after(opening: Decimal, credits: Decimal, debits: Decimal) -> Decima
     return opening + credits - debits
 
 
+def combine(operator: str, left: Decimal, right: Decimal) -> Decimal:
+    """Return `left operator right` for one of + - * /, unrounded (the calc module's one step).
+
+    Raises ValueError for any other operator and ZeroDivisionError for a division by zero.
+    """
+    if operator == "+":
+        return left + right
+    if operator == "-":
+        return left - right
+    if operator == "*":
+        return left * right
+    if operator == "/":
+        if right == 0:
+            raise ZeroDivisionError("division by zero")
+        return left / right
+    raise ValueError(f"unsupported operator: {operator!r}")
+
+
 def apply_sign(amount: Decimal, negative: bool) -> Decimal:
     """Return -amount when `negative` is true, otherwise amount."""
     return -amount if negative else amount

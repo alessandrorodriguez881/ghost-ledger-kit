@@ -12,6 +12,7 @@ from typing import Literal
 
 import pandas as pd
 
+from ledger_kit.calc import REASON_CALC_NOT_ALLOWED, Computation, resolve_calculations
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE, find_index_as_cause
 from ledger_kit.ingestion.iso4217 import NUMERIC_TO_ALPHA
 from ledger_kit.models import Alert
@@ -56,9 +57,12 @@ class Explanation:
     rejected_numbers: tuple[str, ...]  # tokens the guard found and rejected
     # The model's text as received (accepted or rejected); "" when it did not answer.
     raw_answer: str = field(default="", compare=False, repr=False)
-    # Why the answer was rejected when the tokens are not figures ("" for a figure); today only
-    # REASON_INDEX_AS_CAUSE, with the offending sentences as the tokens.
+    # Why the answer was rejected when the tokens are not figures ("" for a figure): the index named
+    # as a cause (REASON_INDEX_AS_CAUSE, the offending sentences as tokens) or a placeholder the
+    # kit will not compute (REASON_CALC_NOT_ALLOWED, the offending parts as tokens).
     rejected_reason: str = ""
+    # The calculations the kit made for an accepted answer, in text order; () when it made none.
+    computed: tuple[Computation, ...] = ()
 
 
 def explain(
@@ -102,14 +106,34 @@ def explain_with_meta(
     if raw is None:
         return Explanation(text=fallback, source="fallback", rejected_numbers=())
 
-    ok, rejected = _passes_number_guard(raw, alert, narrow_rows, row_columns)
+    # The model may ask the kit to compute (a [[calc: ...]] placeholder). An answer with no
+    # placeholder passes through unchanged, so everything below reads it exactly as before.
+    calc = resolve_calculations(
+        raw,
+        alert.data,
+        question=question,
+        money_fields=frozenset(_MONEY_FIELD_RE.findall(fallback_template)),
+    )
+    if calc.rejected:
+        _log.warning("Calculation not allowed for alert %s: %s", alert.id, calc.rejected)
+        return Explanation(
+            text=fallback,
+            source="fallback",
+            rejected_numbers=calc.rejected,
+            raw_answer=raw,
+            rejected_reason=REASON_CALC_NOT_ALLOWED,
+        )
+
+    # The guard reads the answer with each placeholder replaced by a neutral marker: a figure the
+    # model wrote itself is checked as ever, a computed one was made by the kit from listed fields.
+    ok, rejected = _passes_number_guard(calc.guard_text, alert, narrow_rows, row_columns)
     if not ok:
         _log.warning("Number guard rejected LLM response for alert %s: %s", alert.id, rejected)
         return Explanation(
             text=fallback, source="fallback", rejected_numbers=rejected, raw_answer=raw
         )
 
-    caused = find_index_as_cause(raw)
+    caused = find_index_as_cause(calc.guard_text)
     if caused:
         _log.warning("Price index named as cause, answer rejected for alert %s", alert.id)
         return Explanation(
@@ -120,7 +144,9 @@ def explain_with_meta(
             rejected_reason=REASON_INDEX_AS_CAUSE,
         )
 
-    return Explanation(text=raw, source="llm", rejected_numbers=(), raw_answer=raw)
+    return Explanation(
+        text=calc.text, source="llm", rejected_numbers=(), raw_answer=raw, computed=calc.computed
+    )
 
 
 def _select_llm_columns(
@@ -172,6 +198,8 @@ _FORMAT_SPECS = {
     "idx": format_index,
     "times": format_times,
 }
+# The fields a template shows as amounts: a calculation on them gives an amount.
+_MONEY_FIELD_RE = re.compile(r"\{(\w+):money\}")
 
 
 def fill_fallback(template: str, alert: Alert) -> str:
@@ -756,7 +784,13 @@ def _call_llm(
         f"Cite at least one source reference from: {alert.source_refs}. "
         "Answer in plain prose of at most three sentences: no lists, no JSON, no repetition "
         "of the input. Write source references exactly as given. "
-        "Write every date exactly as given, in YYYY-MM-DD form."
+        "Write every date exactly as given, in YYYY-MM-DD form. "
+        "When the question needs arithmetic (a total over several periods, a sum, a difference, "
+        "a share), do not compute it: write it as a placeholder [[calc: EXPRESSION]] and the kit "
+        "computes it. EXPRESSION uses only the names of numeric fields of the alert as given in "
+        "the Alert JSON, the operators + - * / and parentheses, and whole numbers that appear in "
+        "the user's question (in digits or words). Never write the result yourself and never "
+        "assume a number the question does not give."
     )
     # pandas date_format="iso" would render date cells as "...T00:00:00.000", so every
     # date-holding column is mapped to plain ISO strings first (missing values stay None).
