@@ -60,8 +60,9 @@ SEVERITY_RANK: dict[str, int] = {"critical": 0, "warning": 1, "info": 2}
 # A tile shows at most this many source-ref chips; the rest is one line with the computed count.
 TILE_MAX_CHIPS: int = 3
 
-# The lantern of the Phantom tile shows the source ref and at most this many compared columns.
-TILE_MAX_COMPARED: int = 2
+# The lantern of the Phantom tile shows the source ref and at most this many compared columns:
+# the tile is narrower than a table of three columns, so one compared column is what fits.
+TILE_MAX_COMPARED: int = 1
 # Columns of free text: only these may wrap, and only between words. Every other cell (number,
 # amount, date, invoice number, source ref, IBAN) stays on one line.
 TILE_TEXT_COLUMNS: frozenset[str] = frozenset({"supplier_name", "counterparty"})
@@ -130,7 +131,8 @@ def _vampire_tile() -> str:
     if alert is None:
         return ""
     cited, _missing = rows_for_refs(pipeline.ledger, alert.source_refs)
-    return _tile(signature_block(bites_svg(cited), VAMPIRE_CAPTION), alert)
+    # No date labels on the tile: at tile width they would be far smaller than the tile text.
+    return _tile(signature_block(bites_svg(cited, labels=False), VAMPIRE_CAPTION), alert)
 
 
 @st.cache_resource(show_spinner=False)
@@ -148,7 +150,7 @@ def _phantom_alerts(pipeline: pi_settings.Pipeline) -> list[Alert]:
 
 
 def tile_lantern_columns(alert: Alert, view: pd.DataFrame) -> list[str]:
-    """Return the columns of the tile lantern: the source ref and at most two compared columns.
+    """Return the columns of the tile lantern: the source ref and the first compared column.
 
     The compared columns are the first ``TILE_MAX_COMPARED`` of the detector's lantern columns
     (``lantern_lit_columns``) that the view of this alert holds, in the order of the mapping. A
@@ -167,7 +169,7 @@ def tile_lantern_columns(alert: Alert, view: pd.DataFrame) -> list[str]:
 def _phantom_tile() -> str:
     """The lantern of the first alert of the Phantom Invoices demo, drawn as its card does.
 
-    The tile is narrow, so its table keeps the source ref and at most two compared columns.
+    The tile is narrow, so its table keeps the source ref and one compared column.
     """
     pipeline = _phantom_pipeline()
     alert = pick_alert(_phantom_alerts(pipeline))

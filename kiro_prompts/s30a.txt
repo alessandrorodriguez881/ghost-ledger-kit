@@ -1,0 +1,20 @@
+Session 30a: fixes from an execution review run tonight from a clean clone, without a key (no exception anywhere; these are statements that do not match the app, and messages a judge cannot read). Record them as a task group in .kiro/specs/judge-path (or the spec each item belongs to), test first.
+
+1. Statements that promise more than the app does:
+- streamlit_app.py, the TRY_IT text (around line 85) says each card replays recorded answers of a real model when no API key is set, and README.md (the No key needed paragraph around line 40 and the sentence after it) suggests the same. Checked: the card explanation is replayed on every card, but the Provoke the LLM panel replays only on the first critical card of each app (GYMPLUS, the Suministros Ibéricos duplicate invoice, the Vampire Fees overdraft), because only there were the three questions recorded; on the other 31 cards the panel is disabled with the live-model-off message. Say exactly that in both places.
+- README.md For judges step 5 says On any card, open Exorcise; four demo alerts have no Exorcise draft (Phantom: Possible duplicate invoice FAC-0101, Invalid IBAN on invoice TR-2026-014, Unpaid invoice CR-2026-051; Vampire: Fee increase BANCO FICTICIO Comisión mantenimiento cuenta). Make step 5 true (for example: on most cards, open Exorcise; alerts with nothing to claim have no draft), checking the code for which alert kinds get a draft.
+- README.md For judges step 1 says Within three seconds; the moment plays in under three seconds once Home has loaded, and a cold load takes longer (4.7 s measured cold in AppTest). Reword so it is true.
+- README.md line 36 writes the formula as yearly_cost 107,88 EUR x 5 = 539,40 EUR; the app shows 5 x yearly_cost 107,88 EUR = 539,40 EUR. Write it as the app does. The same paragraph says the other numbers must come from the question: add the amendment that a number equal to exactly one field of the alert is read as that field (that is why GYMPLUS shows yearly_cost although the model wrote 107.88).
+- README.md: say in one clause that Home shows a 10 Nov recording (the 5% invention) while the apps replay the 16 Nov run, so the same card can show a different recorded answer in the app.
+
+2. Rejection reasons a judge can read (the replay badge, the Provoke panel verdict and the card badge use them):
+- calc_not_allowed must say why in words, for example: 2 is neither a field of the alert nor a number in the question; interest_total is used more than once (61.00 is its value, read as that field); a total is added to its own parts (total = interest_total + fee_total). Today the badge shows only the token (2) or a phrase that hides the literal-as-field step.
+- A currency rejection (the model wrote $ on a euro account, recorded STREAMING card) shows as not found in the cited rows or the alert data: $. Say instead that the answer uses a dollar sign on a euro account (or the currency symbol found and the account currency).
+
+3. The line computed by the kit is printed once per placeholder, so GYMPLUS shows the same line twice (two placeholders with the same calculation). Show each distinct line once, in order.
+
+4. The Provoke panel counts every replay as an answer checked; with the session limit of 30 (ledger_kit/live_guard.py LIVE_ASKS_PER_SESSION_LIMIT) replays could block the button although no model is called. The limit applies only to live calls to a model; replays never consume it (the counter may still count them, labelled so it is clear they are replays).
+
+Tests for each point (texts, reasons, dedupe, the limit not consumed by replays); keep every honesty test. Read tests/test_readme.py and the tests that pin these texts first.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed and quote each new or changed README line.

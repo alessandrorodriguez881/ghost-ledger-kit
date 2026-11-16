@@ -51,7 +51,6 @@ from ledger_kit import replay  # noqa: E402
 from ledger_kit.explainer import Explanation, explain_with_meta, fill_fallback  # noqa: E402
 from ledger_kit.ingestion.norma43_reader import control_check_messages  # noqa: E402
 from ledger_kit.live_guard import (  # noqa: E402
-    LIVE_ASKS_PER_SESSION_LIMIT,
     MSG_LIMIT,
     NOTE_GUARD_SCOPE,
     PANEL_TITLE,
@@ -68,6 +67,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     counter_caption,
     highlight_html,
     intro_line,
+    limit_reached,
     live_status,
     no_answer_message,
     probe_result,
@@ -352,7 +352,9 @@ def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> N
     )
     result = probe_result(question, meta, fill_fallback(template, alert))
     st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
-    st.session_state[LG_COUNTS_KEY] = tally(st.session_state[LG_COUNTS_KEY], result)
+    st.session_state[LG_COUNTS_KEY] = tally(
+        st.session_state[LG_COUNTS_KEY], result, replayed=isinstance(client, replay.ReplayClient)
+    )
 
 
 def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
@@ -404,7 +406,7 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
         st.button(
             ask_label(live=status.enabled, replayable=replayable),
             key=f"vf_lg_ask_{alert.id}",
-            disabled=not (can_ask and counts.asked < LIVE_ASKS_PER_SESSION_LIMIT),
+            disabled=not (can_ask and not limit_reached(counts)),
             on_click=_ask_model,
             args=(alert, ledger, question),
         )
@@ -415,7 +417,7 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
             _render_probe_result(result, status)
         if not can_ask:
             st.caption(status.caption)
-        elif counts.asked >= LIVE_ASKS_PER_SESSION_LIMIT:
+        elif limit_reached(counts):
             st.caption(MSG_LIMIT)
         st.caption(counter_caption(counts))
 

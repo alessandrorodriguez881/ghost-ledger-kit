@@ -78,6 +78,10 @@ class Explanation:
     rejected_reason: str = ""
     # The calculations the kit made for an accepted answer, in text order; () when it made none.
     computed: tuple[Computation, ...] = ()
+    # Why the rejection in words, one sentence each (judge-path 30a). For a placeholder the kit
+    # will not compute: one per offending part, in the order of the tokens. For a figure answer:
+    # one per currency sign or code that the cited rows do not name. () for every other answer.
+    rejected_why: tuple[str, ...] = field(default=(), compare=False, repr=False)
 
 
 def explain(
@@ -137,6 +141,7 @@ def explain_with_meta(
             rejected_numbers=calc.rejected,
             raw_answer=raw,
             rejected_reason=REASON_CALC_NOT_ALLOWED,
+            rejected_why=calc.reasons,
         )
 
     # The guard reads the answer with each placeholder replaced by a neutral marker: a figure the
@@ -145,7 +150,13 @@ def explain_with_meta(
     if not ok:
         _log.warning("Number guard rejected LLM response for alert %s: %s", alert.id, rejected)
         return Explanation(
-            text=fallback, source="fallback", rejected_numbers=rejected, raw_answer=raw
+            text=fallback,
+            source="fallback",
+            rejected_numbers=rejected,
+            raw_answer=raw,
+            rejected_why=_currency_reasons(
+                rejected, alert, _visible_rows(narrow_rows, row_columns)
+            ),
         )
 
     # Every figure is now known; the period words around it must not contradict its field.
@@ -972,6 +983,41 @@ def _foreign_currencies(text: str, alert: Alert, rows: pd.DataFrame) -> list[str
         if not named and token not in foreign:
             foreign.append(token)
     return foreign
+
+
+def is_currency_token(token: str) -> bool:
+    """True when a rejected token is a currency sign or an ISO currency code, not a figure."""
+    return token in _SYMBOL_CODES or token in _CURRENCY_CODES
+
+
+# How each sign is named in the reason; a code is named by itself. No sign is written out: the
+# sentence is shown as markdown and two dollar signs would be read as a formula.
+_SIGN_NAMES: dict[str, str] = {
+    "€": "a euro sign",
+    "$": "a dollar sign",
+    "£": "a pound sign",
+    "¥": "a yen sign",
+}
+
+
+def _currency_reasons(tokens: Sequence[str], alert: Alert, rows: pd.DataFrame) -> tuple[str, ...]:
+    """One sentence per rejected currency sign or code: what the answer used, what the data names.
+
+    Figures among the rejected tokens get no sentence (their wording is the figure rule's).
+    """
+    foreign = [token for token in tokens if is_currency_token(token)]
+    if not foreign:
+        return ()
+    codes, symbols = _named_currencies(alert, rows)
+    named = ", ".join(sorted(codes) or sorted(symbols))
+    reasons = []
+    for token in foreign:
+        used = _SIGN_NAMES.get(token) or f"the currency code {token}"
+        reasons.append(
+            f"the answer uses {used}, but the currency of the cited rows and the alert data "
+            f"is {named}"
+        )
+    return tuple(reasons)
 
 
 # --- LLM call -----------------------------------------------------------------------------

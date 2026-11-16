@@ -110,6 +110,36 @@ set) is run by the user: this session could not run commands. Tasks run in order
   `live_guard.REPLAY_ASK_LABEL`, `ask_label`, `MARK_STYLE`; the three apps' button label; the three
   `BADGE_REJECTED` constants and `replay.card_badge`; `START_HERE_ICON` and the page-link CSS.
 
+## Task JP9 — Session 30a: statements that match the app, reasons in words
+
+**Covers**: REQ-JP-24 to REQ-JP-28
+
+- [x] Tests first, `tests/test_judge_path_honesty.py`: the Home *Try it* text and the README
+  (panel replays only on the first critical card of each app, step 1 and step 5, the formula as the
+  app writes it, the amendment, the 10 Nov / 16 Nov clause; the committed run records the three
+  questions on exactly three cards; some demo alerts have no Exorcise draft and most have one);
+  the reason in words of every rejected-calculation case and of a dollar sign on a euro account;
+  the replay badge and the verdict use them; one line per distinct calculation (and none printed
+  twice for the committed run); replays never consume the limit. In
+  `tests/test_judge_path_pages.py` the test of the session limit now says a replay is counted and
+  never refused, and a preset of 30 live calls still is.
+- [x] `ledger_kit/calc.py`: `_Reject.why`, `CalcOutcome.reasons`, the sentences `WHY_*`.
+  `ledger_kit/explainer.py`: `Explanation.rejected_why` (compare off), `is_currency_token`, the
+  currency sentences. `ledger_kit/live_guard.py`: `ProbeResult.why`, `rejection_clause`,
+  `computed_lines` without repeats, `Counts.replayed` / `live_asked`, `limit_reached`, the counter
+  label. `ledger_kit/replay.py`: `card_badge` through `rejection_clause`. The three apps: the
+  button and the limit message use `limit_reached`, `tally(..., replayed=...)`.
+- [x] `README.md` and `streamlit_app.py` (`TRY_IT`) reworded.
+- [x] Session 30b, the four tests that pinned texts or counts 30a changed on purpose, updated:
+  `test_explainer_calc.py` (the rejected-calculation verdict ends with `. Why: ...`),
+  `test_home_example.py` (README step 1), `test_replay_calc2.py` (the computed-by-the-kit line is
+  shown once), `test_showcase_app.py` kept at 650 words: `TRY_IT` shortened (below 650 words), still
+  saying that every card replays a recorded answer and that the panel replays only on the first
+  critical card of each app.
+- [ ] Open for the user to run: `ruff check .`, `ruff format --check .`, `pytest`. The card badge
+  of a live answer (`guard_badge` in each app's `settings.py`, shown only with a key) was not
+  changed.
+
 ## Open for the user to run
 
 - [ ] `ruff check .` and `ruff format --check .`

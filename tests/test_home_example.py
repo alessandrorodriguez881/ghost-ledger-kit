@@ -333,10 +333,11 @@ LINE_3 = (
     "not meaning (see What the guard does not check)."
 )
 STEP_1 = (
-    "1. Open Home. Within three seconds it shows one recorded answer of a real model "
-    "(`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and "
-    "the number guard striking both figures out and showing a fixed template instead. Each app "
-    "tile shows that app's own drawing, and the rest of the text is under *How it works*."
+    "1. Open Home. Once the page has loaded, the moment plays in under three seconds (a cold "
+    "load takes longer): one recorded answer of a real model (`llama3.2:3b`) that assumed a 5% "
+    "interest rate found in no row and built 617.51 on it, and the number guard striking both "
+    "figures out and showing a fixed template instead. Each app tile shows that app's own "
+    "drawing, and the rest of the text is under *How it works*."
 )
 STEP_4_ADDED = (
     "The model asks the kit for `yearly_cost` × 5 in a placeholder, the kit computes 539,40 EUR "

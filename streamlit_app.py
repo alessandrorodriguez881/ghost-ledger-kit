@@ -79,10 +79,12 @@ LAYERS = """
 """
 
 TRY_IT = (
-    "**Try it:** open an app, where the demo data is already loaded, and switch on **Simulate a "
-    "hallucinating LLM** in the sidebar. A stub model then invents a figure, 99999.99 EUR; the "
-    "guard rejects it and the alert card shows a warning badge. The *Provoke the LLM* panel of "
-    "each card replays recorded answers of a real model when no API key is set."
+    "**Try it:** open an app and switch on **Simulate a hallucinating LLM** in the sidebar. A "
+    "stub model invents 99999.99 EUR; the guard rejects it and the card shows a warning badge. "
+    "With no API key every card replays a recorded answer of a real model through the guard, or "
+    "the fixed template if rejected. The *Provoke the LLM* panel replays recorded answers only "
+    "on the first critical card of each app (GYMPLUS, Suministros Ibéricos, Vampire Fees); on "
+    "every other card it stays off until you set an API key."
 )
 
 SYNTHETIC_NOTE = (

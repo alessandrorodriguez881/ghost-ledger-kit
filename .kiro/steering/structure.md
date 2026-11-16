@@ -215,6 +215,7 @@ ghost-ledger-kit/
 │   ├── test_judge_path_replay.py   # replay loader, re-check by today's guard, no network
 │   ├── test_judge_path_pages.py    # headless AppTest runs: recorded cards, replayed panel, auto-load, Home
 │   ├── test_judge_path_misc.py     # plurals, percentages, first-run switch, config key
+│   ├── test_judge_path_honesty.py  # 30a: README and Home statements, reasons in words, one line per calculation, replays and the limit
 │   ├── test_live_guard_docs.py     # docs/live-guard.md, README paragraph, .env.example
 │   ├── exorcise_script.py          # AppTest script: one Exorcise expander on a sample alert
 │   ├── test_actions.py             # Exorcise mechanism: fill, row lines, check_figures, the widget

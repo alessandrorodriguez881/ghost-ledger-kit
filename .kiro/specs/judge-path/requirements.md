@@ -216,3 +216,32 @@ examples is **(synthetic)** or a recorded answer of a real model on synthetic de
 - **REQ-JP-23** The *Start here* entry on Home shall be a page link to Zombie Subscriptions with
   the tombstone icon, drawn at body text size (1 rem), underlined, inside a bordered box in the
   accent colour; not a small caption.
+
+### Session 30a: statements that match the app, reasons a judge can read
+
+- **REQ-JP-24** Every statement about what is replayed shall match the app. The Home *Try it* text
+  and the README say that, with no key, each card replays the recorded answer of its alert through
+  today's guard, and that the *Provoke the LLM* panel replays only on the first critical card of
+  each app (GYMPLUS, the Suministros Ibéricos duplicate invoice, the Vampire Fees overdraft), where
+  the three questions were recorded; on every other card the panel is disabled with the
+  live-model-off message. README *For judges*: step 1 says the moment plays in under three seconds
+  once Home has loaded and that a cold load takes longer; step 5 says *on most cards* and that an
+  alert with nothing to claim has no draft. The formula is written as the app shows it
+  (`5 x yearly_cost 107,88 EUR = 539,40 EUR`); the README states the amendment that a number
+  written with a decimal point that equals exactly one numeric field is read as that field; and it
+  says in one clause that Home shows the 10 Nov recording while the apps replay the 16 Nov run.
+- **REQ-JP-25** A rejected calculation shall say why in words, one sentence per rejected part:
+  `2 is neither a field of the alert nor a number in the question`; `interest_total is used more
+  than once (61.00 is its value, read as that field)`; `a total is added to its own parts (total =
+  interest_total + fee_total)`. A rejected currency sign or code shall say what the answer used
+  and which currency the rows name (`the answer uses a dollar sign, but the currency of the cited
+  rows and the alert data is EUR`), not `not found in the cited rows or the alert data: $`. The
+  replay badge and the Provoke verdict use these sentences; the rejected tokens stay as they were
+  (the marker needs them). A figure rejected together with a sign keeps its usual wording. No
+  sentence holds `*` or `$`: the verdict is drawn as markdown.
+- **REQ-JP-26** The lines `computed by the kit: ...` shall show each distinct line once, in order
+  of first use (two placeholders of one calculation print one line).
+- **REQ-JP-27** The session limit (`LIVE_ASKS_PER_SESSION_LIMIT`) shall apply only to live calls
+  to a model. A replay is counted in the counter, labelled `recorded replays: N`, and never
+  consumes the limit; `Counts.live_asked` is the presses that called a model.
+- **REQ-JP-28** Every existing honesty test is kept.

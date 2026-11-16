@@ -586,7 +586,7 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
     vampire_alert = home_tiles.pick_alert(vampire.alerts)
     assert vampire_alert is not None
     cited, _missing = rows_for_refs(vampire.ledger, vampire_alert.source_refs)
-    bites = bites_svg(cited)
+    bites = bites_svg(cited, labels=False)  # the tile draws the bites without date labels
 
     phantom = _phantom()
     settings = home_tiles.pi_settings
@@ -594,8 +594,8 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
         settings.ordered_alerts(alert for result in phantom.results for alert in result.alerts)
     )
     assert phantom_alert is not None
-    # The Phantom tile is specified to show the tile variant: the source ref plus the first two
-    # lantern columns, with only the free-text columns allowed to wrap.
+    # The Phantom tile is specified to show the tile variant: the source ref plus the first
+    # lantern column, with only the free-text columns allowed to wrap.
     view = settings.lantern_view(phantom_alert, phantom)
     columns = home_tiles.tile_lantern_columns(phantom_alert, view)
     lantern = lantern_html(

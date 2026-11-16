@@ -314,17 +314,28 @@ def test_an_alert_without_a_recorded_probe_keeps_todays_disabled_panel(
 
 
 @pytest.mark.parametrize("prefix", PREFIXES)
-def test_a_replayed_press_counts_and_is_refused_at_the_session_limit(
+def test_a_replayed_press_counts_but_never_uses_the_session_limit(
     judge_path: Path, prefix: str
 ) -> None:
+    # 30 live calls would block the button; 30 replays (no model called) must not (REQ-JP-27).
     at = _open(prefix, {f"{prefix}_lg_counts": Counts(30, 0, 0)})
 
     assert _ask(at, prefix).disabled
     assert [c.value for c in at.caption].count(MSG_LIMIT) == 1
 
+    at = _open(prefix, {f"{prefix}_lg_counts": Counts(30, 30, 0, 30)})
+
+    assert not _ask(at, prefix).disabled
+    assert MSG_LIMIT not in [c.value for c in at.caption]
+    assert "Answers checked: 30 · rejected: 0 · recorded replays: 30" in "\n".join(_texts(at))
+    _ask(at, prefix).click().run()
+    assert at.session_state[f"{prefix}_lg_counts"] == Counts(31, 31, 1, 31)
+    assert not _ask(at, prefix).disabled
+
     at = _open(prefix)
     _ask(at, prefix).click().run()
-    assert at.session_state[f"{prefix}_lg_counts"] == Counts(1, 1, 1)
+    assert at.session_state[f"{prefix}_lg_counts"] == Counts(1, 1, 1, 1)
+    assert "Answers checked: 1 · rejected: 1 · recorded replays: 1" in "\n".join(_texts(at))
 
 
 @pytest.mark.parametrize("prefix", PREFIXES)

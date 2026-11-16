@@ -24,7 +24,7 @@ from typing import Any, Literal, Self
 
 from ledger_kit.explainer import Explanation
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
-from ledger_kit.live_guard import TRICK_QUESTIONS
+from ledger_kit.live_guard import TRICK_QUESTIONS, rejection_clause
 
 ROOT = Path(__file__).resolve().parents[1]
 # The one recorded run the apps replay: the only place the file name is written. It is the run of
@@ -339,10 +339,9 @@ def card_badge(recording: Recording, explanation: Explanation) -> tuple[str, str
             " (the answer names the price index as the cause of the price change: "
             f"{' '.join(explanation.rejected_numbers)})"
         )
-    elif explanation.rejected_numbers:
-        numbers = (
-            " (not found in the cited rows or the alert data: "
-            f"{', '.join(explanation.rejected_numbers)})"
+    else:
+        numbers = rejection_clause(
+            explanation.rejected_reason, explanation.rejected_numbers, explanation.rejected_why
         )
     label = BADGE_REJECTED.format(model=recording.model_name, date=recording.date, numbers=numbers)
     return "rejected", label

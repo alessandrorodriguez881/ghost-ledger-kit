@@ -311,12 +311,14 @@ def heartbeat_svg(
 # --- the bites (Vampire) ------------------------------------------------------------------------
 
 
-def bites_svg(rows: pd.DataFrame) -> str:
+def bites_svg(rows: pd.DataFrame, *, labels: bool = True) -> str:
     """Return the bites of the cited rows, or '' when no row can be drawn.
 
     One fang-shaped bar per row, in date order, evenly spaced; the height is proportional to the
     amount (the largest cited amount is the full height). The visible text is the first and last
-    cited date only; each bar has a title with the date and the amount of its row.
+    cited date only; each bar has a title with the date and the amount of its row. With
+    ``labels=False`` (the Home tile, where the scaled labels would be unreadable) there is no
+    visible text and the viewBox ends under the baseline.
     """
     marks = _marks(rows)
     if not marks:
@@ -341,6 +343,8 @@ def bites_svg(rows: pd.DataFrame) -> str:
             f"Q{x + width * 0.1:.1f},{bend:.1f} {x + width / 2:.1f},{tip} "
             f'Q{x + width * 0.9:.1f},{bend:.1f} {x + width:.1f},{BITES_BASE_Y} Z"/></g>'
         )
+    if not labels:
+        return _svg("gl-bites", BITES_LABEL, "".join(parts), BITES_BASE_Y + BITES_MARGIN)
     parts.append(_date_labels(marks[0].day, marks[-1].day, centres[0], centres[-1]))
     return _svg("gl-bites", BITES_LABEL, "".join(parts))
 

@@ -1,8 +1,8 @@
 """Polish of the three Home tiles (haunted-design session 26c).
 
 The zombie drawing is made on the narrower tile viewBox, so the browser scales it by about one
-instead of about 0.4; the lantern of the tile keeps the source ref and at most two compared
-columns and wraps free text only between words; a tile
+instead of about 0.4; the lantern of the tile keeps the source ref and one compared column and
+wraps free text only between words; the bites of the Vampire tile carry no date labels; a tile
 shows at most three source-ref chips and one computed line for the rest; the three tiles have the
 same height with the demo numbers at the bottom. The alert cards are unchanged. No model, no
 network; all data is synthetic.
@@ -111,13 +111,13 @@ def test_the_wrap_rule_reaches_the_header_cells_too() -> None:
     assert ".stApp .gl-tile table.gl-lantern th" in theme.BASE_CSS
 
 
-def test_the_tile_lantern_has_at_most_three_columns_and_marks_the_text_ones() -> None:
+def test_the_tile_lantern_has_at_most_two_columns_and_marks_the_text_ones() -> None:
     drawing = home_tiles.tile_signatures()["phantom"]
     head = drawing[drawing.index("<thead>") : drawing.index("</thead>")]
 
-    assert head.count("<th ") <= 3 and head.count("<th ") >= 1
+    assert head.count("<th ") == 2  # the source ref and one compared column
     assert "source ref" in head
-    assert home_tiles.TILE_MAX_COMPARED == 2
+    assert home_tiles.TILE_MAX_COMPARED == 1
 
 
 def test_only_text_columns_get_the_wrap_class() -> None:
@@ -131,7 +131,7 @@ def test_only_text_columns_get_the_wrap_class() -> None:
     assert "gl-wrap" not in signatures.lantern_html(frame, ["total"])  # card markup unchanged
 
 
-def test_the_tile_columns_are_the_first_two_lantern_columns_of_the_detector() -> None:
+def test_the_tile_columns_are_the_first_lantern_column_of_the_detector() -> None:
     from ledger_kit.models import Alert
 
     alert = Alert(
@@ -140,10 +140,33 @@ def test_the_tile_columns_are_the_first_two_lantern_columns_of_the_detector() ->
     view = pd.DataFrame(columns=["source_ref", "total", "vat_amount", "base_amount", "vat_rate"])
 
     columns = home_tiles.tile_lantern_columns
-    assert columns(alert, view) == ["source_ref", "base_amount", "vat_rate"]
+    assert columns(alert, view) == ["source_ref", "base_amount"]
     # a column the view lacks is skipped, the next one of the mapping takes its place
     view = view.drop(columns=["base_amount"])
-    assert columns(alert, view) == ["source_ref", "vat_rate", "vat_amount"]
+    assert columns(alert, view) == ["source_ref", "vat_rate"]
+
+
+# --- 2b. the bites of the Vampire tile have no unreadable labels ---------------------------------
+
+
+def test_the_bites_card_keeps_its_date_labels_and_the_tile_drawing_has_none() -> None:
+    rows = _rows()
+
+    card = signatures.bites_svg(rows)
+    tile = signatures.bites_svg(rows, labels=False)
+
+    assert card.count("<text") == 2 and "2026-05-31" in card
+    assert "<text" not in tile and "gl-sig-text" not in tile
+    bite = '<g class="gl-bite">'
+    assert tile.count(bite) == card.count(bite) == 3  # every cited fee is still a bite
+    assert signatures.bites_svg(rows.iloc[0:0], labels=False) == ""
+
+
+def test_the_vampire_tile_has_no_labels_under_the_bites_and_keeps_its_caption() -> None:
+    drawing = home_tiles.tile_signatures()["vampire"]
+
+    assert "gl-bites" in drawing and "<text" not in drawing
+    assert signatures.VAMPIRE_CAPTION in drawing
 
 
 # --- 3. at most three chips, then a computed line ------------------------------------------------

@@ -308,7 +308,10 @@ def test_a_rejected_calculation_has_its_own_verdict_sentence() -> None:
     result = probe_result(_FORECAST, meta, "template")
 
     assert result.verdict == "rejected"
-    assert verdict_line(result) == VERDICT_REJECTED_CALC_PREFIX + "`1.05`"
+    assert result.why  # the rejection in words, from the explainer
+    assert verdict_line(result) == (
+        VERDICT_REJECTED_CALC_PREFIX + "`1.05`" + ". Why: " + "; ".join(result.why) + "."
+    )
 
 
 def test_a_rejected_figure_keeps_the_figure_verdict_sentence() -> None:

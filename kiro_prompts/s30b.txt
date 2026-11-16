@@ -1,0 +1,17 @@
+﻿Session 30b, after session 30a and the Home tiles. My run after 30a: ruff clean, 4,277 passed, 1 skipped, 4 failed; all four are tests that pin texts or counts that 30a changed on purpose:
+- tests/test_explainer_calc.py::test_a_rejected_calculation_has_its_own_verdict_sentence expects the old verdict sentence without the new Why: clause; update it to the new sentence.
+- tests/test_home_example.py::test_readme_judge_steps_1_and_4 pins the old README step 1 (Within three seconds); update it to the new step 1 and the new step 4.
+- tests/test_replay_calc2.py::test_the_zombie_panel_replays_z20_with_the_computed_figure_and_its_formula expects the computed-by-the-kit line twice; since 30a it is shown once (distinct lines): expect 1.
+- tests/test_showcase_app.py::test_home_explains_the_kit: Home now has 665 words against its limit of 650, because the TRY_IT text grew. Keep the limit (the owner chose less text on Home); shorten the TRY_IT text until Home is under 650 words, keeping it true (the card explanation is replayed on every card; the Provoke the LLM panel replays only on the first critical card of each app).
+Record these in the same task group as 30a.
+
+Then the Home tiles: (from tonight's execution review, screenshots in a headless browser at 1366 and 1024 px)
+
+1. Phantom Invoices tile: the lantern still shows three columns (source ref, supplier name, invoice number) and the third is cut at the tile edge (invoi, F-202), at both widths, because the tile is narrower than the table. In the tile only, show the source ref and the first compared column of the alert (one compared column, not two), so the table fits the tile at 1024 px and wider without scrolling. Keep the choice data-driven (the detector's lantern columns, first one), and keep the alert cards unchanged.
+
+2. Vampire Fees tile: the two date labels under the bite chart are unreadable (far smaller than the tile text). In the tile only, draw those labels at a readable size (at least the size of the tile's caption text), or drop them from the tile drawing and keep the caption Each bite is one cited fee; pick whichever keeps the drawing clean, and keep the alert cards unchanged.
+
+Update the polish tests (the Phantom tile has at most two columns; the Vampire tile labels are at a readable size or absent) and record it in .kiro/specs/haunted-design/tasks.md in one line.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed.
+

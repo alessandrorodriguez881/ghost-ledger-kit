@@ -15,6 +15,7 @@ from ledger_kit.explainer import (
     LLM_TIMEOUT_SECONDS,
     REASON_PERIOD_MISMATCH,
     Explanation,
+    is_currency_token,
     llm_timeout_seconds,
 )
 from ledger_kit.index_cause import REASON_INDEX_AS_CAUSE
@@ -57,9 +58,9 @@ VERDICT_ACCEPTED = (
     "✅ Guard verdict: accepted. Every figure in the answer, in digits or in words, was found "
     "in the cited rows or the alert data. Figures checked; wording not checked."
 )
-VERDICT_REJECTED_PREFIX = (
-    "🛑 Guard verdict: rejected. Not found in the cited rows or the alert data: "
-)
+VERDICT_REJECTED_HEAD = "🛑 Guard verdict: rejected. "
+VERDICT_NOT_FOUND = "Not found in the cited rows or the alert data: "
+VERDICT_REJECTED_PREFIX = VERDICT_REJECTED_HEAD + VERDICT_NOT_FOUND
 VERDICT_REJECTED_INDEX_CAUSE_PREFIX = (
     "🛑 Guard verdict: rejected. The answer names the price index as the cause of the price "
     "change; the kit gives the index as context only: "
@@ -169,11 +170,16 @@ class ProbeResult:
     # it; both empty when the model asked for none.
     computed: tuple[Computation, ...] = ()
     shown_text: str = ""
+    # Explanation.rejected_why: the rejection in words (a calculation refused, a foreign currency).
+    why: tuple[str, ...] = ()
 
 
 def computed_lines(computed: Sequence[Computation]) -> tuple[str, ...]:
-    """Return the one line of small text for each calculation the kit made (none: no line)."""
-    return tuple(c.line for c in computed)
+    """Return the line of small text of each distinct calculation the kit made, in order.
+
+    Two placeholders of one calculation (the same formula and result) print one line.
+    """
+    return tuple(dict.fromkeys(c.line for c in computed))
 
 
 def probe_result(question: TrickQuestion, meta: Explanation, template_text: str) -> ProbeResult:
@@ -193,6 +199,7 @@ def probe_result(question: TrickQuestion, meta: Explanation, template_text: str)
         meta.rejected_reason,
         tuple(meta.computed),
         meta.text if meta.computed else "",
+        tuple(meta.rejected_why),
     )
 
 
@@ -208,31 +215,89 @@ def verdict_line(result: ProbeResult) -> str:
             prefix = VERDICT_REJECTED_CALC_PREFIX
         elif result.reason == REASON_PERIOD_MISMATCH:
             prefix = VERDICT_REJECTED_PERIOD_PREFIX
-        return prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
+        elif result.why:
+            return _currency_verdict(result)
+        line = prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
+        if result.reason == REASON_CALC_NOT_ALLOWED and result.why:
+            line += ". Why: " + "; ".join(result.why) + "."
+        return line
+    return ""
+
+
+def _currency_verdict(result: ProbeResult) -> str:
+    """The verdict of an answer with a currency sign the data does not name, in words.
+
+    A figure rejected with it keeps the usual wording; the sign gets its own sentence.
+    """
+    figures = [t for t in result.rejected_numbers if not is_currency_token(t)]
+    line = VERDICT_REJECTED_HEAD
+    if figures:
+        line += VERDICT_NOT_FOUND + ", ".join(f"`{t}`" for t in figures) + ". "
+    return line + "; ".join(result.why) + "."
+
+
+def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
+    """Return what a rejected card badge says after `rejected`, in parentheses; '' for no token.
+
+    A calculation the kit will not make and a currency sign the data does not name are said in
+    words (`why`); any other token is "not found in the cited rows or the alert data".
+    """
+    if reason == REASON_CALC_NOT_ALLOWED:
+        said = "; ".join(why) if why else ", ".join(tokens)
+        return f" (the answer asks the kit for a calculation it will not make: {said})"
+    if why:
+        parts = []
+        figures = [t for t in tokens if not is_currency_token(t)]
+        if figures:
+            parts.append("not found in the cited rows or the alert data: " + ", ".join(figures))
+        parts.extend(why)
+        return " (" + "; ".join(parts) + ")"
+    if tokens:
+        return " (not found in the cited rows or the alert data: " + ", ".join(tokens) + ")"
     return ""
 
 
 @dataclass(frozen=True)
 class Counts:
-    """Per-session counters: presses, answers that reached the guard, guard rejections."""
+    """Per-session counters: presses, answers that reached the guard, guard rejections.
+
+    `replayed` is how many of the presses replayed a recorded answer; they are counted in
+    `asked` and `checked` like any press, but no model was called for them, so only the others
+    (`live_asked`) use the session limit.
+    """
 
     asked: int
     checked: int
     rejected: int
+    replayed: int = 0
+
+    @property
+    def live_asked(self) -> int:
+        """The presses that called a model: the only ones LIVE_ASKS_PER_SESSION_LIMIT counts."""
+        return self.asked - self.replayed
 
 
-def tally(counts: Counts, result: ProbeResult) -> Counts:
-    """Return the counters after one more press with this result."""
+def tally(counts: Counts, result: ProbeResult, *, replayed: bool = False) -> Counts:
+    """Return the counters after one more press with this result (`replayed`: no model called)."""
     return Counts(
         counts.asked + 1,
         counts.checked + (result.verdict != "unavailable"),
         counts.rejected + (result.verdict == "rejected"),
+        counts.replayed + replayed,
     )
 
 
+def limit_reached(counts: Counts) -> bool:
+    """True when the session has made as many live model calls as the courtesy limit allows."""
+    return counts.live_asked >= LIVE_ASKS_PER_SESSION_LIMIT
+
+
 def counter_caption(counts: Counts) -> str:
-    """Return the one-line counter shown under every panel."""
-    return f"Answers checked: {counts.checked} · rejected: {counts.rejected}"
+    """Return the one-line counter shown under every panel (replays are labelled)."""
+    line = f"Answers checked: {counts.checked} · rejected: {counts.rejected}"
+    if counts.replayed:
+        line += f" · recorded replays: {counts.replayed}"
+    return line
 
 
 class Segment(NamedTuple):

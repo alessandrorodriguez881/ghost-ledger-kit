@@ -88,7 +88,7 @@ def test_the_zombie_panel_replays_z20_with_the_computed_figure_and_its_formula(
     shown = [m.value for m in at.markdown if f"539,40 EUR{COMPUTED_MARK}" in m.value]
     assert len(shown) == 1
     captions = [c.value for c in at.caption]
-    assert captions.count(LINE) == 2
+    assert captions.count(LINE) == 1  # distinct lines: the two placeholders print one line
     caption = "Replay of a recorded answer of llama3.2:3b, 2026-11-16."
     assert any(c.startswith(caption) for c in captions)
 

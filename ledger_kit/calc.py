@@ -122,14 +122,45 @@ class CalcOutcome:
     text: str
     computed: tuple[Computation, ...]
     rejected: tuple[str, ...]
+    # One sentence per rejected part, in the same order: why the kit will not compute it.
+    reasons: tuple[str, ...] = ()
 
 
 class _Reject(Exception):
-    """Internal: the part of an expression that is not allowed."""
+    """Internal: the part of an expression that is not allowed, and why in words."""
 
-    def __init__(self, part: str) -> None:
+    def __init__(self, part: str, why: str = "") -> None:
         super().__init__(part)
         self.part = part
+        self.why = why or f"{part} is not allowed"
+
+
+# The reasons, in plain words (judge-path 30a). None holds `*` or `$`: they are shown in markdown.
+WHY_NUMBER_NOT_IN_QUESTION: str = (
+    "{part} is neither a field of the alert nor a number in the question"
+)
+WHY_UNKNOWN_FIELD: str = "{part} is not a numeric field of the alert"
+WHY_FIGURE_NOT_A_FIELD: str = (
+    "{part} is not a field of the alert, a whole number of the question or the value of one "
+    "numeric field of the alert"
+)
+WHY_FIGURE_TWO_FIELDS: str = (
+    "{part} is the value of more than one field of the alert, so it cannot be read as one field"
+)
+WHY_FIELD_REUSED: str = "{name} is used more than once"
+WHY_FIELD_REUSED_AS_FIGURE: str = " ({figure} is its value, read as that field)"
+WHY_OWN_PARTS: str = "a total is added to its own parts ({formula})"
+WHY_OPERATION: str = (
+    "{part} is not allowed: only fields of the alert, whole numbers of the question and the "
+    "four operations (add, subtract, multiply, divide) are"
+)
+WHY_DIVISION_BY_ZERO: str = "{part} divides by zero"
+WHY_NO_QUESTION: str = (
+    "{part} is arithmetic, and a card with no question allows only one field of the alert"
+)
+WHY_UNREADABLE: str = "{part} is empty, too long or not an expression the kit can read"
+WHY_UNDEFINED: str = "{part} cannot be computed (overflow or an undefined operation)"
+WHY_UNCLOSED: str = "a calculation placeholder is not closed or not well formed"
 
 
 @dataclass(frozen=True)
@@ -209,6 +240,8 @@ class _Evaluator:
         self.operands: dict[str, Operand] = {}
         # How many times each field is used in the expression (a figure read as a field counts).
         self.uses: dict[str, int] = {}
+        # The figure (as written) that was read as a field, by field name (for the reason words).
+        self.figures: dict[str, str] = {}
         # The field each leaf of the tree was read as (a name, or a figure equal to one field).
         self._leaf_fields: dict[ast.AST, str] = {}
 
@@ -229,7 +262,7 @@ class _Evaluator:
             return self._binary(node)
         if isinstance(node, ast.UnaryOp):
             if not isinstance(node.op, ast.USub):
-                raise _Reject(self._part(node))
+                raise self._not_allowed(node)
             inner = self.visit(node.operand)
             text = f"({inner.text})" if inner.compound else inner.text
             return _Value(apply_sign(inner.value, True), inner.money, "-" + text)
@@ -237,26 +270,34 @@ class _Evaluator:
             return self._field(node)
         if isinstance(node, ast.Constant):
             return self._constant(node)
-        raise _Reject(self._part(node))
+        raise self._not_allowed(node)
+
+    def _not_allowed(self, node: ast.AST) -> _Reject:
+        """The rejection of a node that is not on the whitelist (an operator, a call...)."""
+        part = self._part(node)
+        return _Reject(part, WHY_OPERATION.format(part=part))
 
     def _constant(self, node: ast.Constant) -> _Value:
         """A whole number of the question, or a decimal figure that is one numeric field."""
         if type(node.value) is int:
             if node.value not in self._constants:
-                raise _Reject(str(node.value))
+                raise _Reject(str(node.value), WHY_NUMBER_NOT_IN_QUESTION.format(part=node.value))
             return _Value(Decimal(node.value), False, str(node.value))
         text = self._part(node)
         if type(node.value) is float and _DECIMAL_LITERAL_RE.fullmatch(text):
             literal = Decimal(text)
             names = [name for name, value in self._fields.items() if value == literal]
-            if len(names) == 1:  # two fields with the same value: ambiguous, rejected
+            if len(names) == 1:
+                self.figures.setdefault(names[0], text)
                 return self._use_field(names[0], node)
-        raise _Reject(text)
+            if names:  # two fields with the same value: ambiguous, rejected
+                raise _Reject(text, WHY_FIGURE_TWO_FIELDS.format(part=text))
+        raise _Reject(text, WHY_FIGURE_NOT_A_FIELD.format(part=text))
 
     def _field(self, node: ast.Name) -> _Value:
         """A numeric field of the alert."""
         if node.id not in self._fields:
-            raise _Reject(node.id)
+            raise _Reject(node.id, WHY_UNKNOWN_FIELD.format(part=node.id))
         return self._use_field(node.id, node)
 
     def _use_field(self, name: str, node: ast.AST) -> _Value:
@@ -269,12 +310,20 @@ class _Evaluator:
         self.uses[name] = self.uses.get(name, 0) + 1
         return _Value(value, money, f"{name} {shown}")
 
-    def reused_field(self) -> str | None:
-        """The first field used more than once, as `name used more than once`, else None."""
+    def reuse_rejection(self) -> tuple[str, str] | None:
+        """The first field used more than once as (token, reason in words), else None."""
         for name, count in self.uses.items():
             if count > FIELD_MAX_USES:
-                return f"{name} used more than once"
+                why = WHY_FIELD_REUSED.format(name=name)
+                if name in self.figures:
+                    why += WHY_FIELD_REUSED_AS_FIGURE.format(figure=self.figures[name])
+                return f"{name} used more than once", why
         return None
+
+    def reused_field(self) -> str | None:
+        """The first field used more than once, as `name used more than once`, else None."""
+        found = self.reuse_rejection()
+        return None if found is None else found[0]
 
     def double_count(self, tree: ast.AST) -> str | None:
         """The first sum that adds a field to fields it is made of, as `total = a + b`, else None.
@@ -315,10 +364,11 @@ class _Evaluator:
         """One of + - * /; any other operator (a power, a modulo, a shift) is rejected."""
         symbol = _SYMBOLS.get(type(node.op))
         if symbol is None:
-            raise _Reject(self._part(node))
+            raise self._not_allowed(node)
         left, right = self.visit(node.left), self.visit(node.right)
         if symbol == "/" and right.value == 0:
-            raise _Reject(self._part(node))
+            part = self._part(node)
+            raise _Reject(part, WHY_DIVISION_BY_ZERO.format(part=part))
         value = combine(symbol, left.value, right.value)
         if symbol in "+-":
             money = left.money or right.money
@@ -346,11 +396,12 @@ def _compute(
     """
     source = expression.strip()
     if not source or len(source) > CALC_EXPRESSION_MAX_CHARS:
-        raise _Reject(source[:CALC_EXPRESSION_MAX_CHARS] or "(empty)")
+        part = source[:CALC_EXPRESSION_MAX_CHARS] or "(empty)"
+        raise _Reject(part, WHY_UNREADABLE.format(part=part))
     try:
         tree = ast.parse(source, mode="eval")
     except (SyntaxError, ValueError, RecursionError, MemoryError) as exc:
-        raise _Reject(source) from exc
+        raise _Reject(source, WHY_UNREADABLE.format(part=source)) from exc
     evaluator = _Evaluator(source, fields, constants, money_fields, currency)
     try:
         with localcontext() as context:
@@ -358,16 +409,16 @@ def _compute(
             value = evaluator.visit(tree.body)
             double = evaluator.double_count(tree.body)
             if double is not None:
-                raise _Reject(double)
+                raise _Reject(double, WHY_OWN_PARTS.format(formula=double))
             if not arithmetic and not isinstance(tree.body, ast.Name | ast.Constant):
-                raise _Reject(source)
-            reused = evaluator.reused_field()
+                raise _Reject(source, WHY_NO_QUESTION.format(part=source))
+            reused = evaluator.reuse_rejection()
             if reused is not None:
-                raise _Reject(reused)
+                raise _Reject(*reused)
             result = round_to_cents(value.value)
             shown = evaluator.show_result(value)
     except ArithmeticError as exc:  # overflow, an undefined operation: nothing is computed
-        raise _Reject(source) from exc
+        raise _Reject(source, WHY_UNDEFINED.format(part=source)) from exc
     formula = f"{value.text} = {shown}"
     return Computation(source, tuple(evaluator.operands.values()), result, shown, formula)
 
@@ -394,6 +445,7 @@ def resolve_calculations(
     currency = _currency(data)
     computed: list[Computation] = []
     rejected: list[str] = []
+    reasons: list[str] = []
     for match in matches:
         try:
             computed.append(
@@ -409,10 +461,12 @@ def resolve_calculations(
         except _Reject as reject:
             if reject.part not in rejected:
                 rejected.append(reject.part)
+                reasons.append(reject.why)
     if stray is not None and stray.group(0) not in rejected:
         rejected.append(stray.group(0))  # a placeholder that is not closed or not well formed
+        reasons.append(WHY_UNCLOSED)
     if rejected:
-        return CalcOutcome(answer, answer, (), tuple(rejected))
+        return CalcOutcome(answer, answer, (), tuple(rejected), tuple(reasons))
     guard_text, text, position = [], [], 0
     for match, computation in zip(matches, computed, strict=True):
         between = answer[position : match.start()]
