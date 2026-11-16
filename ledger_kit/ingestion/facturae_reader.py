@@ -297,7 +297,9 @@ def parse_facturae(
         root = fromstring(content, forbid_dtd=True)
     except DefusedXmlException:
         return [], [_record(file_name, None, "forbidden_xml_construct", "")]
-    except (ParseError, ValueError, RecursionError):
+    except (ParseError, ValueError, LookupError, RecursionError):
+        # LookupError: the declaration names an encoding Python does not know (Task RF12);
+        # UnicodeError (a ValueError) covers bytes that do not fit the declared encoding.
         return [], [_record(file_name, None, "invalid_xml", "")]
 
     if _local(root.tag) != "Facturae":

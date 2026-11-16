@@ -186,6 +186,20 @@ RF9 and RF10 are where the demo equivalence (the main risk, design §11 Q1) is f
   tests) and `.kiro/steering/tech.md` (a `defusedxml` row; the invoice-parsing row now lists Facturae;
   `source_row` of Norma 43 and Facturae is 1-based, DN-RF-01). Do not touch the README (session 7).
 
+## Task RF12 — Unknown declared encoding is a malformed file (session 29)
+
+**Covers**: REQ-RF-12, REQ-RF-18, REQ-RF-31, §5.2
+
+- [x] Found by Hypothesis in `test_no_input_makes_the_sniffer_the_readers_or_the_routers_raise`: a
+  Facturae payload whose declaration says `encoding="ATF-8"` made `parse_facturae` raise
+  `LookupError: unknown encoding: ATF-8` from pyexpat (through defusedxml). Added as an explicit
+  `@example` on that property (the property is unchanged), and a plain test
+  `test_a_declaration_with_an_unknown_encoding_is_invalid_xml` in `test_facturae_security.py`.
+- [x] `parse_facturae` now catches `LookupError` next to `ParseError`, `ValueError` and
+  `RecursionError`, giving the same `invalid_xml` record. `UnicodeError` (including
+  `UnicodeDecodeError`) is a `ValueError`, so it was already caught. `facturae_reader.py` is the only
+  module that parses XML, so the sniffer and routers needed no change.
+
 ## Not verified by the author
 
 The spec was written without running a command. The layouts of Norma 43 and Facturae were verified in

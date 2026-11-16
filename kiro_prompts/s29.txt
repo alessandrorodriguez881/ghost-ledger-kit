@@ -1,0 +1,9 @@
+Session 29: a robustness bug that Hypothesis found tonight. My full run after session 28d: ruff clean, 4,249 passed, 1 skipped, 1 failed: tests/ingestion/test_real_formats_roundtrip.py::test_no_input_makes_the_sniffer_the_readers_or_the_routers_raise. Falsifying example: a Facturae XML payload whose declaration says encoding=ATF-8 (an encoding name Python does not know); parsing it raised LookupError: unknown encoding: ATF-8 from the XML parser (pyexpat, through defusedxml). The property says no input may make the sniffer, the readers or the routers raise.
+
+1. Fix it where the Facturae reader (and any other XML path the sniffer or router uses) parses bytes: an unknown or unsupported declared encoding makes the file malformed, handled exactly like the other malformed Facturae files today (the same quarantine or rejection path and message style), never an exception. Look for any other exception type the XML parsing can raise on hostile input that is not caught yet (for example ValueError or UnicodeDecodeError from a bad declaration) and handle it the same way; list what you found.
+
+2. Add the falsifying example as an explicit @example on that property test (keep the property as it is), and one plain test for a Facturae file declaring an unknown encoding.
+
+3. Record it in .kiro/specs/real-formats (a numbered amendment or a task, in the existing style), citing the Hypothesis example.
+
+Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each Python file you write and run the tests when you stop. When done, list the files you changed.

@@ -135,6 +135,19 @@ def test_malformed_documents_are_invalid_xml(document: bytes) -> None:
     assert quarantine[0]["source_row"] is None
 
 
+def test_a_declaration_with_an_unknown_encoding_is_invalid_xml() -> None:
+    """An encoding name Python does not know (Hypothesis found `ATF-8`) is `invalid_xml`."""
+    document = facturae_doc(declaration=False)
+    data = f'<?xml version="1.0" encoding="ATF-8"?>\n{document}'.encode()
+
+    invoices, quarantine = parse(data)
+
+    assert invoices == []
+    assert quarantine == [
+        {"source_file": NAME, "source_row": None, "reason": "invalid_xml", "raw": ""}
+    ]
+
+
 def test_deeply_nested_elements_do_not_raise() -> None:
     """Thousands of nested elements give a result, never an exception."""
     depth = 5_000

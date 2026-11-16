@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 from rf_strategies import (
     arbitrary_input,
@@ -214,6 +214,7 @@ def test_changing_one_amount_digit_is_always_detected(rows, layout, data):
 
 
 # --- 5. never raises ----------------------------------------------------------------------------
+@example(payload=b'<?xml version="1.0" encoding="ATF-8"?><Facturae/>')  # Task RF12
 @settings(max_examples=200, deadline=None)
 @given(payload=arbitrary_input)
 def test_no_input_makes_the_sniffer_the_readers_or_the_routers_raise(payload):
