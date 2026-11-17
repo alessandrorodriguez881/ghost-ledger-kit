@@ -1,0 +1,7 @@
+Session 31a, README only: the paragraph under Who did what, with wording the owner chose today, 17 Nov.
+
+1. Replace the paragraph right under the heading Who did what (it starts with This is a student project. I set the goal, picked the idea from two options) with exactly this paragraph: This is a student project. I chose what to build and directed it: the goal, the focus on Spanish bank and invoice data, the official formats, the real-model test, the adversarial reviews, and every decision marked *Me* below. Kiro wrote the code. Claude Code, an AI coding assistant, proposed options, including the two first ideas I chose between, drafted the prompts and ran the tests. The table says who proposed and who decided each choice.
+
+2. Keep the three bullets and the Decisions table under that paragraph exactly as they are.
+
+Read tests/test_readme.py first so the README still passes it. Change nothing else. Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests when you stop. When done, list the files you changed and quote each new or changed line.

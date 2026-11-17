@@ -194,7 +194,7 @@ streamlit_app.py       showcase entry page
 
 ## Who did what
 
-This is a student project. I set the goal, picked the idea from two options an AI coding assistant drafted, and steered it from there: the Spanish formats, the real-model test and the adversarial reviews were my calls. Kiro wrote the code. The assistant drafted the prompts, ran the tests and, under my general go-ahead, made the overnight fixes the reviews asked for. The table says who proposed and who decided each choice.
+This is a student project. I chose what to build and directed it: the goal, the focus on Spanish bank and invoice data, the official formats, the real-model test, the adversarial reviews, and every decision marked *Me* below. Kiro wrote the code. Claude Code, an AI coding assistant, proposed options, including the two first ideas I chose between, drafted the prompts and ran the tests. The table says who proposed and who decided each choice.
 
 - **Me (Alessandro Lair, student):** chose to build for Spanish bank and invoice data instead of a generic money app; turned down the first version as too simple and asked for the official formats (Norma 43, Facturae), public data (INE CPI) and a measured benchmark; asked for the guard to be tested against a real model before the video and approved running one locally; asked for an adversarial review against past winners before recording; decide what is published and when.
 - **Kiro (CLI, spec mode and a custom agent):** wrote every spec, test and line of code in this repository.

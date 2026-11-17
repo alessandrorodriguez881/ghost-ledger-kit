@@ -662,3 +662,5 @@
 {"time": "2026-11-16T02:26:31", "event": "post-write", "session": "sess_18844cb1-f385-4a2f-a64b-c49608594f76", "file": ".kiro/specs/judge-path/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-16T02:26:34", "event": "post-write", "session": "sess_18844cb1-f385-4a2f-a64b-c49608594f76", "file": ".kiro/specs/haunted-design/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-16T02:26:43", "event": "stop", "session": "sess_18844cb1-f385-4a2f-a64b-c49608594f76", "file": null, "checks": ["ruff check .", "pytest"], "result": "pass", "detail": "2804 passed in 393.78s (0:06:33)", "seconds": 398.6}
+{"time": "2026-11-17T10:39:46", "event": "post-write", "session": "sess_ff903cef-86a2-443c-846d-1ac55b90ff3a", "file": "README.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
+{"time": "2026-11-17T10:39:50", "event": "stop", "session": "sess_ff903cef-86a2-443c-846d-1ac55b90ff3a", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.7}
