@@ -15,6 +15,7 @@ from ledger_kit.public_data.ine_cpi import ATTRIBUTION, LICENCE, NO_ENDORSEMENT
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 README = REPO_ROOT / "README.md"
+PUBLIC_DATA_DOC = REPO_ROOT / "docs" / "public-data.md"
 PUBLIC_README = REPO_ROOT / "data" / "public" / "README.md"
 SAMPLES_README = REPO_ROOT / "data" / "samples" / "README.md"
 SNAPSHOT = REPO_ROOT / "data" / "public" / "ine_cpi_ipc290751.json"
@@ -43,6 +44,12 @@ def public_readme() -> str:
     return PUBLIC_README.read_text(encoding="utf-8")
 
 
+@pytest.fixture(scope="module")
+def public_data_doc() -> str:
+    """docs/public-data.md, which holds the section moved out of the root README."""
+    return PUBLIC_DATA_DOC.read_text(encoding="utf-8")
+
+
 def test_the_snapshot_texts_are_the_pinned_ones(snapshot_texts: tuple[str, str, str]) -> None:
     """The snapshot holds the INE-prescribed attribution, CC BY 4.0 and the non-endorsement."""
     assert snapshot_texts == (PINNED_ATTRIBUTION, "CC BY 4.0", PINNED_NO_ENDORSEMENT)
@@ -67,6 +74,14 @@ def test_readme_carries_the_three_texts_of_the_snapshot(
         assert text in readme, text
 
 
+def test_public_data_doc_carries_the_three_texts_of_the_snapshot(
+    public_data_doc: str, snapshot_texts: tuple[str, str, str]
+) -> None:
+    """docs/public-data.md repeats the attribution, the licence and the non-endorsement."""
+    for text in snapshot_texts:
+        assert text in public_data_doc, text
+
+
 def test_data_public_readme_carries_the_three_texts_of_the_snapshot(
     public_readme: str, snapshot_texts: tuple[str, str, str]
 ) -> None:
@@ -76,25 +91,25 @@ def test_data_public_readme_carries_the_three_texts_of_the_snapshot(
 
 
 def test_the_three_sources_agree(
-    readme: str, public_readme: str, snapshot_texts: tuple[str, str, str]
+    readme: str, public_readme: str, public_data_doc: str, snapshot_texts: tuple[str, str, str]
 ) -> None:
-    """Snapshot, README and data/public/README.md hold the same attribution, with no variant."""
+    """Snapshot, READMEs and docs/public-data.md hold the same attribution, with no variant."""
     attribution = snapshot_texts[0]
 
-    for document in (readme, public_readme):
+    for document in (readme, public_readme, public_data_doc):
         lines = [line for line in document.splitlines() if "Elaboración propia" in line]
         assert lines, "the attribution is missing"
         assert all(attribution in line for line in lines), "a variant of the attribution exists"
 
 
-def test_readme_says_the_apps_never_call_the_network_and_names_the_refresh_command(
-    readme: str,
+def test_public_data_doc_says_the_apps_never_call_the_network_and_names_the_refresh_command(
+    public_data_doc: str,
 ) -> None:
-    """The README states that the apps read a committed file and how it is refreshed."""
-    assert "never call the network" in readme
-    assert FETCH_COMMAND in readme
-    assert "data/public/" in readme
-    assert "context, not a verdict" in readme
+    """docs/public-data.md says the apps read a committed file, and how it is refreshed."""
+    assert "never call the network" in public_data_doc
+    assert FETCH_COMMAND in public_data_doc
+    assert "data/public/" in public_data_doc
+    assert "context, not a verdict" in public_data_doc
 
 
 def test_readme_says_the_ine_data_is_not_under_the_mit_licence(

@@ -27,6 +27,7 @@ from ledger_kit.replay import HOME_EXAMPLE_MARKS, Recording, ReplayClient
 from ledger_kit.ui import landing, theme
 
 README = ROOT / "README.md"
+HOW_IT_WORKS = ROOT / "docs" / "how-it-works.md"
 HOME_FILE = replay.DEFAULT_HOME_EXAMPLE_PATH
 FORECAST = TRICK_QUESTIONS[0]
 LABEL_P3 = '<div class="gl-example-label">One recorded answer of llama3.2:3b, 2026-11-10.</div>'
@@ -357,6 +358,14 @@ def _readme() -> tuple[str, list[str]]:
     return text, text.splitlines()
 
 
+def _docs_texts() -> dict[str, str]:
+    """Every text file of docs/ (the image is skipped), by its path relative to the root."""
+    return {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "docs").rglob("*.md"))
+    }
+
+
 def test_readme_line_3_says_what_the_guard_checks() -> None:
     _, lines = _readme()
 
@@ -366,7 +375,8 @@ def test_readme_line_3_says_what_the_guard_checks() -> None:
 def test_readme_judge_steps_1_and_4() -> None:
     _, lines = _readme()
 
-    assert lines[11] == STEP_1
+    [step_1] = [line for line in lines if line.startswith("1. Open Home.")]
+    assert step_1 == STEP_1
     [step_4] = [line for line in lines if line.startswith("4. On the GYMPLUS card")]
     assert step_4.startswith(
         "4. On the GYMPLUS card, open *Provoke the LLM* and replay the five-year question. "
@@ -374,18 +384,17 @@ def test_readme_judge_steps_1_and_4() -> None:
     assert step_4.endswith(STEP_4_ADDED)
 
 
-def test_readme_promise_sentence() -> None:
-    text, _ = _readme()
-
-    assert PROMISE in text
+def test_how_it_works_promise_sentence() -> None:
+    assert PROMISE in HOW_IT_WORKS.read_text(encoding="utf-8")
 
 
 def test_readme_has_the_section_on_what_the_guard_does_not_check() -> None:
     text, lines = _readme()
 
     assert "## What the guard does not check" in lines
-    section = text.split("## What the guard does not check", 1)[1].split("\n### ", 1)[0]
-    assert text.index("**The proof, live.**") < text.index("## What the guard does not check")
+    after = text.split("## What the guard does not check", 1)[1]
+    section = re.split(r"\n#{1,6} ", after, maxsplit=1)[0]
+    assert "**The proof, live.**" in HOW_IT_WORKS.read_text(encoding="utf-8")
     assert "MUSICBOX costs 10.99 EUR every year" in section
     assert "107.88 × 5 = 539.40" in section
     assert "The guard itself does none." in section
@@ -409,7 +418,10 @@ def test_readme_has_the_decisions_row_of_13_nov() -> None:
 
 def test_readme_no_longer_makes_the_old_claims() -> None:
     text, _ = _readme()
+    docs = _docs_texts()
 
-    assert "inventing 539.40" not in text
-    assert "can never introduce a figure" not in text
-    assert "traceable to an exact row" not in text
+    assert "docs/how-it-works.md" in docs
+    for name, document in {"README.md": text, **docs}.items():
+        assert "inventing 539.40" not in document, name
+        assert "can never introduce a figure" not in document, name
+        assert "traceable to an exact row" not in document, name

@@ -36,6 +36,9 @@ from ledger_kit.live_guard import (
 from ledger_kit.models import Alert
 
 README = (ROOT / "README.md").read_text(encoding="utf-8")
+HOW_IT_WORKS = (ROOT / "docs" / "how-it-works.md").read_text(encoding="utf-8")
+# The README and the docs file that received its How it works section.
+README_AND_HOW_IT_WORKS = (README, HOW_IT_WORKS)
 FIVE_YEARS = "What will this cost me in total five years from now? Give the amount."
 ACTIONS = {"zs": zs_action_for, "pi": pi_action_for, "vf": vf_action_for}
 
@@ -87,9 +90,9 @@ def test_home_says_the_panel_replays_only_on_the_first_critical_card_of_each_app
 
 
 def test_readme_says_the_same_about_the_panel() -> None:
-    assert "only on the first critical card of each app" in README
-    assert "GYMPLUS" in README and "Suministros Ibéricos" in README
-    assert "disabled" in README and "live-model-off" in README
+    assert "only on the first critical card of each app" in HOW_IT_WORKS
+    assert "GYMPLUS" in HOW_IT_WORKS and "Suministros Ibéricos" in HOW_IT_WORKS
+    assert "disabled" in HOW_IT_WORKS and "live-model-off" in HOW_IT_WORKS
 
 
 def test_the_committed_run_records_the_three_questions_on_exactly_three_cards() -> None:
@@ -112,7 +115,8 @@ def test_the_committed_run_records_the_three_questions_on_exactly_three_cards() 
 
 
 def test_readme_step_5_is_true_about_exorcise() -> None:
-    assert "On any card, open" not in README
+    for document in README_AND_HOW_IT_WORKS:
+        assert "On any card, open" not in document
     assert "On most cards, open *Exorcise*" in README
     with_draft = without_draft = 0
     for prefix, action_for in ACTIONS.items():
@@ -131,7 +135,8 @@ def test_readme_step_5_is_true_about_exorcise() -> None:
 
 
 def test_readme_step_1_does_not_promise_three_seconds_from_a_cold_start() -> None:
-    assert "Within three seconds" not in README
+    for document in README_AND_HOW_IT_WORKS:
+        assert "Within three seconds" not in document
     assert "Once the page has loaded" in README
     assert "under three seconds" in README and "cold load takes longer" in README
 
@@ -139,20 +144,22 @@ def test_readme_step_1_does_not_promise_three_seconds_from_a_cold_start() -> Non
 def test_readme_writes_the_formula_as_the_app_does() -> None:
     app_formula = "`5 x yearly_cost 107,88 EUR = 539,40 EUR`"
 
-    assert README.count(app_formula) >= 2  # the judges' step 4 and the placeholder paragraph
-    assert "yearly_cost 107,88 EUR x 5" not in README
+    assert README.count(app_formula) >= 1  # the judges' step 4
+    assert HOW_IT_WORKS.count(app_formula) >= 1  # the placeholder paragraph, moved to docs
+    for document in README_AND_HOW_IT_WORKS:
+        assert "yearly_cost 107,88 EUR x 5" not in document
 
 
 def test_readme_states_the_amendment_that_a_figure_equal_to_one_field_is_read_as_it() -> None:
-    assert "equals exactly one numeric field" in README
-    assert "read as that field" in README
-    assert "107.88" in README
+    assert "equals exactly one numeric field" in HOW_IT_WORKS
+    assert "read as that field" in HOW_IT_WORKS
+    assert "107.88" in HOW_IT_WORKS
 
 
 def test_readme_says_home_shows_the_10_nov_recording_and_the_apps_the_16_nov_run() -> None:
-    assert "Home shows a 10 Nov recording" in README
-    assert "16 Nov run" in README
-    assert "different recorded answer" in README
+    assert "Home shows a 10 Nov recording" in HOW_IT_WORKS
+    assert "16 Nov run" in HOW_IT_WORKS
+    assert "different recorded answer" in HOW_IT_WORKS
 
 
 # --- REQ-JP-25: reasons in words --------------------------------------------------------------

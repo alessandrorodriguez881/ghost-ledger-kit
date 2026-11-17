@@ -1,4 +1,4 @@
-"""README.md checks: sections, real repository paths, allowed links, the Kiro table."""
+"""README.md and docs checks: sections, real repository paths, allowed links, the Kiro table."""
 
 import os
 import re
@@ -8,19 +8,48 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 README = REPO_ROOT / "README.md"
+DOCS = REPO_ROOT / "docs"
+HOME_MOMENT = "docs/img/home_moment.gif"
+HOME_MOMENT_ALT = (
+    "Home: a recorded answer of llama3.2:3b invents 5% and 617.51, and the number guard "
+    "strikes both out"
+)
+MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
 REQUIRED_HEADINGS = (
     "Ghost Ledger Kit",
-    "The problem",
-    "How it works",
+    "For judges: 60 seconds",
     "The three apps",
-    "Try it",
-    "Run the tests",
-    "Project layout",
     "How we used Kiro",
+    "Who did what",
+    "What the guard does not check",
+    "More detail",
     "Data and licence",
     "Hackathon",
 )
+
+# Docs files that received sections moved out of the README, with their headings in order.
+DOCS_HEADINGS = {
+    "how-it-works.md": (
+        "How Ghost Ledger Kit works",
+        "The problem",
+        "How it works",
+        "The three apps",
+        "Vampire Fees in detail",
+        "Benchmark: does it catch what it should, and stay quiet when it should?",
+    ),
+    "real-formats.md": ("Real Spanish formats", "Real Spanish formats"),
+    "public-data.md": ("Public data", "Public context: the INE consumer price index"),
+    "developing.md": (
+        "Developing Ghost Ledger Kit",
+        "Try it",
+        "Scan files from the command line",
+        "Run the tests",
+        "Project layout",
+    ),
+}
+DOC_FILES = tuple(DOCS / name for name in DOCS_HEADINGS)
+DOC_IDS = tuple(DOCS_HEADINGS)
 
 KIRO_FEATURES = (
     "specs",
@@ -112,8 +141,8 @@ def test_readme_mentions_repository_paths(text: str) -> None:
     assert len(_path_candidates(text)) >= 10
 
 
-def test_every_backticked_path_exists(text: str) -> None:
-    """Each path in inline code points to a real file or folder."""
+def _missing_paths(text: str) -> list[str]:
+    """The backticked paths of a text that point to no file or folder."""
     missing: list[str] = []
     for token in _path_candidates(text):
         path = token.rstrip("/")
@@ -122,24 +151,87 @@ def test_every_backticked_path_exists(text: str) -> None:
                 missing.append(token)
         elif not (REPO_ROOT / path).exists() and not _file_exists_anywhere(path):
             missing.append(token)
-    assert not missing, f"README mentions paths that do not exist: {sorted(set(missing))}"
+    return sorted(set(missing))
+
+
+def _bad_links(text: str) -> list[str]:
+    """The http links of a text that are not the allowed official docs."""
+    return [link for link in LINK_RE.findall(text) if not link.startswith(ALLOWED_LINK_PREFIXES)]
+
+
+def test_every_backticked_path_exists(text: str) -> None:
+    """Each path in inline code points to a real file or folder."""
+    missing = _missing_paths(text)
+    assert not missing, f"README mentions paths that do not exist: {missing}"
 
 
 def test_links_are_official_docs_only(text: str) -> None:
     """The only http links are the official docs of the tools the README names."""
-    bad = [link for link in LINK_RE.findall(text) if not link.startswith(ALLOWED_LINK_PREFIXES)]
+    bad = _bad_links(text)
     assert not bad, f"README links outside the allowed docs: {bad}"
 
 
-def test_no_images_and_no_badges(text: str) -> None:
-    """No screenshots or badge images yet."""
-    assert not re.search(r"!\[[^\]]*\]\([^)]*\)", text)
+def test_the_only_image_is_the_home_moment_and_there_is_no_badge(text: str) -> None:
+    """One markdown image, docs/img/home_moment.gif, under 2 MB; no badge and no img tag."""
+    images = re.findall(r"!\[([^\]]*)\]\(([^)]*)\)", text)
+    assert images == [(HOME_MOMENT_ALT, HOME_MOMENT)]
+    gif = REPO_ROOT / HOME_MOMENT
+    assert gif.is_file()
+    assert gif.stat().st_size < MAX_IMAGE_BYTES
+    assert "shields.io" not in text.lower()
     assert "<img" not in text.lower()
 
 
 def test_no_email_address(text: str) -> None:
     """The README contains no e-mail address."""
     assert not EMAIL_RE.findall(text)
+
+
+# --- the docs files that received the moved sections --------------------------------------------
+
+
+@pytest.mark.parametrize("path", DOC_FILES, ids=DOC_IDS)
+def test_docs_file_exists_with_its_headings(path: Path) -> None:
+    """Each new docs file exists and has, in order, the headings it received."""
+    assert path.is_file()
+    doc = path.read_text(encoding="utf-8")
+    headings = [h.strip() for h in HEADING_RE.findall(_without_fences(doc))]
+    assert tuple(headings) == DOCS_HEADINGS[path.name]
+
+
+@pytest.mark.parametrize("path", DOC_FILES, ids=DOC_IDS)
+def test_docs_file_starts_with_a_title_and_a_link_back_to_the_readme(path: Path) -> None:
+    """Line 1 is a level 1 heading; the next line with text links the root README."""
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert lines[0] == f"# {DOCS_HEADINGS[path.name][0]}"
+    assert "](../README.md)" in lines[1]
+
+
+@pytest.mark.parametrize("path", DOC_FILES, ids=DOC_IDS)
+def test_docs_file_backticked_paths_exist(path: Path) -> None:
+    """Each path in inline code of a docs file points to a real file or folder."""
+    missing = _missing_paths(path.read_text(encoding="utf-8"))
+    assert not missing, f"{path.name} mentions paths that do not exist: {missing}"
+
+
+@pytest.mark.parametrize("path", DOC_FILES, ids=DOC_IDS)
+def test_docs_file_links_are_official_docs_only(path: Path) -> None:
+    """A docs file links no http address outside the allowed official docs."""
+    bad = _bad_links(path.read_text(encoding="utf-8"))
+    assert not bad, f"{path.name} links outside the allowed docs: {bad}"
+
+
+@pytest.mark.parametrize("path", DOC_FILES, ids=DOC_IDS)
+def test_docs_file_has_no_email_address(path: Path) -> None:
+    """A docs file contains no e-mail address."""
+    assert not EMAIL_RE.findall(path.read_text(encoding="utf-8"))
+
+
+def test_more_detail_names_every_docs_file(text: str) -> None:
+    """The More detail section links each docs file that holds a moved section."""
+    section = text.split("## More detail", 1)[1].split("\n## ", 1)[0]
+    for name in (*DOCS_HEADINGS, "benchmark.md", "live-guard.md"):
+        assert f"(docs/{name})" in section, name
 
 
 def test_todo_lines_for_live_url_and_video(text: str) -> None:
