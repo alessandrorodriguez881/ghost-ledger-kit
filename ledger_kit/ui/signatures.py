@@ -180,9 +180,7 @@ def signature_block(inner: str, caption: str) -> str:
 # --- shared SVG pieces --------------------------------------------------------------------------
 
 
-def _svg(
-    css_class: str, label: str, body: str, height: int = HEIGHT, width: int = WIDTH
-) -> str:
+def _svg(css_class: str, label: str, body: str, height: int = HEIGHT, width: int = WIDTH) -> str:
     """Return the one-line <svg> element of a drawing, with its role and its words-only label."""
     return (
         f'<svg class="gl-sig-svg {css_class}" xmlns="{SVG_NAMESPACE}" '
@@ -228,9 +226,7 @@ def _stack_offset(index: int) -> int:
 # --- the heartbeat (Zombie) ---------------------------------------------------------------------
 
 
-def heartbeat_svg(
-    rows: pd.DataFrame, cancellation_date: Any = None, *, width: int = WIDTH
-) -> str:
+def heartbeat_svg(rows: pd.DataFrame, cancellation_date: Any = None, *, width: int = WIDTH) -> str:
     """Return the heartbeat of the cited rows, or '' when no row can be drawn.
 
     `width` is the design width of the viewBox: ``WIDTH`` on an alert card, ``TILE_WIDTH`` on

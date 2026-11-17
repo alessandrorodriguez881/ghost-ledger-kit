@@ -74,9 +74,7 @@ _PLAIN_NUMBER_RE = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
 _DECIMAL_LITERAL_RE = re.compile(r"[0-9]+\.[0-9]+")
 # A whole number of the question: not part of a decimal, a date or a longer number.
 _QUESTION_INTEGER_RE = re.compile(
-    r"(?<![0-9.,/-])[0-9]{1,"
-    + str(QUESTION_INTEGER_MAX_DIGITS)
-    + r"}(?![0-9]|[.,][0-9]|[/-][0-9])"
+    r"(?<![0-9.,/-])[0-9]{1," + str(QUESTION_INTEGER_MAX_DIGITS) + r"}(?![0-9]|[.,][0-9]|[/-][0-9])"
 )
 _CURRENCY_RE = re.compile(r"[A-Z]{3}")
 _SYMBOLS = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/"}

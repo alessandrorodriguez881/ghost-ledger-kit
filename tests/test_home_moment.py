@@ -285,6 +285,7 @@ def test_the_moment_css_has_three_timed_animations_and_no_other_technology() -> 
 def test_the_moment_ends_within_three_seconds_and_starts_after_about_one() -> None:
     strike, stamp, fade = ANIMATION.findall(theme.MOMENT_CSS)
     [second_strike_delay] = STRIKE_TWO_DELAY.findall(theme.MOMENT_CSS)
+
     def ms(seconds: str) -> int:
         """Whole milliseconds, so sums and comparisons carry no floating point error."""
         return round(float(seconds) * 1000)
