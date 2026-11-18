@@ -76,6 +76,8 @@ SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
 # two readers); the content decides, never the file extension.
 INVOICE_COLUMN: str = "invoice_number"
 STATEMENT_COLUMN: str = "counterparty"
+# The one cell of a cited row that is a number in the JSON: the line of the file (int or null).
+LINE_KEY: str = "source_line"
 
 ZS_CONFIG: Path = REPO_ROOT / "apps" / "zombie_subscriptions" / "config.toml"
 VF_CONFIG: Path = REPO_ROOT / "apps" / "vampire_fees" / "config.toml"
@@ -127,7 +129,7 @@ class Found:
     alert: Alert
     rows: pd.DataFrame  # the rows the page hands to the guard and to the draft
     row_columns: tuple[str, ...] | None
-    shown_rows: list[dict[str, str | None]]  # the visible columns of the cited rows
+    shown_rows: list[dict[str, str | int | None]]  # the visible columns of the cited rows
     text: str | None  # the fixed template text of the card
     action: ActionTemplate | None
 
@@ -163,10 +165,35 @@ def _cell(value: Any) -> str | None:
     return str(value)
 
 
-def _records(frame: pd.DataFrame) -> list[dict[str, str | None]]:
-    """Return the rows of a display frame as dicts of text, in frame order."""
+def _line(value: Any) -> int | None:
+    """Return a source_line cell as a Python int, or None when the row has no line.
+
+    The display tables hold the line as text ('183', or '' when there is none); the JSON holds
+    a number or null, never a string, a float, a numpy integer or NaN.
+    """
+    if value is None or value is pd.NA or value is pd.NaT:
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        return int(text) if text.isdigit() else None
+    if isinstance(value, float) and value != value:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _records(frame: pd.DataFrame) -> list[dict[str, str | int | None]]:
+    """Return the rows of a display frame as dicts of text, in frame order.
+
+    The one exception is `source_line`, which is an int or None (REQ-LN-01).
+    """
     return [
-        {str(key): _cell(value) for key, value in record.items()}
+        {
+            str(key): _line(value) if key == LINE_KEY else _cell(value)
+            for key, value in record.items()
+        }
         for record in frame.to_dict("records")
     ]
 
@@ -282,7 +309,7 @@ def _scan_statement(report: FileReport) -> list[Found]:
 
 def _phantom_shown(
     alert: Alert, ledger_view: pd.DataFrame, pipeline: pi_settings.Pipeline
-) -> list[dict[str, str | None]]:
+) -> list[dict[str, str | int | None]]:
     """Return the cited rows of a phantom alert as its page shows them, in source_refs order."""
     refs = alert.source_refs
     records = [

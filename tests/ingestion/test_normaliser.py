@@ -14,6 +14,7 @@ from ledger_kit.ingestion.csv_reader import parse_csv
 from ledger_kit.ingestion.dialect import CsvDialect, parse_amount
 from ledger_kit.ingestion.normaliser import (
     CANONICAL_COLUMNS,
+    COLUMNS,
     INVOICE_COLUMNS,
     SUPPLIER_COLUMNS,
     normalise,
@@ -112,6 +113,7 @@ def test_normalise_schema_columns_present() -> None:
         "source_file",
         "source_row",
         "source_ref",
+        "source_line",
         "tags",
     )
 
@@ -143,6 +145,7 @@ def test_normalise_invoices_returns_invoice_columns() -> None:
         "source_file",
         "source_row",
         "source_ref",
+        "source_line",
     )
     assert len(frame) == 2
     assert quarantined == []
@@ -158,6 +161,7 @@ def test_normalise_suppliers_returns_supplier_columns() -> None:
         "source_file",
         "source_row",
         "source_ref",
+        "source_line",
     )
     assert list(frame["source_ref"]) == ["sup.csv:0", "sup.csv:1", "sup.csv:2"]
     assert quarantined == []
@@ -280,6 +284,29 @@ def test_normalise_no_sources_defaults_to_transaction_columns() -> None:
 def test_normalise_empty_frames_have_expected_dtypes() -> None:
     frame, _ = normalise(kind="transaction")
     assert frame["source_row"].dtype == "int64"
+    assert frame["source_line"].dtype == "Int64"
+
+
+@pytest.mark.parametrize("kind", ["transaction", "invoice", "supplier"])
+def test_source_line_sits_right_after_source_ref_for_every_kind(kind: str) -> None:
+    columns = list(COLUMNS[kind])
+    assert columns[columns.index("source_ref") + 1] == "source_line"
+
+
+def test_source_line_is_a_nullable_integer_and_none_stays_empty() -> None:
+    frame, quarantined = normalise([_tx(0, source_line=3), _tx(1), _tx(2, source_line=9)])
+    assert quarantined == []
+    assert frame["source_line"].dtype == "Int64"
+    assert frame["source_line"][0] == 3 and frame["source_line"][2] == 9
+    assert pd.isna(frame["source_line"][1])
+    for model, kind in ((_inv(0), "invoice"), (_sup(0), "supplier")):
+        other, _ = normalise([model], kind=kind)
+        assert other["source_line"].dtype == "Int64" and other["source_line"].isna().all()
+
+
+def test_a_missing_source_line_is_not_a_reason_to_quarantine() -> None:
+    frame, quarantined = normalise([_tx(0)])
+    assert len(frame) == 1 and quarantined == []
 
 
 # --- Tier 3 ---------------------------------------------------------------------------

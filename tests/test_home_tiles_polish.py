@@ -120,6 +120,51 @@ def test_the_tile_lantern_has_at_most_two_columns_and_marks_the_text_ones() -> N
     assert home_tiles.TILE_MAX_COMPARED == 1
 
 
+def test_the_tile_lantern_first_column_shows_each_ref_as_its_chip_does() -> None:
+    view = pd.DataFrame(
+        {
+            "source_ref": ["i.csv:0", "10-dup.xml:2", "plain-ref", "j.csv:7"],
+            "source_line": ["2", "", "", ""],
+            "total": ["1,00 EUR"] * 4,
+        }
+    )
+    lines = {"i.csv:0": 2}
+
+    shown = home_tiles.tile_lantern_view(view, ["source_ref", "total"], lines)
+
+    assert list(shown.columns) == ["source_ref", "total"]  # no column of its own for the line
+    assert list(shown["source_ref"]) == [
+        f"i.csv {signatures.DOT} line 2",
+        f"10-dup.xml {signatures.DOT} invoice 2",
+        "plain-ref",
+        "j.csv:7",  # a CSV ref whose line is not known stays raw
+    ]
+    assert list(view["source_ref"])[0] == "i.csv:0"  # the view of the card is not changed
+
+
+def test_the_tile_lantern_columns_never_hold_the_line_column() -> None:
+    from ledger_kit.models import Alert
+
+    alert = Alert(
+        detector="pi.vat_error", severity="warning", title="t", source_refs=["i.csv:0"], data={}
+    )
+    view = pd.DataFrame(columns=["source_ref", "source_line", "base_amount", "total"])
+
+    assert home_tiles.tile_lantern_columns(alert, view) == ["source_ref", "base_amount"]
+
+
+def test_the_tile_lantern_of_the_demo_shows_a_line_chip_text_in_its_first_column() -> None:
+    drawing = home_tiles.tile_signatures()["phantom"]
+    body = drawing[drawing.index("<tbody>") : drawing.index("</tbody>")]
+    first_cells = re.findall(r"<tr><td[^>]*>([^<]*)</td>", body)
+
+    assert first_cells
+    for cell in first_cells:
+        assert re.fullmatch(rf"\S+ {signatures.DOT} (line|invoice) \d+|[^ ]+", cell), cell
+        assert "row" not in cell
+    assert "source line" not in drawing
+
+
 def test_only_text_columns_get_the_wrap_class() -> None:
     frame = pd.DataFrame(
         {"source_ref": ["i.csv:0"], "supplier_name": ["Acme Ltd"], "total": ["48 4,00 EUR"]}
@@ -177,11 +222,16 @@ def _refs(count: int) -> list[str]:
 
 
 def test_a_tile_with_many_refs_shows_three_chips_and_the_computed_rest() -> None:
-    markup = home_tiles.tile_refs_html(_refs(7))
+    # a CSV with a header: data row n is line n + 2
+    frame = pd.DataFrame({"source_ref": _refs(7), "source_line": [n + 2 for n in range(7)]})
+    markup = home_tiles.tile_refs_html(_refs(7), signatures.source_lines_of(frame))
 
     assert markup.count(CHIP) == 3
     assert markup.endswith('<div class="gl-tile-more">and 4 more cited rows</div>')
-    assert "s.csv · row 3" not in markup and "s.csv · row 2" in markup
+    assert f"s.csv {signatures.DOT} line 2" in markup  # the first three chips, with their numbers
+    assert f"s.csv {signatures.DOT} line 3" in markup
+    assert f"s.csv {signatures.DOT} line 4" in markup
+    assert f"s.csv {signatures.DOT} line 5" not in markup  # the fourth ref is not shown
 
 
 def test_the_remainder_is_computed_from_the_number_of_refs() -> None:

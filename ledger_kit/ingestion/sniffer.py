@@ -96,6 +96,7 @@ def _unsupported(name: str, kind: str, accepted: str) -> dict:
     return {
         "source_file": name,
         "source_row": None,
+        "source_line": None,
         "reason": f"unsupported_format:{kind}",
         "raw": unsupported_message(name, kind, accepted),
     }

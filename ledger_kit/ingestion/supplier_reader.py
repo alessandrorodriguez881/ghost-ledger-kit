@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
 from pathlib import Path
 from typing import IO
 
@@ -14,6 +12,7 @@ from ledger_kit.ingestion.csv_reader import (
     _quarantine,
     _read_source,
     _undecodable,
+    iter_csv_records,
 )
 from ledger_kit.models import Supplier
 
@@ -38,13 +37,14 @@ def parse_suppliers(
 
     suppliers: list[Supplier] = []
     quarantined: list[dict] = []
-    reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=",")
-    for row_index, row in enumerate(reader):
+    for row_index, line, row in iter_csv_records(text, ","):
         raw = {k: v for k, v in row.items() if k is not None}
 
         missing = next((c for c in MANDATORY_COLUMNS if _blank(row.get(c))), None)
         if missing is not None:
-            quarantined.append(_quarantine(file_name, row_index, f"missing_field:{missing}", raw))
+            quarantined.append(
+                _quarantine(file_name, row_index, f"missing_field:{missing}", raw, line)
+            )
             continue
 
         iban_cell = row.get("iban")
@@ -56,6 +56,7 @@ def parse_suppliers(
                 source_file=file_name,
                 source_row=row_index,
                 source_ref=f"{file_name}:{row_index}",
+                source_line=line,
             )
         )
 

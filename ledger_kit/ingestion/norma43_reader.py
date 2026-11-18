@@ -179,8 +179,14 @@ def _decode(content: str | bytes) -> str:
 
 
 def _record(source_file: str, source_row: int | None, reason: str, raw: object) -> dict:
-    """Build a quarantine record."""
-    return {"source_file": source_file, "source_row": source_row, "reason": reason, "raw": raw}
+    """Build a quarantine record; the Norma 43 row is the line, so `source_line` equals it."""
+    return {
+        "source_file": source_file,
+        "source_row": source_row,
+        "source_line": source_row,
+        "reason": reason,
+        "raw": raw,
+    }
 
 
 def check_block(
@@ -577,6 +583,7 @@ class _Parser:
             source_file=self.source_file,
             source_row=movement.line_no,
             source_ref=f"{self.source_file}:{movement.line_no}",
+            source_line=movement.line_no,
             tags=tags,
         )
 

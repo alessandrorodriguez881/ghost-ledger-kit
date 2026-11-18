@@ -257,6 +257,7 @@ def test_money_is_european_text_and_dates_are_iso(scan_module: ModuleType):
         assert ISO_DAY.fullmatch(row["date"]), row["date"]
         assert set(row) <= {
             "source_ref",
+            "source_line",
             "date",
             "amount",
             "flow",
@@ -264,6 +265,44 @@ def test_money_is_european_text_and_dates_are_iso(scan_module: ModuleType):
             "description",
             "iban",
         }
+        assert_line_is_int_or_null(row)
+
+
+def assert_line_is_int_or_null(row: dict[str, Any]) -> None:
+    """A source_line in the JSON is a Python int or null: no string, float, bool or NaN."""
+    if "source_line" in row:
+        line = row["source_line"]
+        assert line is None or (type(line) is int and line >= 1), (row["source_ref"], line)
+
+
+@pytest.mark.parametrize("fmt", ["csv", "real"])
+def test_source_line_of_phantom_rows_is_an_int_or_null(scan_module: ModuleType, fmt: str):
+    payload = scan(scan_module, *phantom_args(fmt))
+    rows = [row for a in payload["alerts"] for row in a["rows"]]
+    assert rows and any("source_line" in row for row in rows)
+    for row in rows:
+        assert_line_is_int_or_null(row)
+
+
+def test_source_line_in_the_text_of_the_json_has_no_quotes_and_no_nan(scan_module: ModuleType):
+    text = run(scan_module, "scan", ZOMBIE_CSV, *phantom_args("real"))
+
+    assert "NaN" not in text
+    assert not re.search(r'"source_line": "', text)
+    assert not re.search(r'"source_line": \d+\.\d', text)
+
+
+def test_line_helper_turns_every_missing_or_numeric_form_into_int_or_none(
+    scan_module: ModuleType,
+):
+    import numpy as np
+    import pandas as pd
+
+    for missing in (None, "", " ", pd.NA, pd.NaT, float("nan"), np.nan, "x"):
+        assert scan_module._line(missing) is None
+    for number in ("183", 183, np.int64(183), np.int32(183), 183.0, np.float64(183)):
+        result = scan_module._line(number)
+        assert result == 183 and type(result) is int
 
 
 def test_cited_rows_are_the_rows_named_by_source_refs(scan_module: ModuleType):

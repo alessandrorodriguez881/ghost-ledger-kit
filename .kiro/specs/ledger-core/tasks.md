@@ -419,3 +419,20 @@ This task covers plain-dialect parsing and the encoding detection strategy. Euro
 - [x] Confirm no test uses `datetime.now()` or `date.today()` directly; any time-sensitive test uses fixed literal dates.
 - [x] Confirm no test fixture contains real personal data (names, IBANs, phone numbers outside Finance Rule 5 placeholders).
 - [x] Fix any coverage gaps or lint issues found.
+
+---
+
+## Task 15 — The source line (session 32)
+
+**Covers**: REQ-LN-01 to REQ-LN-11
+
+Requirements first (`requirements.md` section 10), then the tests, then the code. This session could not run commands: a box ticked here means the file is written, not that it was run; the hooks lint each file and run the tests on stop.
+
+- [x] `tests/ingestion/test_source_line.py` (new): the three models default to `None`; a blank line between records; a quoted cell of two lines (LF and CRLF); a bad record after both; `iter_csv_records` equals `csv.DictReader`; invoices and suppliers; a JSON invoice has no line; every whole-file quarantine record has the key `source_line` set to `None`; the GYMPLUS charge (`:181`, line 183, line 183 read as text); every record of every sample CSV of `data/samples` and `data/samples/phantom_demo` and the line of the file at its number; Norma 43 (`source_line == source_row`, the line starts with `22`, quarantine records); Facturae (`None`).
+- [x] `ledger_kit/models.py`: `source_line: int | None = None` on `Transaction`, `Invoice` and `Supplier`.
+- [x] `ledger_kit/ingestion/csv_reader.py`: `iter_csv_records(text, delimiter)` yields `(row_index, source_line, row)`; `_quarantine` takes the line; `parse_csv` uses both. `invoice_reader.py` and `supplier_reader.py` use the same function; the JSON reader and every whole-file record get `source_line: None`. `norma43_reader.py` sets it to the line of the record 22 and `_record` copies the row; `facturae_reader.py` and `sniffer.py` set `None`.
+- [x] `ledger_kit/ingestion/normaliser.py`: `source_line` right after `source_ref` in the three column tuples, `Int64`, optional. `tests/ingestion/test_normaliser.py`: the three tuples pinned with the new column; `Int64` and `None` stays empty.
+- [x] `.kiro/steering/tech.md` and `.kiro/steering/testing.md`: `source_line` described. `docs/how-it-works.md`: one sentence. README: no chip shown, nothing to change.
+- [x] Existing tests edited: `tests/ingestion/test_normaliser.py` (column tuples), `apps/phantom_invoices/tests/test_pi_settings.py` (quarantine keys and lines), `apps/phantom_invoices/tests/test_pi_app_logic.py` (the quarantine table). The others are listed in `.kiro/specs/app-signatures/tasks.md`, Task AS9.
+- Not changed, by design (REQ-LN-02): `source_row`, `source_ref`, `Alert.id`, `source_refs` and `data` of every alert, the detectors, the number guard, `_LLM_ROW_COLUMNS`, `_NEVER_SENT_COLUMNS`, `replay.py`, `data/live_runs`, `tests/test_recorded_verdicts.py`, `docs/benchmark.md`.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

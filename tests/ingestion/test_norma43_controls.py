@@ -42,6 +42,7 @@ def block_record(row: int, check: str, declared: str | None, computed: str | Non
     return {
         "source_file": NAME,
         "source_row": row,
+        "source_line": row,  # a Norma 43 row is the line of its record
         "reason": f"control_check_failed:{check}",
         "raw": {
             "account": ACCOUNT,
@@ -57,6 +58,7 @@ def file_record(check: str, declared: str | None, computed: str) -> dict:
     return {
         "source_file": NAME,
         "source_row": None,
+        "source_line": None,
         "reason": f"control_check_failed:{check}",
         "raw": {"declared": declared, "computed": computed},
     }

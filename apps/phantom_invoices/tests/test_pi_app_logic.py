@@ -445,10 +445,19 @@ def test_as_of_note_and_markdown_safe_and_quarantine_view() -> None:
     assert markdown_safe("****1332 a_b `c` $5") == "\\*\\*\\*\\*1332 a\\_b \\`c\\` \\$5"
     assert markdown_safe("1.210,00 EUR") == "1.210,00 EUR"
 
-    record = {"source_file": "i.csv", "source_row": 3, "reason": "r", "raw": {"a": "1"}}
+    record = {
+        "source_file": "i.csv",
+        "source_row": 3,
+        "source_line": 5,
+        "reason": "r",
+        "raw": {"a": "1"},
+    }
     table = quarantine_view([record])
-    assert list(table.columns) == ["file", "row", "reason", "raw"]
-    assert table.iloc[0].tolist() == ["i.csv", "3", "r", "{'a': '1'}"]
+    assert list(table.columns) == ["file", "line", "reason", "raw"]
+    assert table.iloc[0].tolist() == ["i.csv", "5", "r", "{'a': '1'}"]
+    # a record about the whole file or an XML invoice has no line: the cell is empty
+    for lineless in ({**record, "source_line": None}, {"source_file": "x.xml", "reason": "r"}):
+        assert quarantine_view([lineless]).iloc[0]["line"] == ""
     assert quarantine_view([]).empty
 
 

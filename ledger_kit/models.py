@@ -35,6 +35,7 @@ class Transaction(BaseModel):
     source_file: str
     source_row: int
     source_ref: str
+    source_line: int | None = None  # 1-based line of the file where the record starts, header = 1
     tags: list[str] = []
 
     model_config = {"frozen": True}
@@ -68,6 +69,7 @@ class Invoice(BaseModel):
     source_file: str
     source_row: int
     source_ref: str
+    source_line: int | None = None  # 1-based line of the file where the record starts, header = 1
 
     model_config = {"frozen": True}
 
@@ -89,6 +91,7 @@ class Supplier(BaseModel):
     source_file: str
     source_row: int
     source_ref: str
+    source_line: int | None = None  # 1-based line of the file where the record starts, header = 1
 
     model_config = {"frozen": True}
 

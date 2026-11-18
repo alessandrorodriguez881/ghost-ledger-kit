@@ -596,11 +596,18 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
     )
     assert phantom_alert is not None
     # The Phantom tile is specified to show the tile variant: the source ref plus the first
-    # lantern column, with only the free-text columns allowed to wrap.
+    # lantern column, with only the free-text columns allowed to wrap. Since REQ-AS-33 the
+    # first column holds the text of the chips (file · line N), built from the loaded inputs.
     view = settings.lantern_view(phantom_alert, phantom)
     columns = home_tiles.tile_lantern_columns(phantom_alert, view)
+    lines = signatures.source_lines_of(phantom.invoices, phantom.suppliers, phantom.payments)
+    shown = home_tiles.tile_lantern_view(view, columns, lines)
+    chip_texts = [str(text) for text in shown["source_ref"]]
+    assert chip_texts
+    assert all("line" in text for text in chip_texts), chip_texts
+    assert not any(re.search(r"\S:\d+$", text) for text in chip_texts), chip_texts
     lantern = lantern_html(
-        view[columns],
+        shown,
         settings.lantern_lit_columns(phantom_alert),
         text_columns=[c for c in columns if c in home_tiles.TILE_TEXT_COLUMNS],
     )
@@ -611,7 +618,19 @@ def _expected_drawings() -> dict[str, tuple[str, Alert]]:
     }
 
 
-def _with_chips(drawing: str, alert: Alert) -> str:
+def _chip_lines() -> dict[str, dict[str, int]]:
+    """The map from source_ref to source_line that each tile hands to its chips (REQ-AS-28)."""
+    phantom = _phantom()
+    return {
+        "zombie": signatures.source_lines_of(_zombie().debit_ledger),
+        "phantom": signatures.source_lines_of(
+            phantom.invoices, phantom.suppliers, phantom.payments
+        ),
+        "vampire": signatures.source_lines_of(_vampire().ledger),
+    }
+
+
+def _with_chips(drawing: str, alert: Alert, lines: dict[str, int]) -> str:
     """The drawing, then at most three chips and one computed line for the rest of the refs."""
     refs = alert.source_refs
     more = len(refs) - 3
@@ -619,16 +638,18 @@ def _with_chips(drawing: str, alert: Alert) -> str:
     if more > 0:
         noun = "row" if more == 1 else "rows"
         rest = f'<div class="gl-tile-more">and {more} more cited {noun}</div>'
-    return f'{drawing}<div class="gl-tile-refs">{refs_chips_html(refs[:3])}{rest}</div>'
+    chips = refs_chips_html(refs[:3], lines)
+    return f'{drawing}<div class="gl-tile-refs">{chips}{rest}</div>'
 
 
 def test_each_tile_has_the_drawing_its_app_makes_for_one_real_alert() -> None:
     drawings = home_tiles.tile_signatures()
+    chip_lines = _chip_lines()
 
     assert set(drawings) == {"zombie", "phantom", "vampire"}
     for key, (drawing, alert) in _expected_drawings().items():
         assert drawing, key
-        assert drawings[key] == _with_chips(drawing, alert)
+        assert drawings[key] == _with_chips(drawing, alert, chip_lines[key])
     assert "gl-heartbeat" in drawings["zombie"] and "gl-tomb" in drawings["zombie"]
     assert "gl-lantern" in drawings["phantom"] and "gl-lit" in drawings["phantom"]
     assert "gl-bites" in drawings["vampire"] and "gl-fang" in drawings["vampire"]
@@ -645,10 +666,11 @@ def test_home_puts_each_drawing_in_its_own_tile() -> None:
     [markup] = _starting(_home(), '<div class="gl-grid gl-tiles">')
     pieces = markup.split(TILE_START)[1:]
     tiles = dict(zip(("zombie", "phantom", "vampire"), pieces, strict=True))
+    chip_lines = _chip_lines()
 
     for key, (drawing, alert) in _expected_drawings().items():
         assert tiles[key].startswith(f"gl-tile-{key}")
-        assert _with_chips(drawing, alert) in tiles[key]
+        assert _with_chips(drawing, alert, chip_lines[key]) in tiles[key]
     assert "gl-heartbeat" in tiles["zombie"] and "gl-heartbeat" not in tiles["vampire"]
     assert "gl-bites" in tiles["vampire"] and "gl-bites" not in tiles["phantom"]
     assert "gl-lantern" in tiles["phantom"] and "gl-lantern" not in tiles["zombie"]

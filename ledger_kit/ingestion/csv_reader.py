@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Iterator
 from decimal import InvalidOperation
 from pathlib import Path
 from typing import IO, Any, Literal, TypeVar
@@ -59,9 +60,51 @@ def _blank(value: str | None) -> bool:
     return value is None or not value.strip()
 
 
-def _quarantine(source_file: str, row_index: int, reason: str, raw: dict[str, Any]) -> dict:
+def iter_csv_records(text: str, delimiter: str) -> Iterator[tuple[int, int, dict[str | None, Any]]]:
+    """Yield (row_index, source_line, row) per record, as csv.DictReader reads them.
+
+    `row_index` counts records (blank lines are skipped and not counted). `source_line` is the
+    1-based line of the file where the record starts, the header being line 1, so a blank line
+    between records and a quoted cell that spans several lines both give the line a text editor
+    shows for the first line of the record.
+    """
+    reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
+    header = next(reader, None)
+    if header is None:
+        return
+    row_index = 0
+    while True:
+        start_line = reader.line_num + 1
+        cells = next(reader, None)
+        if cells is None:
+            return
+        if not cells:
+            continue
+        row: dict[str | None, Any] = dict(zip(header, cells, strict=False))
+        if len(header) < len(cells):
+            row[None] = cells[len(header) :]
+        elif len(header) > len(cells):
+            for key in header[len(cells) :]:
+                row[key] = None
+        yield row_index, start_line, row
+        row_index += 1
+
+
+def _quarantine(
+    source_file: str,
+    row_index: int,
+    reason: str,
+    raw: dict[str, Any],
+    source_line: int | None = None,
+) -> dict:
     """Build a quarantine record for one data row."""
-    return {"source_file": source_file, "source_row": row_index, "reason": reason, "raw": raw}
+    return {
+        "source_file": source_file,
+        "source_row": row_index,
+        "source_line": source_line,
+        "reason": reason,
+        "raw": raw,
+    }
 
 
 def _undecodable(file_name: str) -> dict:
@@ -69,6 +112,7 @@ def _undecodable(file_name: str) -> dict:
     return {
         "source_file": file_name,
         "source_row": None,
+        "source_line": None,
         "reason": "undecodable_file",
         "raw": "",
         "encoding_tried": list(ENCODINGS_TRIED),
@@ -100,6 +144,7 @@ def parse_csv(
                 {
                     "source_file": file_name,
                     "source_row": None,
+                    "source_line": None,
                     "reason": "ambiguous_dialect",
                     "raw": first_line,
                     "first_line": first_line,
@@ -108,28 +153,29 @@ def parse_csv(
     else:
         resolved = CsvDialect(dialect)
 
-    reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=_DELIMITERS[resolved])
     transactions: list[Transaction] = []
     quarantined: list[dict] = []
 
-    for row_index, row in enumerate(reader):
+    for row_index, line, row in iter_csv_records(text, _DELIMITERS[resolved]):
         raw = {k: v for k, v in row.items() if k is not None}
 
         missing = next((c for c in MANDATORY_COLUMNS if _blank(row.get(c))), None)
         if missing is not None:
-            quarantined.append(_quarantine(file_name, row_index, f"missing_field:{missing}", raw))
+            quarantined.append(
+                _quarantine(file_name, row_index, f"missing_field:{missing}", raw, line)
+            )
             continue
 
         try:
             parsed_date = parse_date(row["date"], resolved)
         except ValueError:
-            quarantined.append(_quarantine(file_name, row_index, "unparseable_date", raw))
+            quarantined.append(_quarantine(file_name, row_index, "unparseable_date", raw, line))
             continue
 
         try:
             signed = parse_amount(row["amount"], resolved)
         except InvalidOperation:
-            quarantined.append(_quarantine(file_name, row_index, "unparseable_amount", raw))
+            quarantined.append(_quarantine(file_name, row_index, "unparseable_amount", raw, line))
             continue
 
         iban_cell = row.get("iban")
@@ -145,6 +191,7 @@ def parse_csv(
                 source_file=file_name,
                 source_row=row_index,
                 source_ref=f"{file_name}:{row_index}",
+                source_line=line,
             )
         )
 

@@ -96,6 +96,7 @@ PAYMENT_KINDS: frozenset[str] = frozenset({"csv", "norma43"})
 # Columns of the haunted ledger, in order. No tax-id column (REQ-PI-49).
 LEDGER_COLUMNS: tuple[str, ...] = (
     "source_ref",
+    "source_line",
     "status",
     "invoice_number",
     "supplier_name",
@@ -116,9 +117,10 @@ _AMOUNT_COLUMNS: tuple[str, ...] = (
     "withholding_amount",
     "total",
 )
-MASTER_COLUMNS: tuple[str, ...] = ("source_ref", "supplier_name", "iban")
+MASTER_COLUMNS: tuple[str, ...] = ("source_ref", "source_line", "supplier_name", "iban")
 PAYMENT_COLUMNS: tuple[str, ...] = (
     "source_ref",
+    "source_line",
     "date",
     "flow",
     "amount",
@@ -245,6 +247,7 @@ def _read_invoice_files(
                 {
                     "source_file": source.name,
                     "source_row": None,
+                    "source_line": None,
                     "reason": DUPLICATE_FILE_REASON,
                     "raw": f"{source.name}: a file with this name was already loaded; not read.",
                 }
@@ -504,6 +507,22 @@ def _rate(value: Any) -> str:
     return "" if rate is None else f"{rate.normalize():f} %"
 
 
+def _line_number(value: Any) -> int | None:
+    """Return a source_line cell as an int; None when the cell is empty or no whole number."""
+    if value is None or value is pd.NA or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _line(value: Any) -> str:
+    """Return a source_line cell as text; an XML invoice (no line) is an empty cell."""
+    number = _line_number(value)
+    return "" if number is None else str(number)
+
+
 def _masked(value: Any) -> str:
     """Return the masked IBAN of a cell (Finance Rule 5); empty when there is none."""
     text = as_text(value)
@@ -525,6 +544,7 @@ def ledger_view(invoices: pd.DataFrame, reconciliation: Reconciliation) -> pd.Da
             due += DEFAULT_DUE_DATE_MARK
         row = {
             "source_ref": ref,
+            "source_line": _line(rec.get("source_line")),
             "status": status_icon(reconciliation.invoice_buckets.get(ref)),
             "invoice_number": _plain(rec.get("invoice_number")),
             "supplier_name": _plain(rec.get("supplier_name")),
@@ -552,6 +572,7 @@ def cited_master_view(suppliers: pd.DataFrame, refs: Iterable[str]) -> pd.DataFr
     rows = [
         {
             "source_ref": as_text(rec.get("source_ref")) or "",
+            "source_line": _line(rec.get("source_line")),
             "supplier_name": _plain(rec.get("supplier_name")),
             "iban": _masked(rec.get("iban")),
         }
@@ -565,6 +586,7 @@ def cited_payments_view(payments: pd.DataFrame, refs: Iterable[str]) -> pd.DataF
     rows = [
         {
             "source_ref": as_text(rec.get("source_ref")) or "",
+            "source_line": _line(rec.get("source_line")),
             "date": _day(rec.get("date")),
             "flow": _plain(rec.get("flow")),
             "amount": _money(rec.get("amount"), as_text(rec.get("currency")) or ""),
@@ -624,6 +646,8 @@ LANTERN_ORDER: tuple[str, ...] = (
 )
 # The two columns that always name a row of the lantern, lit or not (an empty one is left out).
 LANTERN_NAMING: tuple[str, ...] = ("source_ref", "invoice_number")
+# The line of the file where a cited row starts; shown right after the source ref, never lit.
+LINE_COLUMN: str = "source_line"
 
 
 def lantern_lit_columns(alert: Alert) -> tuple[str, ...] | None:
@@ -671,6 +695,8 @@ def lantern_view(alert: Alert, pipeline: Pipeline) -> pd.DataFrame:
             and len({record.get(column, "") for record in records}) > 1
         ]
         wanted = [*LANTERN_NAMING, *differing]
+    # The line of the file sits right after the source ref (REQ-AS-23); it is never lit.
+    wanted.insert(wanted.index("source_ref") + 1, LINE_COLUMN)
     kept = [
         column
         for column in wanted
@@ -680,17 +706,21 @@ def lantern_view(alert: Alert, pipeline: Pipeline) -> pd.DataFrame:
 
 
 def quarantine_view(records: Iterable[dict]) -> pd.DataFrame:
-    """Flatten quarantine records into a table of file, row, reason and raw values."""
+    """Flatten quarantine records into a table of file, line, reason and raw values.
+
+    The `line` column is the line of the file where the bad record starts (`source_line`); it is
+    empty for a record about the whole file or about an XML invoice.
+    """
     rows = [
         {
             "file": str(rec.get("source_file", "")),
-            "row": str(rec.get("source_row", "")),
+            "line": _line(rec.get("source_line")),
             "reason": str(rec.get("reason", "")),
             "raw": str(rec.get("raw", "")),
         }
         for rec in records
     ]
-    return pd.DataFrame(rows, columns=["file", "row", "reason", "raw"])
+    return pd.DataFrame(rows, columns=["file", "line", "reason", "raw"])
 
 
 def markdown_safe(text: str) -> str:

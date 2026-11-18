@@ -102,7 +102,7 @@ The ingestion layer has its own test suite in `tests/ingestion/`.
 Required tests:
 - Parsing a well-formed bank-statement CSV produces the expected `Transaction` objects.
 - Parsing a CSV with missing required fields quarantines the bad rows and returns the valid ones.
-- `source_ref` is correctly assigned as `"{filename}:{row_index}"` (0-based).
+- `source_ref` is correctly assigned as `"{filename}:{row_index}"` (0-based) and stays the internal key; `source_line` is the 1-based line of the file where the record starts (header = line 1, blank lines and multi-line quoted cells counted), so the line of the file at that number is the record. Norma 43 sets it to the line of the record 22; Facturae and JSON leave it `None`.
 - Parsing an empty file returns an empty list without raising.
 - Amount columns are read as `Decimal`, not `float`.
 - Date columns are parsed to `datetime.date`, not string.

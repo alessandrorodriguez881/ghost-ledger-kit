@@ -331,3 +331,24 @@ CR-LC-3 was raised by the `phantom-invoices` spec (App 2). It changes ledger-cor
 | f. Empty-ledger exception for context-reading detectors | REQ-DET-05 revised | §4.1 | Task 10 |
 | g. Explainer `row_columns`, numbers in `Alert.data`, masked IBANs | REQ-EXP-01, 08, 10 revised; REQ-EXP-11, REQ-DET-09, REQ-PII-03, 04 added; REQ-TST-08 extended | §4a.1, §4a.2, §4a.4, §4a.5, §6 | Task 5, 11a |
 | h. Finance Rule 5 (steering) | REQ-PII-02 reworded | — | — |
+
+---
+
+### 10 — Session 32: the source line (REQ-LN-01 onwards)
+
+Approved by the owner on 17 Nov. For a CSV file `source_row` is the 0-based index of the data row, so a person who opens the file finds the record on another line (the GYMPLUS charge of `zombie_demo_statement.csv` is `source_row` 181 and stands on line 183). A citation that points to the wrong line looks like an invented one. The internal key stays as it is; the line of the file is a new field that only the pages read.
+
+- **REQ-LN-01** `Transaction`, `Invoice` and `Supplier` shall have the field `source_line: int | None = None`: the 1-based line of the file where the record starts, the header being line 1, numbered as a text editor numbers lines and as a spreadsheet numbers rows when no cell spans two lines. It defaults to `None`, so every model built without it stays valid.
+- **REQ-LN-02** `source_row`, `source_ref`, `Alert.id`, the `source_refs` and the `data` of every alert, every detector, the number guard, the columns sent to the model (`_LLM_ROW_COLUMNS`, `_NEVER_SENT_COLUMNS`), `replay.py` and the files of `data/live_runs` shall not change. `source_line` is not an input of any detector, is not part of any alert and is never sent to a model.
+- **REQ-LN-03** Every CSV reader (`parse_csv`, `parse_invoice` for CSV, `parse_suppliers`) shall set `source_line` on every record it returns. A blank line between records shall not shift it, and a quoted cell that spans several lines shall give the line where the record starts, so the next record gets the line after the last line of that cell. The records are read by one shared function, `iter_csv_records` in `csv_reader.py`, that returns the same records as `csv.DictReader`.
+  - AE-LN-01 `date,...` header, a record, two blank lines, a record: the records have `source_row` 0 and 1 and `source_line` 2 and 5.
+  - AE-LN-02 A record whose description is a quoted cell of two lines, then another record: `source_line` 2 and 4.
+  - AE-LN-03 `zombie_demo_statement.csv`: the GYMPLUS charge of 2026-08-09 keeps `source_ref` `zombie_demo_statement.csv:181` and has `source_line` 183; line 183 of the file, read as text, is that charge.
+- **REQ-LN-04** *Where* a record comes from a JSON array, `source_line` shall be `None` (an item has a position, not a line).
+- **REQ-LN-05** `parse_norma43` shall set `source_line` to the line of the record 22, which is its `source_row` today.
+- **REQ-LN-06** `parse_facturae` shall leave `source_line` `None`: an XML invoice has a position, not a line.
+- **REQ-LN-07** Every quarantine record of every reader shall carry the key `source_line`: the line where the bad record starts, or `None` for a record about the whole file (undecodable file, ambiguous dialect, unsupported format, invalid JSON or XML, a record 88 check) or about an XML invoice. Norma 43 records that name a record carry its line. Every other key of a quarantine record stays as it is.
+- **REQ-LN-08** `normalise()` shall add the column `source_line` right after `source_ref` in `CANONICAL_COLUMNS`, `INVOICE_COLUMNS` and `SUPPLIER_COLUMNS`, as a nullable integer (pandas `Int64`), so a `None` stays empty. A missing `source_line` shall not quarantine a record. The `source_row` column stays `int64`.
+- **REQ-LN-09** *Where* a record has no line (REQ-LN-04, REQ-LN-06), every page shall show its position instead of a line (an XML invoice reads `invoice N`), and a CSV ref whose line is not known shall show its raw `source_ref`, never the word `row` next to the internal number. The pages are specified in `app-signatures` (REQ-AS-25 onwards).
+- **REQ-LN-10** The tests shall cover: the GYMPLUS charge (AE-LN-03); for each sample CSV of `data/samples` and `data/samples/phantom_demo`, that every record has a `source_line` and that the line of the file at that number is the record (same date and amount); a CSV with a blank line between records and one with a quoted cell that spans two lines; Norma 43 (`source_line` equals `source_row`); Facturae (`None`); and the `source_line` key of the quarantine records. The tests that pin the exact set of keys or columns shall include the new key or column.
+- **REQ-LN-11** `.kiro/steering/tech.md` (model `Transaction`) and `.kiro/steering/testing.md` (ingestion tests) shall describe `source_line` next to `source_row` and `source_ref`. The number of files in `.kiro/steering` (6) and of folders in `.kiro/specs` (18) shall not change.

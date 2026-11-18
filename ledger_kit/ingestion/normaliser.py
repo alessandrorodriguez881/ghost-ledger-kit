@@ -24,6 +24,7 @@ CANONICAL_COLUMNS: tuple[str, ...] = (
     "source_file",
     "source_row",
     "source_ref",
+    "source_line",
     "tags",
 )
 INVOICE_COLUMNS: tuple[str, ...] = (
@@ -44,6 +45,7 @@ INVOICE_COLUMNS: tuple[str, ...] = (
     "source_file",
     "source_row",
     "source_ref",
+    "source_line",
 )
 SUPPLIER_COLUMNS: tuple[str, ...] = (
     "supplier_name",
@@ -52,6 +54,7 @@ SUPPLIER_COLUMNS: tuple[str, ...] = (
     "source_file",
     "source_row",
     "source_ref",
+    "source_line",
 )
 
 COLUMNS: dict[Kind, tuple[str, ...]] = {
@@ -67,7 +70,7 @@ _MODEL_TYPES: dict[type, Kind] = {
 }
 
 # Columns allowed to be null; every other canonical column is required.
-_OPTIONAL_COLUMNS: frozenset[str] = frozenset({"iban", "tags"})
+_OPTIONAL_COLUMNS: frozenset[str] = frozenset({"iban", "tags", "source_line"})
 
 _DEFAULT_KIND: Kind = "transaction"
 
@@ -129,4 +132,5 @@ def normalise(
 
     frame = pd.DataFrame(records, columns=list(columns))
     frame["source_row"] = frame["source_row"].astype("int64")
+    frame["source_line"] = frame["source_line"].astype("Int64")
     return frame, quarantined

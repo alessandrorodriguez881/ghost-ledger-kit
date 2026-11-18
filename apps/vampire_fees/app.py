@@ -9,7 +9,7 @@ and alerts. The LLM only writes the explanation text, and its numbers are checke
 import html
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -87,8 +87,10 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     VAMPIRE_CAPTION,
     bites_svg,
+    ref_with_line_markdown,
     refs_chips_html,
     signature_block,
+    source_lines_of,
 )
 from ledger_kit.ui.theme import (  # noqa: E402
     VAMPIRE,
@@ -291,9 +293,9 @@ def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanati
     return cache[key]
 
 
-def _refs_markdown(refs: Sequence[str]) -> str:
-    """Return the source refs as inline code, comma separated."""
-    return ", ".join(f"`{ref}`" for ref in refs)
+def _refs_markdown(refs: Sequence[str], lines: Mapping[str, int] | None = None) -> str:
+    """Return the source refs as inline code, comma separated, each with its line when known."""
+    return ", ".join(ref_with_line_markdown(ref, lines) for ref in refs)
 
 
 def _render_metrics(alerts: Sequence[Alert]) -> None:
@@ -317,7 +319,7 @@ def _render_metrics(alerts: Sequence[Alert]) -> None:
         column.metric(severity, counts[severity])
 
 
-def _render_coffins(alerts: Sequence[Alert]) -> None:
+def _render_coffins(alerts: Sequence[Alert], lines: Mapping[str, int] | None = None) -> None:
     """One coffin per recurring-fee alert, three per row, with collapsible source refs."""
     show_section("coffin", "The coffins")
     recurring = [alert for alert in alerts if alert.detector == RECURRING_DETECTOR]
@@ -331,7 +333,7 @@ def _render_coffins(alerts: Sequence[Alert]) -> None:
             with column:
                 st.markdown(coffin_html(view), unsafe_allow_html=True)
                 with st.expander(f"Source rows ({len(view.source_refs)})"):
-                    st.markdown(_refs_markdown(view.source_refs))
+                    st.markdown(_refs_markdown(view.source_refs, lines))
 
 
 def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> None:
@@ -453,7 +455,8 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         )
         _render_signature(alert, ledger)
         st.markdown(
-            "**Source refs:** " + refs_chips_html(alert.source_refs), unsafe_allow_html=True
+            "**Source refs:** " + refs_chips_html(alert.source_refs, source_lines_of(ledger)),
+            unsafe_allow_html=True,
         )
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
@@ -539,7 +542,7 @@ def main() -> None:
     alerts = pipeline.alerts
     _render_metrics(alerts)
     _render_quarantine(pipeline.quarantine)
-    _render_coffins(alerts)
+    _render_coffins(alerts, source_lines_of(ledger))
     _render_alerts(alerts, ledger, bool(st.session_state[HALLUCINATE_KEY]))
 
 

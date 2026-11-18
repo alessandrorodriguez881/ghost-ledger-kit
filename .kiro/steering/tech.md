@@ -34,8 +34,9 @@ class Transaction(BaseModel):
     counterparty: str
     description: str
     source_file: str         # original filename
-    source_row: int          # CSV: 0-based row index; Norma 43: 1-based line of the record 22; Facturae: 1-based position of the invoice (DN-RF-01)
-    source_ref: str          # f"{source_file}:{source_row}"
+    source_row: int          # CSV: 0-based index of the data row (internal key, never shown as a line); Norma 43: 1-based line of the record 22; Facturae: 1-based position of the invoice (DN-RF-01)
+    source_ref: str          # f"{source_file}:{source_row}" (internal key)
+    source_line: int | None = None  # 1-based line of the file where the record starts, header = line 1, as a text editor numbers lines; Norma 43: the line of the record 22; Facturae and JSON: None (a position, not a line). What the person reads in a chip or a table (REQ-LN-01)
     tags: list[str] = []
 ```
 

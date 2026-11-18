@@ -32,6 +32,7 @@ from ledger_kit.detectors import auto_discover, run_all  # noqa: E402
 from ledger_kit.ingestion.csv_reader import ENCODINGS_TRIED, parse_csv  # noqa: E402
 from ledger_kit.ingestion.normaliser import normalise  # noqa: E402
 from ledger_kit.models import Alert, Transaction  # noqa: E402
+from ledger_kit.ui.signatures import ref_with_line_markdown, source_lines_of  # noqa: E402
 from ledger_kit.utils.anonymise import mask_iban  # noqa: E402
 from ledger_kit.utils.money import format_amount  # noqa: E402
 
@@ -47,6 +48,7 @@ SEVERITY_BADGES: dict[str, str] = {"critical": "🔴", "warning": "🟡", "info"
 # Ledger columns shown to the user, in order (never `id` or `tags`).
 DISPLAY_COLUMNS: tuple[str, ...] = (
     "source_ref",
+    "source_line",
     "date",
     "amount",
     "flow",
@@ -182,7 +184,18 @@ def format_for_display(rows: pd.DataFrame) -> pd.DataFrame:
         shown["iban"] = [mask_iban(v) if isinstance(v, str) and v else "" for v in shown["iban"]]
     if "date" in shown.columns:
         shown["date"] = [d.isoformat() for d in shown["date"]]
+    if "source_line" in shown.columns:
+        shown["source_line"] = [_line_text(v) for v in shown["source_line"]]
     return shown
+
+
+def _line_text(value: Any) -> str:
+    """Return a source_line cell as text; a record without a line is an empty cell."""
+    if value is None or value is pd.NA or value is pd.NaT:
+        return ""
+    if isinstance(value, float) and value != value:
+        return ""
+    return str(int(value))
 
 
 def highlight_rows(shown: pd.DataFrame) -> Any:
@@ -191,18 +204,22 @@ def highlight_rows(shown: pd.DataFrame) -> Any:
 
 
 def quarantine_table(quarantine: Sequence[dict]) -> pd.DataFrame:
-    """Flatten quarantine records into a displayable table."""
+    """Flatten quarantine records into a displayable table.
+
+    `line` is the line of the file where the bad record starts (`source_line`); it is empty for
+    a record about the whole file or an XML invoice.
+    """
     return pd.DataFrame(
         [
             {
                 "file": q.get("source_file"),
-                "row": q.get("source_row"),
+                "line": _line_text(q.get("source_line")),
                 "reason": q.get("reason"),
                 "raw": str(q.get("raw", "")),
             }
             for q in quarantine
         ],
-        columns=["file", "row", "reason", "raw"],
+        columns=["file", "line", "reason", "raw"],
     )
 
 
@@ -227,7 +244,9 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame) -> None:
     badge = SEVERITY_BADGES[alert.severity]
     with st.expander(f"{badge} [{alert.severity}] {alert.title}"):
         st.markdown(f"**Detector:** `{alert.detector}`")
-        st.markdown("**Source refs:** " + ", ".join(f"`{ref}`" for ref in alert.source_refs))
+        lines = source_lines_of(ledger)
+        refs = ", ".join(ref_with_line_markdown(ref, lines) for ref in alert.source_refs)
+        st.markdown("**Source refs:** " + refs)
         if alert.explanation:
             st.write(alert.explanation)
         cited, missing = rows_for_refs(ledger, alert.source_refs)

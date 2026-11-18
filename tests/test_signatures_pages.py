@@ -22,7 +22,10 @@ PREFIXES = sorted(SCRIPTS)
 # The drawing of each app: heartbeat (Zombie), lantern (Phantom), bites (Vampire).
 DRAWING = {"zs": "gl-heartbeat", "pi": "gl-lantern", "vf": "gl-bites"}
 CHIP = re.compile(r'<span class="gl-ref-chip" title="([^"]*)">([^<]*)</span>')
-CHIP_TEXT = re.compile(r".+ \u00b7 row \d+")
+# The demo files are CSV, so every chip reads "file · line N" (REQ-AS-25), never "row".
+CHIP_TEXT = re.compile(r".+ \u00b7 line \d+")
+# The title is the raw source_ref, then, when the line is known, "(line N of file)".
+TITLE_LINE = re.compile(r" \(line \d+ of .+\)$")
 
 
 @pytest.fixture(autouse=True)
@@ -88,7 +91,10 @@ def test_the_refs_show_as_chips_in_the_order_of_the_alert(prefix: str) -> None:
     values = [element.value for element in at.markdown]
 
     lines = [values[index] for index in _positions(values, "**Source refs:**")]
-    shown = [tuple(html.unescape(title) for title, _text in CHIP.findall(line)) for line in lines]
+    shown = [
+        tuple(TITLE_LINE.sub("", html.unescape(title)) for title, _text in CHIP.findall(line))
+        for line in lines
+    ]
 
     assert sorted(shown) == sorted(tuple(case.alert.source_refs) for case in cases_of(prefix))
     for line in lines:
@@ -97,6 +103,7 @@ def test_the_refs_show_as_chips_in_the_order_of_the_alert(prefix: str) -> None:
         chips = CHIP.findall(line)
         assert chips and all(CHIP_TEXT.fullmatch(html.unescape(text)) for _title, text in chips)
         assert line.count('class="gl-ref-chip"') == len(chips)
+        assert not re.search(r"\brow \d", html.unescape(line))  # no "row" next to a number
 
 
 def test_each_page_ends_every_signature_with_the_caption_of_its_app() -> None:

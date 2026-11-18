@@ -141,13 +141,40 @@ FRAME = pd.DataFrame(
 # --- REQ-AS-03: the chips ------------------------------------------------------------------------
 
 
-def test_a_ref_with_a_row_reads_file_dot_row_and_keeps_the_full_ref_in_the_title() -> None:
-    markup = refs_chips_html(["zombie_demo_statement.csv:12"])
+def test_a_ref_with_a_known_line_reads_file_dot_line_and_keeps_the_raw_ref_in_the_title() -> None:
+    ref = "zombie_demo_statement.csv:181"
+    markup = refs_chips_html([ref], {ref: 183})
 
     assert markup == (
-        '<span class="gl-ref-chip" title="zombie_demo_statement.csv:12">'
-        f"zombie_demo_statement.csv {DOT} row 12</span>"
+        f'<span class="gl-ref-chip" title="{ref} (line 183 of zombie_demo_statement.csv)">'
+        f"zombie_demo_statement.csv {DOT} line 183</span>"
     )
+
+
+def test_a_csv_ref_without_a_known_line_shows_the_raw_ref_never_the_word_row() -> None:
+    ref = "zombie_demo_statement.csv:12"
+
+    for lines in (None, {}, {"other.csv:1": 3}):
+        markup = refs_chips_html([ref], lines)
+
+        assert markup == f'<span class="gl-ref-chip" title="{ref}">{ref}</span>'
+        assert "row" not in markup
+
+
+def test_an_xml_ref_without_a_line_reads_file_dot_invoice_and_its_position() -> None:
+    ref = "10-duplicate.xml:2"
+    markup = refs_chips_html([ref])
+
+    assert markup == (
+        f'<span class="gl-ref-chip" title="{ref}">10-duplicate.xml {DOT} invoice 2</span>'
+    )
+    assert refs_chips_html([ref.replace("xml", "XML")]).count("invoice 2") == 1
+
+
+def test_an_xml_ref_that_has_a_line_reads_line() -> None:
+    ref = "a.xml:1"
+
+    assert f"a.xml {DOT} line 9" in refs_chips_html([ref], {ref: 9})
 
 
 @pytest.mark.parametrize("ref", ["plain-ref", "file.csv:", "file.csv:1a", "a:b", ""])
@@ -155,19 +182,24 @@ def test_a_ref_without_a_row_is_shown_raw(ref: str) -> None:
     assert refs_chips_html([ref]) == f'<span class="gl-ref-chip" title="{ref}">{ref}</span>'
 
 
-def test_the_row_is_the_part_after_the_last_colon() -> None:
-    markup = refs_chips_html(["C:data.csv:7"])
+def test_the_line_belongs_to_the_whole_ref_after_the_last_colon() -> None:
+    ref = "C:data.csv:7"
+    markup = refs_chips_html([ref], {ref: 9})
 
-    assert f"C:data.csv {DOT} row 7" in markup and 'title="C:data.csv:7"' in markup
+    assert f"C:data.csv {DOT} line 9" in markup
+    assert f'title="{ref} (line 9 of C:data.csv)"' in markup
 
 
 def test_chip_text_and_title_are_escaped() -> None:
-    markup = refs_chips_html(["a<b>.csv:3", 'q"x&.csv:4', "plain<i>"])
+    refs = ["a<b>.csv:3", 'q"x&.csv:4', "plain<i>", "<x>.xml:2"]
+    markup = refs_chips_html(refs, {refs[0]: 5, refs[1]: 6})
 
-    assert "<b>" not in markup and "<i>" not in markup
-    assert f"a&lt;b&gt;.csv {DOT} row 3" in markup and 'title="a&lt;b&gt;.csv:3"' in markup
-    assert f"q&quot;x&amp;.csv {DOT} row 4" in markup and 'title="q&quot;x&amp;.csv:4"' in markup
+    assert "<b>" not in markup and "<i>" not in markup and "<x>" not in markup
+    assert f"a&lt;b&gt;.csv {DOT} line 5" in markup
+    assert 'title="a&lt;b&gt;.csv:3 (line 5 of a&lt;b&gt;.csv)"' in markup
+    assert f"q&quot;x&amp;.csv {DOT} line 6" in markup
     assert 'title="plain&lt;i&gt;">plain&lt;i&gt;</span>' in markup
+    assert f"&lt;x&gt;.xml {DOT} invoice 2" in markup
 
 
 def test_one_chip_per_ref_in_the_order_given() -> None:
@@ -175,6 +207,38 @@ def test_one_chip_per_ref_in_the_order_given() -> None:
 
     assert markup.count('class="gl-ref-chip"') == 3
     assert re.findall(r'title="([^"]*)"', markup) == ["f.csv:2", "f.csv:1", "g.csv:0"]
+
+
+def test_no_chip_shows_the_word_row_next_to_a_number() -> None:
+    refs = ["f.csv:2", "g.xml:1", "h.csv:7", "plain"]
+    markup = refs_chips_html(refs, {"h.csv:7": 9})
+
+    assert not re.search(r"\brow\s*\d", html.unescape(re.sub(r"<[^>]*>", " ", markup)))
+
+
+def test_source_lines_of_maps_each_ref_to_its_line_and_skips_missing_lines() -> None:
+    frame = pd.DataFrame(
+        {
+            "source_ref": ["a.csv:0", "a.csv:1", "b.xml:1"],
+            "source_line": pd.array([2, 4, None], dtype="Int64"),
+        }
+    )
+
+    assert signatures.source_lines_of(frame) == {"a.csv:0": 2, "a.csv:1": 4}
+    assert signatures.source_lines_of(frame, frame.iloc[:1]) == {"a.csv:0": 2, "a.csv:1": 4}
+
+
+def test_a_frame_without_source_line_gives_an_empty_map() -> None:
+    frame = pd.DataFrame({"source_ref": ["a.csv:0"]})
+
+    assert signatures.source_lines_of(frame) == {}
+    assert signatures.source_lines_of(None, pd.DataFrame()) == {}
+
+
+def test_a_ref_with_its_line_as_markdown() -> None:
+    assert signatures.ref_with_line_markdown("a.csv:0", {"a.csv:0": 2}) == "`a.csv:0` (line 2)"
+    assert signatures.ref_with_line_markdown("a.csv:0") == "`a.csv:0`"
+    assert signatures.ref_with_line_markdown("a.xml:3") == "`a.xml:3` (invoice 3)"
 
 
 def test_no_refs_give_no_chips() -> None:
@@ -569,10 +633,12 @@ def test_the_lantern_shows_only_the_ref_the_number_and_the_lit_columns_in_mappin
         view = pi_settings.lantern_view(alert, pipeline)
         mapped = pi_settings.LANTERN_COLUMNS[alert.detector]
         naming = [] if "invoice_number" in mapped else ["invoice_number"]
-        allowed = ["source_ref", *naming, *mapped]
+        # the line of the file sits right after the source ref (REQ-AS-23)
+        allowed = ["source_ref", "source_line", *naming, *mapped]
         # nothing else, in that order; a column with no value in any cited row is left out
         assert list(view.columns) == [c for c in allowed if c in view.columns], alert.id
         assert view.columns[0] == "source_ref"
+        assert view.columns[1] == "source_line"  # every cited row of the demo is in a CSV file
 
 
 def test_the_invoice_number_names_the_invoice_rows_of_every_demo_lantern() -> None:
@@ -592,9 +658,9 @@ def test_an_unmapped_detector_shows_the_ref_the_number_and_the_differing_columns
 
     view = pi_settings.lantern_view(alert, pipeline)
 
-    assert list(view.columns[:2]) == ["source_ref", "invoice_number"]
+    assert list(view.columns[:3]) == ["source_ref", "source_line", "invoice_number"]
     assert pi_settings.lantern_lit_columns(alert) is None
-    for column in view.columns[2:]:
+    for column in view.columns[3:]:
         assert len(set(view[column])) > 1  # only the columns whose values differ
 
 
@@ -704,6 +770,21 @@ def build_signature(case: Case) -> str:
     return signature_block(inner, CAPTIONS[case.prefix])
 
 
+def with_lines(case: Case) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
+    """Return the rows and columns the guard may read for a signature: the cited rows' lines too.
+
+    A lantern shows the line of the file where each cited row starts. That number is where the
+    row stands in the loaded file, copied from the cited row, so the check lets it through. It is
+    never sent to a model: only this test adds it, the explainer's whitelist is untouched.
+    """
+    if case.prefix != "pi":
+        return case.rows, case.columns
+    pipeline = _phantom()
+    lines = signatures.source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
+    rows = case.rows.assign(source_line=[lines.get(str(ref)) for ref in case.rows["source_ref"]])
+    return rows, (*(case.columns or ()), "source_line")
+
+
 @pytest.mark.parametrize("prefix", ["zs", "pi", "vf"])
 def test_every_demo_alert_has_a_signature_that_passes_the_number_guard(prefix: str) -> None:
     cases = cases_of(prefix)
@@ -712,9 +793,8 @@ def test_every_demo_alert_has_a_signature_that_passes_the_number_guard(prefix: s
     for case in cases:
         markup = build_signature(case)
         assert markup.startswith('<div class="gl-signature">'), case.alert.id
-        passed, rejected = check_figures(
-            signature_text(markup), case.alert, case.rows, case.columns
-        )
+        rows, columns = with_lines(case)
+        passed, rejected = check_figures(signature_text(markup), case.alert, rows, columns)
         if not passed:
             failures.append((case.alert.detector, case.alert.id, rejected))
     assert failures == []

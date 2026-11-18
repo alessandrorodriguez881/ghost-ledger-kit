@@ -1,0 +1,17 @@
+Session 32b: finish session 32 (source_line, REQ-LN and REQ-AS-25 onwards). The full suite gave 5 failures and ruff gave 5 errors. Fix only these, keep everything else of session 32 as it is, and do not delete or weaken any assertion.
+
+1. tests/test_generate_samples.py, test_invoice_csv_and_json_hold_the_same_invoices: a CSV invoice now has a source_line and a JSON invoice has none. source_line is a source field like source_row, so _without_source must drop it too. The rest of the comparison stays.
+
+2. The Home tile lantern must keep at most two columns (tests/test_home_tiles_polish.py, test_the_tile_lantern_has_at_most_two_columns_and_marks_the_text_ones; leave that test as it is). On a tile there is no separate source line column: the first column shows each cited row as its chip shows it, file · line N when the line is known (file · invoice N for an XML invoice, the raw source_ref otherwise), and its header says source. The lantern of the Phantom Invoices cards keeps its source_line column. Write this as a new requirement in .kiro/specs/app-signatures (the next REQ-AS number) and its task.
+
+3. tests/test_home_tiles_polish.py, test_a_tile_with_many_refs_shows_three_chips_and_the_computed_rest: its frame has no source_line, so the chips now show raw refs. Give the rows of its frame a source_line (for example the data index plus 2, as in a CSV with a header) and check the same thing as before with the new form: the first three chips are shown as s.csv · line N with their numbers, the fourth is not shown, and the line and 4 more cited rows stays.
+
+4. tests/test_ledger_scan.py, test_money_is_european_text_and_dates_are_iso: the JSON rows of scripts/ledger_scan.py now carry source_line. Add it to the allowed keys, and add a check that each source_line in that output is an int or null, never a string, a float or NaN.
+
+5. apps/phantom_invoices/tests/test_pi_prepare.py, test_multi_rate_group_removed_and_recorded: the quarantine records now carry source_line. Add it to the expected key set, and add a check that its value is an int or None in each record.
+
+6. Ruff E501 in tests/test_source_line_pages.py, lines 112, 139, 186, 210 and 274: the section comments are longer than 100 characters. Shorten them.
+
+Every source_line written to a quarantine record, a JSON output or a chip must be a Python int or None, never pd.NA, a numpy integer or a float. If you find a place where that is not true, fix it and add a test.
+
+Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests of what you touched when you stop. When done, list every file you changed.

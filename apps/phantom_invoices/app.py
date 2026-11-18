@@ -105,6 +105,7 @@ from ledger_kit.ui.signatures import (  # noqa: E402
     lantern_html,
     refs_chips_html,
     signature_block,
+    source_lines_of,
 )
 from ledger_kit.ui.theme import (  # noqa: E402
     PHANTOM,
@@ -500,8 +501,10 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
             st.warning(message)
         for caption in alert_captions(alert):
             st.caption(caption)
+        lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
         st.markdown(
-            "**Source refs:** " + refs_chips_html(alert.source_refs), unsafe_allow_html=True
+            "**Source refs:** " + refs_chips_html(alert.source_refs, lines),
+            unsafe_allow_html=True,
         )
         render_exorcise(
             alert,

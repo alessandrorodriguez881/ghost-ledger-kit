@@ -1,0 +1,7 @@
+Session 32c: the last two failures and one ruff error of session 32b. Change nothing else, and do not delete or weaken any assertion.
+
+1. tests/test_home_moment.py: test_each_tile_has_the_drawing_its_app_makes_for_one_real_alert and test_home_puts_each_drawing_in_its_own_tile fail on the Phantom tile. In _expected_drawings, the Phantom lantern is still built from view[columns], but since REQ-AS-33 the tile builds it with home_tiles.tile_lantern_view(view, columns, lines), with lines from signatures.source_lines_of over the invoices, suppliers and payments of the Phantom pipeline, exactly as apps/home_tiles.py does. Build the expected lantern the same way, so the test again checks that the tile shows the drawing its page makes. Also add one assertion that the first column of the expected Phantom tile lantern holds chip texts with the word line (the demo cites CSV rows), and none with the raw form file:N.
+
+2. Ruff E501 in ledger_kit/ui/signatures.py line 436: a docstring line is 118 characters long. Rewrap that docstring paragraph so no line is longer than 100 characters, without changing its words.
+
+Environment: Windows. You cannot run commands; the hooks lint each file you write and run the tests of what you touched when you stop. When done, list every file you changed.

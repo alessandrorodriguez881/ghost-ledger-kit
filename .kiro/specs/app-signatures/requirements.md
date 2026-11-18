@@ -196,3 +196,78 @@ statements and invoice sets of `data/samples/`.
   fields the detector compares. Each line is one cited row.`
   - AE-AS-17 The Phantom caption names the lit fields and the rows; the Zombie and Vampire
     captions name the mark.
+
+## 9 — The line of the file (session 32)
+
+A citation a person reads shall point to the line they see when they open the file (spec
+`ledger-core`, REQ-LN-01 to REQ-LN-11). The internal key (`source_ref`, `source_row`) is not shown
+as a row number any more.
+
+- **REQ-AS-25** A chip whose ref has a known line shall read `file · line N`, N being the
+  `source_line` of the cited row. A ref of an `.xml` file with no line shall read
+  `file · invoice N`, N being the 1-based position after the last colon. Any other ref shall show
+  the raw `source_ref`. No chip shall show the word `row` next to a number.
+  - AE-AS-18 `zombie_demo_statement.csv:181` with line 183 reads
+    `zombie_demo_statement.csv · line 183`.
+  - AE-AS-19 `10-duplicate.xml:2` reads `10-duplicate.xml · invoice 2`; `plain-ref` and a CSV ref
+    whose line is not known read as written.
+
+- **REQ-AS-26** The `title` of a chip shall keep the raw `source_ref`, and *where* the line is
+  known it shall add that it is line N of the file: `zombie_demo_statement.csv:181 (line 183 of
+  zombie_demo_statement.csv)`. Text and title are escaped.
+
+- **REQ-AS-27** `refs_chips_html(refs, lines=None)` shall take an optional map from `source_ref`
+  to `source_line`. `source_lines_of(*frames)` shall build that map from every frame that has the
+  columns `source_ref` and `source_line`; a frame without `source_line`, `None` and an empty frame
+  give nothing, and a missing line is left out of the map. `ref_with_line_markdown(ref, lines)`
+  shall write a ref as a code span followed by `(line N)` (or `(invoice N)` for an XML ref without
+  a line) for the lists that are markdown.
+
+- **REQ-AS-28** Every chip a person sees shall get the map: the alert cards of the three apps
+  (the frame the card cites from; for Phantom Invoices the invoices, the supplier master and the
+  payments), the Home tiles (`apps/home_tiles.py`, `tile_refs_html(refs, lines=None)`) and every
+  other caller of `refs_chips_html`. The line `and N more cited rows` of a tile is a count and
+  stays.
+
+- **REQ-AS-29** Wherever a table or a list shows a `source_ref` to the person, the line shall be
+  next to it:
+  - the `Source rows` expanders: `DISPLAY_COLUMNS` of `ledger_kit/ui/reference_app.py` has
+    `source_line` right after `source_ref`; its cell is the line as text, empty when there is none;
+  - the lists of refs of the Zombie Subscriptions tombstones and of the Vampire Fees coffins
+    (`_refs_markdown`);
+  - the `Source refs` line of the reference page;
+  - the lantern of Phantom Invoices (`lantern_view`, REQ-AS-23): `source_line` right after
+    `source_ref`, never lit; the cell is empty for an XML invoice, and the column is left out when
+    no cited row has a line. The haunted ledger and the cited supplier-master and payment tables
+    of the Phantom page carry `source_line` right after `source_ref` too, and the lantern of the
+    Home tile follows REQ-AS-33 (it has no column of its own for the line).
+  - AE-AS-20 The GYMPLUS card of Zombie Subscriptions shows the chip
+    `zombie_demo_statement.csv · line 183`, and its `Source rows` table shows `source_ref`
+    `zombie_demo_statement.csv:181` with `source_line` `183`.
+
+- **REQ-AS-30** The two quarantine tables (`quarantine_table` in `ledger_kit/ui/reference_app.py`
+  and `quarantine_view` in `apps/phantom_invoices/settings.py`) shall rename their column `row` to
+  `line` and fill it from `source_line`, empty when there is none. The other columns do not change.
+
+- **REQ-AS-31** A line number is a place in the file, not a figure of the alert. It shall never
+  enter an alert, a template, an explanation, a draft or a prompt. The honesty test of REQ-AS-16
+  shall allow it only by adding the `source_line` of the cited rows to the rows it hands to the
+  guard, in the test; the whitelist of the explainer does not change.
+
+- **REQ-AS-32** The tests shall cover: a chip with a known line reads `line` and its title has the
+  raw ref and the line; an `.xml` ref reads `invoice`; any other ref reads raw; no chip anywhere on
+  the three pages shows `row` next to a number; `source_lines_of`; the lantern columns; the
+  quarantine tables. The tests that pinned `file · row N` shall be changed to the new form, one by
+  one, and listed in `tasks.md`.
+
+## 10 — The lantern of a Home tile (session 32b)
+
+- **REQ-AS-33** The lantern of a Home tile shall have at most two columns (`TILE_MAX_COMPARED`
+  compared column plus one for the source), so it has no `source_line` column. Its first column
+  shall show each cited row as the chip of that row shows it (REQ-AS-25): `file · line N` when the
+  line is known, `file · invoice N` for an `.xml` ref without a line, the raw `source_ref`
+  otherwise; its header says source (`source ref`). The other column and the lit cells do not
+  change. The lantern of the Phantom Invoices alert cards keeps its `source_line` column
+  (REQ-AS-29).
+  - AE-AS-21 Tile of the Phantom demo: two `th`, the first cell of each row reads
+    `invoices.csv · line N`, and no header reads `source line`.

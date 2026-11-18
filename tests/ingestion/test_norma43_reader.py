@@ -72,6 +72,7 @@ EXPECTED_FIXTURE_A = [
         "source_file": NAME,
         "source_row": 2,
         "source_ref": "acct.n43:2",
+        "source_line": 2,
         "tags": [f"account:{ACCOUNT}", "common_concept:04", "own_concept:000"],
     },
     {
@@ -85,6 +86,7 @@ EXPECTED_FIXTURE_A = [
         "source_file": NAME,
         "source_row": 5,
         "source_ref": "acct.n43:5",
+        "source_line": 5,
         "tags": [f"account:{ACCOUNT}", "common_concept:15", "own_concept:000"],
     },
 ]
@@ -572,7 +574,13 @@ def test_bad_header_rejects_the_block(overrides: dict, reason: str, has_account:
         expected_raw = {"account": ACCOUNT, "dropped_lines": 5}
     assert transactions == []
     assert quarantine == [
-        {"source_file": NAME, "source_row": 1, "reason": reason, "raw": expected_raw}
+        {
+            "source_file": NAME,
+            "source_row": 1,
+            "source_line": 1,
+            "reason": reason,
+            "raw": expected_raw,
+        }
     ]
 
 
@@ -604,6 +612,7 @@ def test_rejected_block_without_trailer_counts_lines_up_to_the_next_header() -> 
         {
             "source_file": NAME,
             "source_row": 1,
+            "source_line": 1,
             "reason": "unknown_currency_code",
             "raw": {"account": ACCOUNT, "dropped_lines": 2},
         }
@@ -617,7 +626,13 @@ def test_rejected_block_without_trailer_counts_lines_up_to_the_next_header() -> 
 def row(number: int, reason: str, *lines: str) -> dict:
     """The expected row-level quarantine record."""
     raw = "\n".join(line.rstrip(" ") for line in lines)
-    return {"source_file": NAME, "source_row": number, "reason": reason, "raw": raw}
+    return {
+        "source_file": NAME,
+        "source_row": number,
+        "source_line": number,
+        "reason": reason,
+        "raw": raw,
+    }
 
 
 def test_line_too_long_quarantines_the_line_only() -> None:

@@ -94,7 +94,13 @@ def test_forbidden_constructs_are_quarantined(document: bytes) -> None:
 
     assert invoices == []
     assert quarantine == [
-        {"source_file": NAME, "source_row": None, "reason": "forbidden_xml_construct", "raw": ""}
+        {
+            "source_file": NAME,
+            "source_row": None,
+            "source_line": None,
+            "reason": "forbidden_xml_construct",
+            "raw": "",
+        }
     ]
 
 
@@ -144,7 +150,13 @@ def test_a_declaration_with_an_unknown_encoding_is_invalid_xml() -> None:
 
     assert invoices == []
     assert quarantine == [
-        {"source_file": NAME, "source_row": None, "reason": "invalid_xml", "raw": ""}
+        {
+            "source_file": NAME,
+            "source_row": None,
+            "source_line": None,
+            "reason": "invalid_xml",
+            "raw": "",
+        }
     ]
 
 
@@ -165,7 +177,13 @@ def test_a_document_over_the_size_cap_is_refused_before_parsing() -> None:
 
     assert invoices == []
     assert quarantine == [
-        {"source_file": NAME, "source_row": None, "reason": "file_too_large", "raw": ""}
+        {
+            "source_file": NAME,
+            "source_row": None,
+            "source_line": None,
+            "reason": "file_too_large",
+            "raw": "",
+        }
     ]
 
 

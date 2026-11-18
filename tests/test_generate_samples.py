@@ -127,7 +127,7 @@ def _ingest():
 def _without_source(invoice) -> dict:
     """Invoice fields minus the file-specific ones."""
     data = invoice.model_dump()
-    for key in ("source_file", "source_ref"):
+    for key in ("source_file", "source_ref", "source_line"):
         del data[key]
     return data
 

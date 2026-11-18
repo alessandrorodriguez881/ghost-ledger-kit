@@ -78,6 +78,7 @@ EXAMPLE_A = {
     "source_file": "aurora.xml",
     "source_row": 1,
     "source_ref": "aurora.xml:1",
+    "source_line": None,  # an XML invoice has a position, not a line
 }
 
 
@@ -677,7 +678,15 @@ def test_file_level_reasons(document: bytes, reason: str) -> None:
     invoices, quarantine = parse(document)
 
     assert invoices == []
-    assert quarantine == [{"source_file": NAME, "source_row": None, "reason": reason, "raw": ""}]
+    assert quarantine == [
+        {
+            "source_file": NAME,
+            "source_row": None,
+            "source_line": None,
+            "reason": reason,
+            "raw": "",
+        }
+    ]
 
 
 def test_a_truncated_document_is_invalid_xml() -> None:

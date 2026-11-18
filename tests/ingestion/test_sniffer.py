@@ -152,6 +152,7 @@ def test_bank_box_refuses_facturae_with_the_exact_record() -> None:
         {
             "source_file": "a.xml",
             "source_row": None,
+            "source_line": None,
             "reason": "unsupported_format:facturae",
             "raw": "a.xml: this looks like Facturae XML; this box accepts CSV or Norma 43.",
         }
@@ -168,6 +169,7 @@ def test_invoice_box_refuses_a_pdf_with_the_exact_record() -> None:
         {
             "source_file": "f.pdf",
             "source_row": None,
+            "source_line": None,
             "reason": "unsupported_format:unknown",
             "raw": message,
         }
@@ -225,6 +227,7 @@ def test_unsupported_messages_are_exact(
         {
             "source_file": "x.dat",
             "source_row": None,
+            "source_line": None,
             "reason": f"unsupported_format:{kind}",
             "raw": f"x.dat: {text}; this box accepts {accepted}.",
         }

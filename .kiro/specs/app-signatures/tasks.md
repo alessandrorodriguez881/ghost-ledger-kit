@@ -120,3 +120,80 @@ Requirements first (`requirements.md` §8), then the tests, then the code.
   session; checked by reading `apps/phantom_invoices/app.py` and `test_pi_app_logic.py`.
 - Existing tests edited: only `tests/test_signatures.py` and `tests/test_signatures_pages.py`
   (the tombstone position and the `end` anchor, the one-argument `signature_block`, `CAPTION`).
+
+## Task AS9 — The line of the file on every page (session 32)
+
+**Covers**: REQ-AS-25 to 32 (and REQ-LN-01 to 11 of `ledger-core`)
+
+Requirements first (`requirements.md` section 9), then the tests, then the code. This session
+could not run commands and could not search the repository: a box ticked here means the file is
+written, not that it was run, and the list of edited tests comes from reading the files that can
+pin a key, a column or a chip, not from a search. The hooks lint each file and run the tests on
+stop.
+
+- [x] `tests/test_signatures.py`: the chip tests of the `file · row N` form are replaced one by
+  one: a known line reads `file · line N` with the raw ref and the line in the title; a CSV ref
+  without a line reads raw and never `row`; an `.xml` ref reads `file · invoice N`; escaping with a
+  map; `source_lines_of` and `ref_with_line_markdown`. The lantern tests allow `source_line` right
+  after `source_ref`. The honesty test hands the guard the `source_line` of the cited rows of a
+  lantern (`with_lines`), in the test only (REQ-AS-31).
+- [x] `tests/test_source_line_pages.py` (new): the GYMPLUS card shows `zombie_demo_statement.csv ·
+  line 183` and its `Source rows` table shows `source_ref` `:181` with `source_line` `183`; no
+  chip of the three pages nor of the Home tiles shows `row`; tile chips with the map and the count
+  of the rest; the tombstone and coffin lists; the lantern columns; an XML invoice reads `invoice
+  N` and has an empty line cell; Norma 43 payments show the line of their record 22; both
+  quarantine tables have `line`, not `row`; the Phantom page quarantine lines point at the
+  multi-rate rows of `invoices.csv`.
+- [x] `ledger_kit/ui/signatures.py`: `_chip(ref, lines)`, `refs_chips_html(refs, lines=None)`,
+  `source_lines_of(*frames)`, `ref_with_line_markdown`, `LINE_TITLE`; the lantern never lights
+  `source_line` by itself.
+- [x] `ledger_kit/ui/reference_app.py`: `DISPLAY_COLUMNS` with `source_line`, the cell as text;
+  `quarantine_table` column `line`; the `Source refs` line with the line.
+- [x] `apps/zombie_subscriptions/app.py`, `apps/vampire_fees/app.py`,
+  `apps/phantom_invoices/app.py`: chips and `_refs_markdown` get the map from the frame the card
+  cites from. `apps/home_tiles.py`: `tile_refs_html(refs, lines=None)`, `_tile(..., lines)`, the
+  tile lantern keeps the source ref, its line and one compared column.
+- [x] `apps/phantom_invoices/settings.py`: `source_line` right after `source_ref` in
+  `LEDGER_COLUMNS`, `MASTER_COLUMNS`, `PAYMENT_COLUMNS` and in `lantern_view`; `quarantine_view`
+  column `line`; the `duplicate_file_name` record has the key; `prepare.py` copies the line into the
+  multi-rate records.
+- [x] Existing tests edited, each to pin the new key, column or text and nothing else:
+  `tests/test_signatures.py` and `tests/test_signatures_pages.py` (chips, lantern columns),
+  `tests/ingestion/test_normaliser.py` (column tuples), `tests/ingestion/test_sniffer.py`,
+  `test_norma43_reader.py`, `test_norma43_controls.py`, `test_facturae_reader.py` and
+  `test_facturae_security.py` (the exact quarantine records and the model dump gain
+  `source_line`), `apps/phantom_invoices/tests/test_pi_settings.py` and `test_pi_app_logic.py`
+  (quarantine keys and table), `apps/zombie_subscriptions/tests/test_zs_real_formats.py` (the
+  explanations of the two demos are compared up to the line number too).
+- Not changed, by design (REQ-LN-02): `source_row`, `source_ref`, `Alert.id`, `source_refs` and
+  `data` of every alert, every detector, the number guard, `_LLM_ROW_COLUMNS` and
+  `_NEVER_SENT_COLUMNS` in `ledger_kit/explainer.py`, `ledger_kit/replay.py`, `data/live_runs`,
+  `tests/test_recorded_verdicts.py`, `docs/benchmark.md`, the 18 folders of `.kiro/specs`, the 6
+  files of `.kiro/steering`.
+- Seen, not changed: `scripts/ledger_scan.py` prints the cited rows with `format_for_display`, so
+  each row of its JSON output now has a `source_line` key.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
+- [ ] Look at the three pages at 1400 and 800 pixels wide; the chips are longer by a few
+  characters (`line 183` for `row 181`), the lantern has one more narrow column.
+
+## Task AS10 — The lantern of a Home tile has two columns (session 32b)
+
+**Covers**: REQ-AS-33
+
+Requirements first (`requirements.md` section 10), then the tests, then the code. This session
+could not run commands either; the hooks lint and test on stop.
+
+- [x] `tests/test_home_tiles_polish.py`: `tile_lantern_view` gives the first column as the chip
+  shows it (line, invoice, raw) and leaves the view of the card alone; `tile_lantern_columns` never
+  holds the line column; the demo tile has no `source line` header. The test of the two columns is
+  unchanged. `test_a_tile_with_many_refs_shows_three_chips_and_the_computed_rest` now gives its
+  rows a `source_line` (data index plus 2) and pins the three chips as `s.csv · line N`.
+- [x] `ledger_kit/ui/signatures.py`: `chip_text(ref, lines)` (the text of a chip, plain);
+  `_chip` uses it. `apps/home_tiles.py`: `tile_lantern_columns` drops the line column,
+  `tile_lantern_view` builds the table of the tile.
+- [x] Fixes of the other failures of session 32: `_without_source` of
+  `tests/test_generate_samples.py` drops `source_line`; `tests/test_ledger_scan.py` and
+  `apps/phantom_invoices/tests/test_pi_prepare.py` allow `source_line` and check it is an `int`
+  or `None`; the five section comments of `tests/test_source_line_pages.py` are under 100
+  characters.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

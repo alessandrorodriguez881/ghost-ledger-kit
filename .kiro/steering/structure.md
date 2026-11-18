@@ -190,7 +190,8 @@ ghost-ledger-kit/
 │   │   ├── test_norma43_controls.py
 │   │   ├── test_facturae_reader.py
 │   │   ├── test_facturae_security.py
-│   │   └── test_real_formats_roundtrip.py
+│   │   ├── test_real_formats_roundtrip.py
+│   │   └── test_source_line.py         # source_line: blank lines, multi-line cells, every sample CSV, Norma 43, Facturae
 │   ├── public_data/
 │   │   ├── conftest.py             # synthetic CPI series S, G and C as fixtures
 │   │   ├── cpi_builders.py         # synthetic CPI values and snapshot builders (not INE figures)
@@ -223,6 +224,7 @@ ghost-ledger-kit/
 │   ├── test_exorcise_boundaries.py # no model, no key, no network; package rules of the new modules
 │   ├── test_signatures.py          # chips, heartbeat, bites, lantern, CSS, the honesty test over the three demos
 │   ├── test_signatures_pages.py    # headless AppTest runs: one signature per card, captions, chips, order
+│   ├── test_source_line_pages.py   # the line of the file on the chips, tables, lists, lantern and quarantine tables
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/

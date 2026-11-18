@@ -18,7 +18,7 @@ cannot be built is left out and Home renders without it.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 
 import pandas as pd
@@ -42,10 +42,12 @@ from ledger_kit.ui.signatures import (
     VAMPIRE_CAPTION,
     ZOMBIE_CAPTION,
     bites_svg,
+    chip_text,
     heartbeat_svg,
     lantern_html,
     refs_chips_html,
     signature_block,
+    source_lines_of,
 )
 from ledger_kit.ui.theme import PHANTOM, VAMPIRE, ZOMBIE
 
@@ -77,13 +79,14 @@ def pick_alert(alerts: Iterable[Alert]) -> Alert | None:
     return min(alerts, key=lambda alert: SEVERITY_RANK[alert.severity], default=None)
 
 
-def tile_refs_html(refs: Sequence[str]) -> str:
+def tile_refs_html(refs: Sequence[str], lines: Mapping[str, int] | None = None) -> str:
     """Return the chips of a tile: at most ``TILE_MAX_CHIPS``, then one line for the rest.
 
     The line is ``and N more cited rows`` with N computed from the refs; the alert card keeps
-    every chip. '' for no ref.
+    every chip. `lines` maps a source_ref to its source_line, so a chip reads ``file · line N``.
+    '' for no ref.
     """
-    chips = refs_chips_html(refs[:TILE_MAX_CHIPS])
+    chips = refs_chips_html(refs[:TILE_MAX_CHIPS], lines)
     more = len(refs) - TILE_MAX_CHIPS
     if more <= 0:
         return chips
@@ -91,11 +94,11 @@ def tile_refs_html(refs: Sequence[str]) -> str:
     return f'{chips}<div class="gl-tile-more">and {more} more cited {noun}</div>'
 
 
-def _tile(drawing: str, alert: Alert) -> str:
+def _tile(drawing: str, alert: Alert, lines: Mapping[str, int] | None = None) -> str:
     """Return the drawing of one tile with the chips of the alert's source refs; '' for none."""
     if not drawing:
         return ""
-    refs = tile_refs_html(alert.source_refs)
+    refs = tile_refs_html(alert.source_refs, lines)
     return f'{drawing}<div class="gl-tile-refs">{refs}</div>'
 
 
@@ -115,7 +118,9 @@ def _zombie_tile() -> str:
         return ""
     cited, _missing = rows_for_refs(pipeline.debit_ledger, alert.source_refs)
     drawing = heartbeat_svg(cited, alert.data.get("cancellation_date"), width=TILE_WIDTH)
-    return _tile(signature_block(drawing, ZOMBIE_CAPTION), alert)
+    return _tile(
+        signature_block(drawing, ZOMBIE_CAPTION), alert, source_lines_of(pipeline.debit_ledger)
+    )
 
 
 def _vampire_tile() -> str:
@@ -132,7 +137,11 @@ def _vampire_tile() -> str:
         return ""
     cited, _missing = rows_for_refs(pipeline.ledger, alert.source_refs)
     # No date labels on the tile: at tile width they would be far smaller than the tile text.
-    return _tile(signature_block(bites_svg(cited, labels=False), VAMPIRE_CAPTION), alert)
+    return _tile(
+        signature_block(bites_svg(cited, labels=False), VAMPIRE_CAPTION),
+        alert,
+        source_lines_of(pipeline.ledger),
+    )
 
 
 @st.cache_resource(show_spinner=False)
@@ -150,20 +159,35 @@ def _phantom_alerts(pipeline: pi_settings.Pipeline) -> list[Alert]:
 
 
 def tile_lantern_columns(alert: Alert, view: pd.DataFrame) -> list[str]:
-    """Return the columns of the tile lantern: the source ref and the first compared column.
+    """Return the columns of the tile lantern: the source ref and one compared column.
 
     The compared columns are the first ``TILE_MAX_COMPARED`` of the detector's lantern columns
     (``lantern_lit_columns``) that the view of this alert holds, in the order of the mapping. A
     detector that is not in the mapping gives the first of the columns the view shows after the
-    row names. Nothing is hand-picked per detector.
+    row names. Nothing is hand-picked per detector. The tile has no column of its own for the
+    line of the file: the first column shows each ref as its chip shows it (REQ-AS-33).
     """
     present = [str(column) for column in view.columns]
     lit = pi_settings.lantern_lit_columns(alert)
     if lit is None:
-        candidates = [name for name in present if name not in pi_settings.LANTERN_NAMING]
+        named = (*pi_settings.LANTERN_NAMING, pi_settings.LINE_COLUMN)
+        candidates = [name for name in present if name not in named]
     else:
         candidates = [name for name in lit if name in present]
     return ["source_ref", *candidates[:TILE_MAX_COMPARED]]
+
+
+def tile_lantern_view(
+    view: pd.DataFrame, columns: Sequence[str], lines: Mapping[str, int] | None = None
+) -> pd.DataFrame:
+    """Return the view of the tile lantern: `columns` of `view`, the first one as chips show it.
+
+    The `source_ref` cell becomes 'file · line N' (or 'file · invoice N', or the raw ref), the
+    text of the chip of that ref; the other cells are untouched.
+    """
+    shown = view[list(columns)].copy()
+    shown["source_ref"] = [chip_text(ref, lines) for ref in shown["source_ref"]]
+    return shown
 
 
 def _phantom_tile() -> str:
@@ -178,10 +202,13 @@ def _phantom_tile() -> str:
     view = pi_settings.lantern_view(alert, pipeline)
     columns = tile_lantern_columns(alert, view)
     lit = pi_settings.lantern_lit_columns(alert)
+    lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
     lantern = lantern_html(
-        view[columns], lit, text_columns=[c for c in columns if c in TILE_TEXT_COLUMNS]
+        tile_lantern_view(view, columns, lines),
+        lit,
+        text_columns=[c for c in columns if c in TILE_TEXT_COLUMNS],
     )
-    return _tile(signature_block(lantern, PHANTOM_CAPTION), alert)
+    return _tile(signature_block(lantern, PHANTOM_CAPTION), alert, lines)
 
 
 @st.cache_data(show_spinner=False)

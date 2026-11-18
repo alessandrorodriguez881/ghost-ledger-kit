@@ -27,6 +27,16 @@ def _raw_text(value: object) -> str:
     return str(value)
 
 
+def _line_or_none(value: object) -> int | None:
+    """Return the source_line cell as an int, or None when the row has no line (XML invoice)."""
+    if value is None or value is pd.NA or is_missing(value):
+        return None
+    try:
+        return int(value)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        return None
+
+
 def quarantine_multi_rate(invoices: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     """Remove every row of a multi-rate invoice; return (clean_frame, quarantine_records).
 
@@ -55,6 +65,7 @@ def quarantine_multi_rate(invoices: pd.DataFrame) -> tuple[pd.DataFrame, list[di
         {
             "source_file": records[pos].get("source_file"),
             "source_row": records[pos].get("source_row"),
+            "source_line": _line_or_none(records[pos].get("source_line")),
             "reason": MULTI_RATE_REASON,
             "raw": {str(k): _raw_text(v) for k, v in records[pos].items()},
         }

@@ -126,8 +126,14 @@ def _xs_date(text: str) -> date:
 
 
 def _record(source_file: str, source_row: int | None, reason: str, raw: object) -> dict:
-    """Build a quarantine record."""
-    return {"source_file": source_file, "source_row": source_row, "reason": reason, "raw": raw}
+    """Build a quarantine record; an XML invoice has a position, not a line, so no line."""
+    return {
+        "source_file": source_file,
+        "source_row": source_row,
+        "source_line": None,
+        "reason": reason,
+        "raw": raw,
+    }
 
 
 def _seller_name(seller: Element | None) -> str | None:

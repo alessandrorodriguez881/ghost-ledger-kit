@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import html
 import re
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -31,7 +31,9 @@ from ledger_kit.utils.money import format_amount, scale_to
 ZOMBIE_CAPTION: str = "Each dot is one cited charge."
 VAMPIRE_CAPTION: str = "Each bite is one cited fee."
 PHANTOM_CAPTION: str = "Lit: the fields the detector compares. Each line is one cited row."
-DOT: str = "\u00b7"  # the middle dot of "file · row N" and of a row label
+DOT: str = "\u00b7"  # the middle dot of "file · line N" and of a row label
+# The title of a chip whose line is known; the raw source_ref stays in front of it.
+LINE_TITLE: str = "line {line} of {file}"
 SVG_NAMESPACE: str = "http://www.w3.org/2000/svg"
 HEARTBEAT_LABEL: str = "Charges of this alert over time, one dot per cited row"
 HEARTBEAT_CANCEL_LABEL: str = ", with the cancellation date marked"
@@ -154,17 +156,80 @@ def _marks(rows: pd.DataFrame) -> list[_Mark]:
 # --- chips and the box --------------------------------------------------------------------------
 
 
-def _chip(ref: str) -> str:
-    """Return the chip of one ref: 'file · row N' for 'file:N', the raw ref otherwise."""
+def _shown_and_title(ref: str, lines: Mapping[str, int] | None = None) -> tuple[str, str]:
+    """Return the text and the title of the chip of one ref (both unescaped)."""
     text = str(ref)
     found = _REF_ROW.match(text)
-    shown = f"{found['file']} {DOT} row {found['row']}" if found else text
-    return f'<span class="gl-ref-chip" title="{_escape(text)}">{_escape(shown)}</span>'
+    line = lines.get(text) if lines is not None else None
+    if found is not None and line is not None:
+        title = f"{text} ({LINE_TITLE.format(line=line, file=found['file'])})"
+        return f"{found['file']} {DOT} line {line}", title
+    if found is not None and found["file"].lower().endswith(".xml"):
+        return f"{found['file']} {DOT} invoice {found['row']}", text
+    return text, text
 
 
-def refs_chips_html(refs: Iterable[str]) -> str:
-    """Return one chip per source ref, in order, separated by a space; '' when there is none."""
-    return " ".join(_chip(ref) for ref in refs)
+def chip_text(ref: str, lines: Mapping[str, int] | None = None) -> str:
+    """Return the text a chip shows for one ref, as plain text (for a table cell).
+
+    'file · line N' when the line is known, 'file · invoice N' for an .xml ref without a line,
+    the raw source_ref otherwise.
+    """
+    return _shown_and_title(ref, lines)[0]
+
+
+def _chip(ref: str, lines: Mapping[str, int] | None = None) -> str:
+    """Return the chip of one ref.
+
+    A ref with a known line shows 'file · line N'; an .xml ref without a line shows
+    'file · invoice N' (its 1-based position); any other ref shows the raw source_ref. The
+    title keeps the raw source_ref and, when the line is known, says it is line N of the file.
+    """
+    shown, title = _shown_and_title(ref, lines)
+    return f'<span class="gl-ref-chip" title="{_escape(title)}">{_escape(shown)}</span>'
+
+
+def source_lines_of(*frames: pd.DataFrame | None) -> dict[str, int]:
+    """Map each source_ref of the frames to its source_line, for one chip or table of refs.
+
+    A frame without both columns adds nothing, so a frame without `source_line` gives {}. A
+    missing line (an XML invoice, a JSON item) is left out of the map.
+    """
+    lines: dict[str, int] = {}
+    for frame in frames:
+        if frame is None or not {"source_ref", "source_line"} <= set(frame.columns):
+            continue
+        for ref, line in zip(frame["source_ref"], frame["source_line"], strict=True):
+            if line is None or line is pd.NA or line is pd.NaT:
+                continue
+            if isinstance(line, float) and line != line:
+                continue
+            lines[str(ref)] = int(line)
+    return lines
+
+
+def ref_with_line_markdown(ref: str, lines: Mapping[str, int] | None = None) -> str:
+    """Return one source ref as inline code, followed by '(line N)' when its line is known.
+
+    An .xml ref without a line gets '(invoice N)'; any other ref is the raw code span alone.
+    """
+    text = str(ref)
+    line = lines.get(text) if lines is not None else None
+    if line is not None:
+        return f"`{text}` (line {line})"
+    found = _REF_ROW.match(text)
+    if found is not None and found["file"].lower().endswith(".xml"):
+        return f"`{text}` (invoice {found['row']})"
+    return f"`{text}`"
+
+
+def refs_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None) -> str:
+    """Return one chip per source ref, in order, separated by a space; '' when there is none.
+
+    `lines` maps a source_ref to its source_line (see `source_lines_of`); without it every CSV
+    ref shows raw.
+    """
+    return " ".join(_chip(ref, lines) for ref in refs)
 
 
 def signature_block(inner: str, caption: str) -> str:
@@ -367,8 +432,9 @@ def lantern_html(
 
     `rows` holds display strings, already formatted as the page formats its cited rows (an IBAN
     masked). `lit_columns` names the columns to light; names the table lacks are ignored. With
-    None, the columns whose values differ between the rows are lit (never `source_ref`), so one
-    row lights nothing. The table sits in a box that scrolls sideways. '' when there is no row.
+    None, the columns whose values differ between the rows are lit (never `source_ref` or
+    `source_line`), so one row lights nothing. The table sits in a box that scrolls sideways.
+    '' when there is no row.
     `text_columns` names the columns of free text: their cells get the class ``gl-wrap``, which
     the Home tile lets wrap between words. Without it the markup is the one of the alert card.
     """
@@ -380,7 +446,8 @@ def lantern_html(
         lit = {
             name
             for index, name in enumerate(names)
-            if name != "source_ref" and len({row[index] for row in body_rows}) > 1
+            if name not in ("source_ref", "source_line")
+            and len({row[index] for row in body_rows}) > 1
         }
     else:
         lit = set(lit_columns) & set(names)

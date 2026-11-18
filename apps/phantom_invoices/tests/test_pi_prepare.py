@@ -3,6 +3,7 @@
 from decimal import Decimal
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -61,10 +62,28 @@ def test_multi_rate_group_removed_and_recorded() -> None:
     assert list(clean["source_ref"]) == ["inv.csv:0"]
     assert [q["source_row"] for q in quarantined] == [9, 10]  # natural order, 9 before 10
     for record in quarantined:
-        assert set(record) == {"source_file", "source_row", "reason", "raw"}
+        assert set(record) == {"source_file", "source_row", "source_line", "reason", "raw"}
+        assert record["source_line"] is None or type(record["source_line"]) is int
         assert record["reason"] == "multi_rate_invoice_out_of_scope"
         assert record["reason"] == MULTI_RATE_REASON
         assert record["source_file"] == "inv.csv"
+
+
+def test_source_line_of_a_record_is_a_python_int_or_none() -> None:
+    """Whatever the cell holds (int, numpy integer, float, pd.NA, NaN, None) the record has an
+    int or None, never pd.NA, a numpy integer or a float."""
+    cells = [7, np.int64(8), np.int32(9), 10.0, np.float64(11), pd.NA, float("nan"), None]
+    rows = [_row(i, "F-1", TAX_1, D21 if i % 2 else D10) for i in range(len(cells))]
+    frame = _frame(rows)
+    frame["source_line"] = pd.Series(cells, dtype=object)
+
+    _, quarantined = quarantine_multi_rate(frame)
+
+    assert len(quarantined) == len(cells)
+    lines = [q["source_line"] for q in quarantined]
+    assert lines == [7, 8, 9, 10, 11, None, None, None]
+    for line in lines:
+        assert line is None or type(line) is int
 
 
 def test_clean_invoices_untouched() -> None:

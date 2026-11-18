@@ -66,7 +66,7 @@ THRESHOLD_NAMES = (
     "DUPLICATE_TOTAL_TOLERANCE",
 )
 SECRET_WORDS = ("api_key", "apikey", "secret", "token", "password")
-LEDGER_CORE_QUARANTINE_KEYS = {"source_file", "source_row", "reason", "raw"}
+LEDGER_CORE_QUARANTINE_KEYS = {"source_file", "source_row", "source_line", "reason", "raw"}
 CLOCK_ATTRIBUTES = frozenset({"today", "now", "utcnow"})
 
 
@@ -254,6 +254,7 @@ def test_multi_rate_rows_in_quarantine_tagged_with_file_kind() -> None:
     assert list(pipeline.invoices["source_ref"]) == ["invoices.csv:2"]
     assert [q["reason"] for q in pipeline.quarantine] == [MULTI_RATE_REASON] * 2
     assert [q["source_row"] for q in pipeline.quarantine] == [0, 1]
+    assert [q["source_line"] for q in pipeline.quarantine] == [2, 3]  # the header is line 1
     assert {q["file_kind"] for q in pipeline.quarantine} == {"invoices"}
 
 
@@ -274,6 +275,8 @@ def test_quarantine_records_keep_ledger_core_shape() -> None:
         assert set(record) == LEDGER_CORE_QUARANTINE_KEYS | {"file_kind"}
     assert kinds["invoices"]["source_file"] == "invoices.csv"
     assert kinds["invoices"]["source_row"] == 0
+    assert kinds["invoices"]["source_line"] == 2
+    assert kinds["payments"]["source_line"] == 2
     assert pipeline.invoices.empty and pipeline.payments.empty
 
 

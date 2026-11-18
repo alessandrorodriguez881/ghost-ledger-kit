@@ -9,7 +9,7 @@ and alerts. The LLM only writes the explanation text, and its numbers are checke
 import html
 import os
 import sys
-from collections.abc import Callable, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -98,8 +98,10 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     ZOMBIE_CAPTION,
     heartbeat_svg,
+    ref_with_line_markdown,
     refs_chips_html,
     signature_block,
+    source_lines_of,
 )
 from ledger_kit.ui.theme import (  # noqa: E402
     ZOMBIE,
@@ -327,9 +329,9 @@ def _load_cpi() -> tuple[CpiSeries | None, str]:
     return _cached_cpi(str(path), stamp), caption
 
 
-def _refs_markdown(refs: Sequence[str]) -> str:
-    """Return the source refs as inline code, comma separated."""
-    return ", ".join(f"`{ref}`" for ref in refs)
+def _refs_markdown(refs: Sequence[str], lines: Mapping[str, int] | None = None) -> str:
+    """Return the source refs as inline code, comma separated, each with its line when known."""
+    return ", ".join(ref_with_line_markdown(ref, lines) for ref in refs)
 
 
 def _render_summary(alerts: Sequence[Alert], tombstones: int) -> None:
@@ -360,7 +362,9 @@ def _tombstone_html(name: str, died_on: str, cost_since: str, yearly_cost: str) 
     return "".join(parts)
 
 
-def _render_graveyard(zombies: Sequence[Any], currency: str) -> None:
+def _render_graveyard(
+    zombies: Sequence[Any], currency: str, lines: Mapping[str, int] | None = None
+) -> None:
     """One tombstone per zombie service, with its yearly cost and collapsible source refs."""
     show_section("tombstone", "The graveyard")
     if not zombies:
@@ -377,7 +381,7 @@ def _render_graveyard(zombies: Sequence[Any], currency: str) -> None:
                 st.markdown(card, unsafe_allow_html=True)
                 with st.expander(f"Source rows ({len(view.source_refs)})"):
                     if view.source_refs:
-                        st.markdown(_refs_markdown(view.source_refs))
+                        st.markdown(_refs_markdown(view.source_refs, lines))
                     else:
                         st.caption("No charge after the last-used date.")
 
@@ -520,7 +524,8 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         _render_signature(alert, ledger)
         _render_cpi_lines(alert, explanation)
         st.markdown(
-            "**Source refs:** " + refs_chips_html(alert.source_refs), unsafe_allow_html=True
+            "**Source refs:** " + refs_chips_html(alert.source_refs, source_lines_of(ledger)),
+            unsafe_allow_html=True,
         )
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
             cited, _missing = rows_for_refs(ledger, alert.source_refs)
@@ -617,7 +622,7 @@ def main() -> None:
 
     _render_summary(alerts, len(zombies))
     _render_quarantine(quarantine)
-    _render_graveyard(zombies, ledger_currency(debit_ledger))
+    _render_graveyard(zombies, ledger_currency(debit_ledger), source_lines_of(debit_ledger))
     _render_alerts(alerts, debit_ledger, bool(st.session_state[HALLUCINATE_KEY]))
     _render_attribution(cpi, cpi_unavailable)
 

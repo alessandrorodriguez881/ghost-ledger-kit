@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
@@ -17,6 +15,7 @@ from ledger_kit.ingestion.csv_reader import (
     _quarantine,
     _read_source,
     _undecodable,
+    iter_csv_records,
 )
 from ledger_kit.ingestion.dialect import CsvDialect, parse_amount, parse_date
 from ledger_kit.models import Invoice
@@ -50,13 +49,19 @@ def _cell(value: Any) -> str | None:
     return value if isinstance(value, str) else str(value)
 
 
-def _build_invoice(row: _Row, file_name: str, row_index: int) -> Invoice | dict:
+def _build_invoice(
+    row: _Row, file_name: str, row_index: int, source_line: int | None = None
+) -> Invoice | dict:
     """Build an Invoice from a string-valued row, or return a quarantine record."""
     cells = {key: _cell(value) for key, value in row.items() if key is not None}
 
+    def fail(reason: str) -> dict:
+        """Quarantine this row, with the line where it starts when the file has lines."""
+        return _quarantine(file_name, row_index, reason, row, source_line)
+
     for column in MANDATORY_COLUMNS:
         if _blank(cells.get(column)):
-            return _quarantine(file_name, row_index, f"missing_field:{column}", row)
+            return fail(f"missing_field:{column}")
 
     try:
         issue_date = parse_date(cells["issue_date"], CsvDialect.PLAIN)
@@ -67,7 +72,7 @@ def _build_invoice(row: _Row, file_name: str, row_index: int) -> Invoice | dict:
             else parse_date(due_cell, CsvDialect.PLAIN)
         )
     except ValueError:
-        return _quarantine(file_name, row_index, "unparseable_date", row)
+        return fail("unparseable_date")
 
     amounts: dict[str, Decimal] = {}
     try:
@@ -77,10 +82,10 @@ def _build_invoice(row: _Row, file_name: str, row_index: int) -> Invoice | dict:
             cell = cells.get(column)
             amounts[column] = Decimal("0") if _blank(cell) else parse_amount(cell, CsvDialect.PLAIN)
     except InvalidOperation:
-        return _quarantine(file_name, row_index, "unparseable_amount", row)
+        return fail("unparseable_amount")
 
     if any(value < 0 for value in amounts.values()):
-        return _quarantine(file_name, row_index, "negative_amount", row)
+        return fail("negative_amount")
 
     iban_cell = cells.get("iban")
     return Invoice(
@@ -95,6 +100,7 @@ def _build_invoice(row: _Row, file_name: str, row_index: int) -> Invoice | dict:
         source_file=file_name,
         source_row=row_index,
         source_ref=f"{file_name}:{row_index}",
+        source_line=source_line,
         **amounts,
     )
 
@@ -103,10 +109,9 @@ def _parse_csv_rows(text: str, file_name: str) -> IngestionResult[Invoice]:
     """Parse plain-dialect CSV text into invoices."""
     invoices: list[Invoice] = []
     quarantined: list[dict] = []
-    reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=",")
-    for row_index, row in enumerate(reader):
+    for row_index, line, row in iter_csv_records(text, ","):
         raw = {k: v for k, v in row.items() if k is not None}
-        result = _build_invoice(raw, file_name, row_index)
+        result = _build_invoice(raw, file_name, row_index, line)
         if isinstance(result, Invoice):
             invoices.append(result)
         else:
@@ -115,7 +120,7 @@ def _parse_csv_rows(text: str, file_name: str) -> IngestionResult[Invoice]:
 
 
 def _parse_json_rows(text: str, file_name: str) -> IngestionResult[Invoice]:
-    """Parse a JSON array of invoice objects into invoices."""
+    """Parse a JSON array of invoice objects into invoices (a JSON item has no line)."""
     try:
         document = json.loads(text)
     except json.JSONDecodeError:
@@ -139,7 +144,13 @@ def _parse_json_rows(text: str, file_name: str) -> IngestionResult[Invoice]:
 
 def _file_quarantine(file_name: str, reason: str, raw: str) -> dict:
     """Build a whole-file quarantine record (no row index)."""
-    return {"source_file": file_name, "source_row": None, "reason": reason, "raw": raw}
+    return {
+        "source_file": file_name,
+        "source_row": None,
+        "source_line": None,
+        "reason": reason,
+        "raw": raw,
+    }
 
 
 def parse_invoice(
