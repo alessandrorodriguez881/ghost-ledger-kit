@@ -349,7 +349,8 @@ STEP_4_ADDED = (
 PROMISE = (
     "Ghost Ledger Kit is built around one promise: an LLM touches the explanation layer only. "
     "Every figure it writes must be one the detectors already produced (the alert data) or one "
-    "in a cited row, and every alert cites the rows it comes from (`file:row`)."
+    "in a cited row, and every alert cites the rows it comes from, shown as `file · line N` "
+    "(the internal key is `file:row`)."
 )
 
 

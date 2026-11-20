@@ -225,6 +225,7 @@ ghost-ledger-kit/
 │   ├── test_signatures.py          # chips, heartbeat, bites, lantern, CSS, the honesty test over the three demos
 │   ├── test_signatures_pages.py    # headless AppTest runs: one signature per card, captions, chips, order
 │   ├── test_source_line_pages.py   # the line of the file on the chips, tables, lists, lantern and quarantine tables
+│   ├── test_row_note.py            # the row numbers of a model answer as lines of the file: function, recorded answers, MUSICBOX card
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/

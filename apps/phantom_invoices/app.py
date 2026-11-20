@@ -11,7 +11,7 @@ explain_support.py so they can be tested without a Streamlit runtime.
 import html
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -102,6 +102,7 @@ from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     PHANTOM_CAPTION,
+    answer_row_note,
     lantern_html,
     refs_chips_html,
     signature_block,
@@ -399,7 +400,24 @@ def _ask_model(alert: Alert, pipeline: Pipeline, question: TrickQuestion) -> Non
     )
 
 
-def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
+def _render_row_note(explanation: Explanation, alert: Alert, lines: Mapping[str, int]) -> None:
+    """Under a model answer: which line of the file each row number of the answer is.
+
+    Nothing under the fixed template, and the answer itself is never edited (REQ-AS-34).
+    """
+    if explanation.source != "llm":
+        return
+    note = answer_row_note(explanation.text, alert.source_refs, lines)
+    if note:
+        st.caption(note)
+
+
+def _render_probe_result(
+    result: ProbeResult,
+    status: LiveStatus,
+    refs: Sequence[str] = (),
+    lines: Mapping[str, int] | None = None,
+) -> None:
     """Show the raw answer, the guard verdict and the fixed template of one probe."""
     if result.verdict == "unavailable":
         st.warning(no_answer_message(status.timeout_seconds))
@@ -408,6 +426,9 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
         st.markdown(
             highlight_html(result.raw_answer, result.rejected_numbers), unsafe_allow_html=True
         )
+        note = answer_row_note(result.raw_answer, refs, lines)
+        if note:
+            st.caption(note)
         st.markdown(verdict_line(result))
         if result.computed:
             st.markdown(f"**{SHOWN_LABEL}**")
@@ -456,7 +477,12 @@ def _render_live_panel(alert: Alert, pipeline: Pipeline) -> None:
             st.caption(replay.panel_caption(recorded))
         result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
         if result is not None:
-            _render_probe_result(result, status)
+            _render_probe_result(
+                result,
+                status,
+                alert.source_refs,
+                source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments),
+            )
         if not can_ask:
             st.caption(status.caption)
         elif limit_reached(counts):
@@ -489,8 +515,10 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         label = LABELS.get(alert.detector, alert.detector)
         st.caption(f"{label} · `{alert.detector}` · severity: {alert.severity}")
         st.markdown(markdown_safe(explanation.text))
+        lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
         for line in computed_lines(explanation.computed):
             st.caption(line)
+        _render_row_note(explanation, alert, lines)
         st.markdown(
             f'<span class="pi-badge pi-badge-{kind}">{html.escape(badge)}</span>',
             unsafe_allow_html=True,
@@ -501,7 +529,6 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
             st.warning(message)
         for caption in alert_captions(alert):
             st.caption(caption)
-        lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
         st.markdown(
             "**Source refs:** " + refs_chips_html(alert.source_refs, lines),
             unsafe_allow_html=True,

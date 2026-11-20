@@ -1,0 +1,13 @@
+Session 33d: in session 33c you worked out the right edits but did not write them, because you tried to write through shell commands, which are blocked. Write files only with your file tools (fs_write or str_replace); never use a shell command. Apply exactly these edits and change nothing else. Do not delete or weaken any assertion and never raise a word limit.
+
+1. tests/test_home_example.py, the PROMISE constant at line 349: its last line must make the constant equal to the exact sentence on line 9 of docs/how-it-works.md, which ends with: shown as `file · line N` (the internal key is `file:row`).
+
+2. streamlit_app.py, the Home copy, to bring the Home from 677 words to at most 640:
+- STORY line 3 becomes: Here, plain code finds and computes every figure; a guard rejects invented ones.
+- LAYERS item 1 ends at: Plain Python rules, no machine learning.
+- LAYERS item 2 text after the bold title becomes: Each lists file and line as `file · line N`, so every figure can be checked in the original file.
+- LAYERS item 3 text after the bold title becomes: It never raises, changes or dismisses an alert. The number guard rejects any answer with a number, date or IBAN found in neither the cited rows nor the alert, and the app shows a fixed template instead. When asked a question, the model may write a formula; the kit, not the model, computes it. Keep the words only words the explanation where they are now in that item.
+- SYNTHETIC_NOTE: delete its second sentence, the one that starts Without an API key a card shows, because TRY_IT already says it.
+- TRY_IT: the words replays a recorded answer of a real model through the guard, or the fixed template if rejected become replays a recorded answer of a real model, checked now by the number guard (no model is called), or the fixed template if rejected.
+
+Environment: Windows. When done, list every file you changed.

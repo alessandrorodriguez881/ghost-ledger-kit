@@ -62,36 +62,35 @@ PROMISE = (
 STORY: tuple[str, ...] = (
     "Bank statements and invoices hide money leaks.",
     "A language model can explain them, but it makes up numbers.",
-    "Here, plain rules find every figure, and a guard throws out any figure the model invents.",
+    "Here, plain code finds and computes every figure; a guard rejects invented ones.",
 )
 START_HERE = "Start here: Zombie Subscriptions"
 START_HERE_ICON = "🪦"  # the tombstone of Zombie Subscriptions; st.page_link takes an emoji
 START_HERE_FALLBACK = "Start here: open Zombie Subscriptions from the menu."
 
 LAYERS = """
-1. **Deterministic detectors find the figures.** Plain Python rules, no machine learning, read the
-   files and raise the alerts.
-2. **Every alert cites its source rows.** Each one lists the `file:row` of the lines it comes
-   from, so every figure can be checked against the original file.
-3. **The LLM only words the explanation.** It never raises, changes or dismisses an alert, and the
-   number guard rejects any answer that contains a number, date or IBAN that is in neither the
-   cited rows nor the alert itself. The app then shows a fixed template instead.
+1. **Deterministic detectors find the figures.** Plain Python rules, no machine learning.
+2. **Every alert cites its source rows.** Each lists file and line as `file · line N`, so every
+   figure can be checked in the original file.
+3. **The LLM only words the explanation.** It never raises, changes or dismisses an alert. The
+   number guard rejects any answer with a number, date or IBAN found in neither the cited rows
+   nor the alert, and the app shows a fixed template instead. When asked a question, the model
+   may write a formula; the kit, not the model, computes it.
 """
 
 TRY_IT = (
     "**Try it:** open an app and switch on **Simulate a hallucinating LLM** in the sidebar. A "
     "stub model invents 99999.99 EUR; the guard rejects it and the card shows a warning badge. "
-    "With no API key every card replays a recorded answer of a real model through the guard, or "
-    "the fixed template if rejected. The *Provoke the LLM* panel replays recorded answers only "
+    "With no API key every card replays a recorded answer of a real model, checked now by the "
+    "number guard (no model is called), or the fixed template if rejected. The *Provoke the "
+    "LLM* panel replays recorded answers only "
     "on the first critical card of each app (GYMPLUS, Suministros Ibéricos, Vampire Fees); on "
     "every other card it stays off until you set an API key."
 )
 
 SYNTHETIC_NOTE = (
     "All demo data in this showcase is synthetic: fictional names and merchants, and IBANs whose "
-    "national check digits are deliberately wrong. Without an API key a card shows either a "
-    "recorded answer of a real model, checked now by the number guard (the badge says so; no "
-    "model is called), or a fixed template."
+    "national check digits are deliberately wrong."
 )
 
 # Zombie Subscriptions compares price increases with a committed snapshot of the INE consumer

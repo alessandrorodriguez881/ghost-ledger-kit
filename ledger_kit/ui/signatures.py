@@ -232,6 +232,89 @@ def refs_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None)
     return " ".join(_chip(ref, lines) for ref in refs)
 
 
+# --- the row numbers of a model answer, as lines of the file (REQ-AS-34, REQ-AS-35) ------------
+
+ROW_NOTE_HEAD: str = "The model counts data rows from 0, as the kit names them to it: "
+# A file named this many characters before a mention of a row number tells which file it means.
+ROW_FILE_WINDOW: int = 80
+# One number, not part of a longer number or of a decimal ('12,50', '3.5').
+_ROW_NUMBER = r"\d+(?!\d)(?![.,]\d)"
+_ROW_JOIN = r"\s*(?:,\s+and\s+|,\s+|and\s+|to\s+|[-\u2013\u2014])\s*"
+_ROW_MENTION = re.compile(
+    rf"(?<!\w)rows?\s+(?P<numbers>{_ROW_NUMBER}(?:{_ROW_JOIN}{_ROW_NUMBER})*)", re.IGNORECASE
+)
+
+
+@dataclass(frozen=True)
+class RowLine:
+    """One row number of a model answer: the cited ref it names and the line of that ref."""
+
+    number: int
+    ref: str
+    line: int
+
+
+def _ref_number(ref: str) -> tuple[str, int] | None:
+    """Return (file, internal row number) of a source_ref, or None when it has no row."""
+    found = _REF_ROW.match(ref)
+    return None if found is None else (found["file"], int(found["row"]))
+
+
+def row_mentions_to_lines(
+    text: str, refs: Iterable[str], lines: Mapping[str, int] | None
+) -> list[RowLine]:
+    """Return the line of the file of each row number a model answer writes, in answer order.
+
+    A mention is the word row or rows followed by one number or by numbers joined with and, to,
+    a comma or a dash. A number N maps to the ref of `refs` whose source_ref ends in :N and
+    whose line is in `lines`. If refs of two files have that N, it maps only when the name of one
+    of those files is written in the ROW_FILE_WINDOW characters before the mention (the nearest
+    one wins); otherwise it maps to nothing, as does a number that no ref carries. One ref gives
+    one entry however many times the answer writes its number. The text is only read.
+    """
+    known = lines or {}
+    by_number: dict[int, list[tuple[str, str]]] = {}
+    for ref in dict.fromkeys(str(r) for r in refs):
+        parsed = _ref_number(ref)
+        if parsed is not None and ref in known:
+            by_number.setdefault(parsed[1], []).append((ref, parsed[0]))
+    found: dict[str, RowLine] = {}
+    for mention in _ROW_MENTION.finditer(text):
+        before = text[max(0, mention.start() - ROW_FILE_WINDOW) : mention.start()].lower()
+        for number_text in re.findall(r"\d+", mention["numbers"]):
+            number = int(number_text)
+            candidates = by_number.get(number, [])
+            chosen: str | None = None
+            if len(candidates) == 1:
+                chosen = candidates[0][0]
+            elif len(candidates) > 1:
+                named = [(before.rfind(file.lower()), ref) for ref, file in candidates]
+                position, ref = max(named)
+                chosen = ref if position >= 0 else None
+            if chosen is not None and chosen not in found:
+                found[chosen] = RowLine(number, chosen, int(known[chosen]))
+    return list(found.values())
+
+
+def row_lines_note(mentions: Iterable[RowLine]) -> str:
+    """Return the one-line note that says which line of the file each row number is; '' for none.
+
+    'The model counts data rows from 0, as the kit names them to it: row 46 is payments.csv ·
+    line 48, row 12 is suppliers.csv · line 14.'
+    """
+    parts = [f"row {m.number} is {chip_text(m.ref, {m.ref: m.line})}" for m in mentions]
+    return f"{ROW_NOTE_HEAD}{', '.join(parts)}." if parts else ""
+
+
+def answer_row_note(text: str, refs: Iterable[str], lines: Mapping[str, int] | None) -> str:
+    """Return the note for one model answer; '' when it names no row of a cited ref.
+
+    Shown under an answer that came from a model, recorded or live, in every place it is shown;
+    never under a fixed template, and it never edits the answer.
+    """
+    return row_lines_note(row_mentions_to_lines(text, refs, lines))
+
+
 def signature_block(inner: str, caption: str) -> str:
     """Wrap one drawing in the gl-signature box with its caption; '' when there is no drawing."""
     if not inner:

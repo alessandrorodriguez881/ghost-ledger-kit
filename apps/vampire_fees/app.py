@@ -86,6 +86,7 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 )
 from ledger_kit.ui.signatures import (  # noqa: E402
     VAMPIRE_CAPTION,
+    answer_row_note,
     bites_svg,
     ref_with_line_markdown,
     refs_chips_html,
@@ -359,7 +360,24 @@ def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> N
     )
 
 
-def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
+def _render_row_note(explanation: Explanation, alert: Alert, lines: Mapping[str, int]) -> None:
+    """Under a model answer: which line of the file each row number of the answer is.
+
+    Nothing under the fixed template, and the answer itself is never edited (REQ-AS-34).
+    """
+    if explanation.source != "llm":
+        return
+    note = answer_row_note(explanation.text, alert.source_refs, lines)
+    if note:
+        st.caption(note)
+
+
+def _render_probe_result(
+    result: ProbeResult,
+    status: LiveStatus,
+    refs: Sequence[str] = (),
+    lines: Mapping[str, int] | None = None,
+) -> None:
     """Show the raw answer, the guard verdict and the fixed template of one probe."""
     if result.verdict == "unavailable":
         st.warning(no_answer_message(status.timeout_seconds))
@@ -368,6 +386,9 @@ def _render_probe_result(result: ProbeResult, status: LiveStatus) -> None:
         st.markdown(
             highlight_html(result.raw_answer, result.rejected_numbers), unsafe_allow_html=True
         )
+        note = answer_row_note(result.raw_answer, refs, lines)
+        if note:
+            st.caption(note)
         st.markdown(verdict_line(result))
         if result.computed:
             st.markdown(f"**{SHOWN_LABEL}**")
@@ -416,7 +437,7 @@ def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
             st.caption(replay.panel_caption(recorded))
         result = st.session_state[LG_RESULTS_KEY].get((alert.id, question.id))
         if result is not None:
-            _render_probe_result(result, status)
+            _render_probe_result(result, status, alert.source_refs, source_lines_of(ledger))
         if not can_ask:
             st.caption(status.caption)
         elif limit_reached(counts):
@@ -449,6 +470,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         st.write(explanation.text)
         for line in computed_lines(explanation.computed):
             st.caption(line)
+        _render_row_note(explanation, alert, source_lines_of(ledger))
         st.markdown(
             f'<span class="vf-badge vf-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,

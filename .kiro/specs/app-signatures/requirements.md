@@ -271,3 +271,40 @@ as a row number any more.
   (REQ-AS-29).
   - AE-AS-21 Tile of the Phantom demo: two `th`, the first cell of each row reads
     `invoices.csv · line N`, and no header reads `source line`.
+
+## 11 — The row numbers of a model answer (session 33)
+
+The model receives each cited row as `file:N`, N being the internal 0-based data index, so a
+recorded or live answer can say `rows 9 to 312` while the chips say `file · line N`. The words of
+the model are a real recording and the guard judged them as they are, so they are never changed.
+Under the answer the person gets one note that says which line of the file each of those numbers is.
+
+- **REQ-AS-34** *Where* a model answer, recorded or live, is shown to the person, the page shall
+  write under it one line of note when the answer names at least one row of a cited ref:
+  `The model counts data rows from 0, as the kit names them to it: row 46 is payments.csv · line
+  48, row 12 is suppliers.csv · line 14.` The note shall be English, one caption line, in the
+  order of the answer, one entry per ref however often the answer writes its number, and each entry
+  shall read the file and the line as the chip of that ref reads them (REQ-AS-25). The note shall
+  appear in every place where a model answer is shown: the alert cards of the three apps, the
+  results of the Provoke the LLM panel of the three apps (under the raw answer), the Home tiles and
+  the Home example. It shall never appear under the fixed template, never replace or edit the
+  answer, and never enter an alert, a prompt, a guard check or a draft (REQ-AS-31). *If* the answer
+  names no row, *then* there is no note.
+  - AE-AS-22 The MUSICBOX card of Zombie Subscriptions (answer `... from rows 9 to 312.`) shows
+    `The model counts data rows from 0, as the kit names them to it: row 9 is
+    zombie_demo_statement.csv · line L9, row 312 is zombie_demo_statement.csv · line L312.`, L9 and
+    L312 being the `source_line` of the two cited rows, and the answer above it is the recorded
+    text.
+
+- **REQ-AS-35** The mentions shall be found by a pure function, `row_mentions_to_lines(text, refs,
+  lines)` in `ledger_kit/ui/signatures.py` (with `row_lines_note` for the text and `answer_row_note`
+  for both). A mention is the word `row` or `rows` (not part of another word) followed by one
+  number, or by numbers joined with `and`, `to`, a comma or a dash; a number that is part of a
+  decimal is not a row number. A number N maps only to a ref of this alert whose `source_ref` ends
+  in `:N` and whose line is in `lines`. *If* the refs of two files carry that N, *then* it maps
+  only when the name of one of those files is written in the `ROW_FILE_WINDOW` characters before
+  the mention (the nearest one wins); otherwise it maps to nothing. A number that no ref carries
+  maps to nothing. The module imports no Streamlit and calls no model.
+  - AE-AS-23 `payments.csv:46` and `suppliers.csv:12` with the answer `... payments.csv file at
+    row 46 and the suppliers.csv file at row 12` give both lines. `a.csv:5` and `b.csv:5` with
+    `row 5` give nothing; with `In b.csv ... row 5` they give `b.csv:5`.

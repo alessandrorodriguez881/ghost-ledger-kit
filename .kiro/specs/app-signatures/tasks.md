@@ -197,3 +197,43 @@ could not run commands either; the hooks lint and test on stop.
   or `None`; the five section comments of `tests/test_source_line_pages.py` are under 100
   characters.
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
+
+## Task AS11 — The row numbers of a model answer, as lines of the file (session 33, 33b)
+
+**Covers**: REQ-AS-34, REQ-AS-35
+
+Requirements first (`requirements.md` section 11), then the tests, then the code. Session 33 was cut
+off by a network error after part of the code; session 33b wrote the requirement, the tests and the
+phrases. Neither session could run commands or search the repository: a box ticked here means the
+file is written, not that it was run. The hooks lint each file and run the tests on stop.
+
+- [x] `tests/test_row_note.py` (new): `row_mentions_to_lines` on the recorded answers Z02 (rows 9
+  and 312 of `zombie_demo_statement.csv`), P25 (`payments.csv` 46, `suppliers.csv` 12) and P26
+  (`invoices.csv` 5 and 6), with the lines read from the demo pipelines (never N plus 2) and
+  checked against the text of the file; a number that is not a cited ref; a ref with no line; two
+  files with the same N (nothing, unless a file is named before; nearest wins; too far does not
+  count); no word `row`; the joins `and`, `to`, comma, dash; a number twice; a decimal; the note
+  text; on the Zombie page the MUSICBOX card shows the note and the recorded answer unchanged;
+  no note under a fixed template; the three app files write the note under the cards and under the
+  Provoke results.
+- [x] `ledger_kit/ui/signatures.py`: `row_mentions_to_lines`, `row_lines_note`, `answer_row_note`,
+  `RowLine`, `ROW_NOTE_HEAD`, `ROW_FILE_WINDOW` (session 33).
+- [x] `apps/zombie_subscriptions/app.py`, `apps/vampire_fees/app.py`,
+  `apps/phantom_invoices/app.py`: `_render_row_note` under the card text (only when the source is
+  the model) and `_render_probe_result(result, status, refs, lines)` under the raw answer; the three
+  panels pass the refs and the map. Checked in session 33b by reading the three files: the note is
+  in the Provoke results of Vampire Fees and Phantom Invoices too (Phantom builds its map from the
+  invoices, the supplier master and the payments).
+- [x] `ledger_kit/ui/landing.py`: the note under the Home tiles and the Home example (session 33).
+- [x] Home phrases (`streamlit_app.py`, `docs/how-it-works.md`): the third `STORY` line, items 2 and
+  3 of `LAYERS`, and line 9 of the docs. `only words the explanation` is kept
+  (`tests/test_showcase_app.py` reads it).
+- Existing tests edited: none found. `tests/test_judge_path_pages.py` compares the story with
+  `streamlit_app.STORY` itself, and `tests/test_showcase_app.py` pins only `only words the
+  explanation` and a limit of 650 words. The search for other tests that pin the old strings could
+  not be run; I read the tests that touch the Home text.
+- Not changed, by design: `source_row`, `source_ref`, `Alert.id`, `source_refs` and `data` of every
+  alert, every detector, the number guard, the calc module, `_LLM_ROW_COLUMNS` and
+  `_NEVER_SENT_COLUMNS`, `ledger_kit/replay.py`, `data/live_runs`, `tests/test_recorded_verdicts.py`,
+  `docs/benchmark.md`, the 18 folders of `.kiro/specs`, the 6 files of `.kiro/steering`.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

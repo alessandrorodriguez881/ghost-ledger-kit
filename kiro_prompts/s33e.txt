@@ -1,0 +1,7 @@
+Session 33e: two ruff E501 errors left by session 33d. Write files only with your file tools; never use a shell command. Change nothing else and keep every word.
+
+1. streamlit_app.py line 85 is 134 characters long: it is part of the TRY_IT string and contains number guard (no model is called), or the fixed template if rejected. The *Provoke the LLM* panel replays recorded answers only. Split it into two or more adjacent string pieces so that no line is longer than 100 characters, keeping the same text when the pieces are joined, spaces included.
+
+2. tests/test_home_example.py line 352 is 126 characters long: it is the last piece of the PROMISE constant, in a cited row, and every alert cites the rows it comes from, shown as `file · line N` (the internal key is `file:row`). Split it the same way, so the joined constant stays exactly the sentence on line 9 of docs/how-it-works.md.
+
+Environment: Windows. When done, list every file you changed.

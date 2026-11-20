@@ -24,7 +24,7 @@ from __future__ import annotations
 import html
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 
@@ -32,6 +32,7 @@ from ledger_kit.live_guard import MARK_STYLE, highlight_segments
 from ledger_kit.public_data import DEFAULT_SNAPSHOT_PATH, SnapshotError, load_snapshot
 from ledger_kit.replay import HOME_EXAMPLE_MARKS, Recording
 from ledger_kit.ui.icons import icon
+from ledger_kit.ui.signatures import answer_row_note
 from ledger_kit.ui.theme import PHANTOM, VAMPIRE, ZOMBIE, Accent, card_html
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -273,7 +274,11 @@ EXAMPLE_NOTE = (
 )
 
 
-def example_html(recording: Recording | None) -> str:
+def example_html(
+    recording: Recording | None,
+    refs: Sequence[str] = (),
+    lines: Mapping[str, int] | None = None,
+) -> str:
     """Return the recorded example of Home, or '' when the recording cannot carry it.
 
     The recording is the Home example of ``replay.home_example()``: a real invention, an interest
@@ -299,6 +304,13 @@ def example_html(recording: Recording | None) -> str:
         if sentence is not None:
             quotes.append(f"“{_mark_in(sentence, mark)}”")
     wrote = f"<div>The model wrote: {' '.join(quotes)}</div>" if quotes else ""
+    note = answer_row_note(
+        " ".join(s for s in (recording.sentence_with(m) for m in HOME_EXAMPLE_MARKS) if s),
+        refs,
+        lines,
+    )
+    if note:
+        wrote += f'<div class="gl-example-note gl-row-note">{html.escape(note)}</div>'
     return (
         '<div class="gl-example">'
         f'<div class="gl-example-label">{html.escape(label)}</div>'
@@ -333,6 +345,10 @@ class Moment:
     recording: Recording
     rejected: tuple[str, ...]  # Explanation.rejected_numbers of the replay through today's guard
     template: str  # Explanation.text: the filled fixed template
+    # The refs of the alert the recording was replayed on and the line of each, so the row
+    # numbers of the answer can be said as lines of the file (REQ-AS-34). Both optional.
+    refs: tuple[str, ...] = ()
+    lines: Mapping[str, int] = field(default_factory=dict)
 
 
 def struck_marks(rejected: Sequence[str]) -> tuple[str, ...]:
@@ -397,6 +413,8 @@ def moment_html(moment: Moment | None) -> str:
         if found is not None and found not in sentences:
             sentences.append(found)
     quotes = " ".join(f"“{_strike_in(sentence, struck)}”" for sentence in sentences)
+    note = answer_row_note(" ".join(sentences), moment.refs, moment.lines)
+    row_note = f'<div class="gl-moment-note gl-row-note">{html.escape(note)}</div>' if note else ""
     source = f"{recording.model_name}, {recording.date}"
     label = f"One recorded answer of {source}. No model is called."
     figures = ", ".join(html.escape(mark) for mark in struck)
@@ -405,6 +423,7 @@ def moment_html(moment: Moment | None) -> str:
         f'<div class="gl-moment-label">{html.escape(label)}</div>'
         f'<div class="gl-moment-q">Question: {html.escape(question)}</div>'
         f'<div class="gl-moment-answer">The model wrote: {quotes}</div>'
+        f"{row_note}"
         f'<div class="gl-stamp"><b>{html.escape(MOMENT_STAMP)}</b> '
         f"Struck out: {figures}. Not in any cited row or alert field.</div>"
         '<div class="gl-moment-after">'
