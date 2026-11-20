@@ -98,6 +98,7 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     ZOMBIE_CAPTION,
     answer_row_note,
+    chip_source_template,
     heartbeat_svg,
     ref_with_line_markdown,
     refs_chips_html,
@@ -305,9 +306,10 @@ def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanati
     key = (alert.id, mode)
     if key not in cache:
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
-        cache[key] = explain_with_meta(
-            alert, rows, fallback_template=template_for(alert), client=client
+        template = chip_source_template(
+            template_for(alert), alert.source_refs, source_lines_of(ledger)
         )
+        cache[key] = explain_with_meta(alert, rows, fallback_template=template, client=client)
     return cache[key]
 
 
@@ -408,7 +410,7 @@ def _ask_model(alert: Alert, ledger: pd.DataFrame, question: TrickQuestion) -> N
     through the same call and the same guard; no model is called (DN-LG-07, DN-JP-06).
     """
     rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
-    template = template_for(alert)
+    template = chip_source_template(template_for(alert), alert.source_refs, source_lines_of(ledger))
     client: Any = None
     if not live_status(os.environ).enabled:
         recording = replay.probe_recording(alert.id, question.id)
@@ -607,7 +609,10 @@ def main() -> None:
 
     show_masthead(ZOMBIE)
     st.title("Zombie Subscriptions")
-    st.caption("Every figure comes from a cited row of your statement. The LLM only explains.")
+    st.caption(
+        "Every figure comes from, or is computed by plain code from, cited rows of your "
+        "statement. The LLM only explains."
+    )
 
     source = _current_source(uploaded)
     if source is None:

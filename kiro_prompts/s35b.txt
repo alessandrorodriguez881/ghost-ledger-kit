@@ -1,0 +1,9 @@
+Session 35b: four tests still compare with strings that session 34 changed on purpose. Update each test so it checks the same thing against the new text; change no code outside the tests, and do not delete or weaken any assertion. Write files only with your file tools; never use a shell command.
+
+1. tests/test_home_example.py, test_the_exact_label_texts (line 312): it pins the old live_guard.VERDICT_ACCEPTED. Pin the new exact text instead.
+
+2. tests/test_home_moment.py, test_home_moment_is_todays_verdict_on_the_recorded_text (line 375) and test_home_shows_the_moment_with_the_struck_marks_the_stamp_and_the_template (line 386): since REQ-AS-36 to REQ-AS-39 the Home moment shows the template with chip text (invoices.csv · line 2, invoices.csv · line 3), while today's replay verdict text keeps the raw keys (invoices.csv:0, invoices.csv:1). Compare the moment template with the verdict text after the same conversion the Home applies (the helper that session 34 wrote, for example shown_template in tests/judge_path_support.py or the function in ledger_kit/ui/signatures.py), so the test still proves the moment is today's verdict on the recorded text. In the second test, build the expected div from that converted text. Add one assertion that the shown template has no raw invoices.csv:0.
+
+3. apps/zombie_subscriptions/tests/test_zs_real_formats.py, test_both_demos_show_the_same_explanations_up_to_the_row_numbers (line 424): its strip helper turns name:N into REF and (line N) into (line N), but the templates now say name · line N. Make strip also turn the chip form, the file name followed by · line and a number, into REF, so the two demos are again compared up to the row numbers.
+
+Environment: Windows. When done, list every file you changed.

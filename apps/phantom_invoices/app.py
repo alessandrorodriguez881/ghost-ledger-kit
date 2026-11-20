@@ -103,6 +103,7 @@ from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     PHANTOM_CAPTION,
     answer_row_note,
+    chip_source_template,
     lantern_html,
     refs_chips_html,
     signature_block,
@@ -322,9 +323,19 @@ def _explain(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> Explanation
         elif recording is not None:
             client = replay.ReplayClient(recording.raw_answer)
         cache[key] = explain_alert(
-            alert, pipeline.invoices, pipeline.suppliers, pipeline.payments, client=client
+            alert,
+            pipeline.invoices,
+            pipeline.suppliers,
+            pipeline.payments,
+            client=client,
+            lines=_lines_of(pipeline),
         )
     return cache[key]
+
+
+def _lines_of(pipeline: Pipeline) -> dict[str, int]:
+    """Map each cited source_ref of the three frames to its line, as the chips read it."""
+    return source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
 
 
 def _table_html(view: pd.DataFrame, lit_refs: Sequence[str]) -> str:
@@ -385,6 +396,7 @@ def _ask_model(alert: Alert, pipeline: Pipeline, question: TrickQuestion) -> Non
         recording = replay.probe_recording(alert.id, question.id)
         if recording is not None:
             client = replay.ReplayClient(recording.raw_answer)
+    lines = _lines_of(pipeline)
     meta = explain_alert(
         alert,
         pipeline.invoices,
@@ -392,8 +404,10 @@ def _ask_model(alert: Alert, pipeline: Pipeline, question: TrickQuestion) -> Non
         pipeline.payments,
         client=client,
         question=question.text,
+        lines=lines,
     )
-    result = probe_result(question, meta, fill_fallback(template_for(alert), alert))
+    template = chip_source_template(template_for(alert), alert.source_refs, lines)
+    result = probe_result(question, meta, fill_fallback(template, alert))
     st.session_state[LG_RESULTS_KEY][(alert.id, question.id)] = result
     st.session_state[LG_COUNTS_KEY] = tally(
         st.session_state[LG_COUNTS_KEY], result, replayed=isinstance(client, replay.ReplayClient)
@@ -515,7 +529,7 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         label = LABELS.get(alert.detector, alert.detector)
         st.caption(f"{label} · `{alert.detector}` · severity: {alert.severity}")
         st.markdown(markdown_safe(explanation.text))
-        lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
+        lines = _lines_of(pipeline)
         for line in computed_lines(explanation.computed):
             st.caption(line)
         _render_row_note(explanation, alert, lines)
@@ -581,7 +595,10 @@ def main() -> None:
 
     show_masthead(PHANTOM)
     st.title("Phantom Invoices")
-    st.caption("Every figure comes from a cited row of your files. The LLM only explains.")
+    st.caption(
+        "Every figure comes from, or is computed by plain code from, cited rows of your "
+        "files. The LLM only explains."
+    )
 
     sources = _current_sources(uploads)
     if all(source is None for source in sources.values()):

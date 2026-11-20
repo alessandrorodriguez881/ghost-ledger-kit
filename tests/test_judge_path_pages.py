@@ -27,7 +27,7 @@ from judge_path_support import (
     cases_of,
     escape_for,
     rejected_text,
-    template_of,
+    shown_template,
     write_run,
 )
 from streamlit.testing.v1 import AppTest
@@ -36,7 +36,6 @@ import streamlit_app
 from apps.zombie_subscriptions import settings as zs_settings
 from ledger_kit import replay
 from ledger_kit.detectors import _restore_registry, _snapshot_registry
-from ledger_kit.explainer import fill_fallback
 from ledger_kit.live_guard import (
     CAPTION_OFF,
     MSG_LIMIT,
@@ -204,7 +203,7 @@ def test_cards_show_recorded_answers_with_an_honest_badge(judge_path: Path, pref
     # the accepted recording is the card text; the rejected one gives way to the fixed template
     assert escape(accepted_text(first)) in values
     assert escape(rejected_text(second)) not in values
-    assert escape(fill_fallback(template_of(second), second.alert)) in values
+    assert escape(shown_template(second)) in values  # the fixed template, rows read as chips
     assert not any(INVENTED in v for v in values if not v.startswith("<span"))
 
 

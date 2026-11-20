@@ -18,7 +18,15 @@ from typing import Any
 
 import pytest
 from defusedxml.ElementTree import fromstring
-from judge_path_support import ROOT, _phantom, _vampire, _zombie, find_case, template_of
+from judge_path_support import (
+    ROOT,
+    _phantom,
+    _vampire,
+    _zombie,
+    find_case,
+    shown_template,
+    template_of,
+)
 from streamlit.testing.v1 import AppTest
 
 import streamlit_app
@@ -363,6 +371,13 @@ def _verdict_of_the_recording() -> Explanation:
     )
 
 
+def _shown_template_of_the_recording() -> str:
+    """The template of today's verdict as the Home shows it: cited rows read as their chips."""
+    case = find_case(_recording().alert_id)
+    assert case is not None
+    return shown_template(case)
+
+
 def test_home_moment_is_todays_verdict_on_the_recorded_text(home_file: Path) -> None:
     verdict = _verdict_of_the_recording()
     moment = home_tiles.home_moment()
@@ -372,15 +387,19 @@ def test_home_moment_is_todays_verdict_on_the_recorded_text(home_file: Path) -> 
     assert moment.recording == _recording()
     assert moment.rejected == tuple(verdict.rejected_numbers)
     assert "617.51" in moment.rejected and "5" in moment.rejected
-    assert moment.template == verdict.text
+    # The verdict keeps the raw keys; the moment shows the same template with chip text.
+    assert "invoices.csv:0" in verdict.text and "invoices.csv:1" in verdict.text
+    assert moment.template == _shown_template_of_the_recording()
+    assert "invoices.csv:0" not in moment.template
 
 
 def test_home_shows_the_moment_with_the_struck_marks_the_stamp_and_the_template(
     home_file: Path,
 ) -> None:
     [block] = _starting(_home(), '<div class="gl-moment">')
-    template = " ".join(_verdict_of_the_recording().text.split())
+    template = " ".join(_shown_template_of_the_recording().split())
 
+    assert "invoices.csv:0" not in template
     assert STRIKE_1 in block and STRIKE_2 in block
     assert "<b>Rejected by the number guard.</b> Struck out: 5%, 617.51." in block
     assert f'<div class="gl-moment-template">{html.escape(template)}</div>' in block

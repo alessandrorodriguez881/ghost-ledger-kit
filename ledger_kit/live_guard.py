@@ -52,11 +52,13 @@ RAW_LABEL = "Model answer (raw, before the guard):"
 TEMPLATE_LABEL = "Fixed template shown on the card when the answer is not trusted:"
 NOTE_GUARD_SCOPE = (
     "The guard checks figures (digits, and numbers in English or Spanish words), dates and "
-    "IBANs. It does not judge wording and does no arithmetic."
+    "IBANs. It does not judge wording, except a period that contradicts the field a figure "
+    "matches and the price index named as the cause of a price change. It does no arithmetic."
 )
 VERDICT_ACCEPTED = (
-    "✅ Guard verdict: accepted. Every figure in the answer, in digits or in words, was found "
-    "in the cited rows or the alert data. Figures checked; wording not checked."
+    "✅ Guard verdict: accepted. Every figure the model wrote itself, in digits or in words, was "
+    "found in the cited rows or the alert data; a figure in a calc placeholder was computed by "
+    "the kit. Figures checked; wording not checked."
 )
 VERDICT_REJECTED_HEAD = "🛑 Guard verdict: rejected. "
 VERDICT_NOT_FOUND = "Not found in the cited rows or the alert data: "
@@ -255,6 +257,31 @@ def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str]) -> 
     if tokens:
         return " (not found in the cited rows or the alert data: " + ", ".join(tokens) + ")"
     return ""
+
+
+# What a rejected badge says for a rejection that is not a missing figure; the index wording is
+# the one replay.card_badge writes for a recorded answer.
+BADGE_INDEX_CAUSE = "the answer names the price index as the cause of the price change"
+BADGE_PERIOD = "the answer gives a figure a period that contradicts the alert field it matches"
+BADGE_NOT_FOUND = "not found in the cited rows or the alert data"
+
+
+def rejection_reason_text(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
+    """Return the real reason of a rejection for the badge of a card, without parentheses.
+
+    A figure in no row says `not found in the cited rows or the alert data: tokens` (the text the
+    badge always had); the price index named as the cause, a period that contradicts its field, a
+    calculation the kit will not make and a currency sign the data does not name each say their
+    own reason, in the words of `rejection_clause` and of the replay badge.
+    """
+    if reason == REASON_INDEX_AS_CAUSE:
+        return f"{BADGE_INDEX_CAUSE}: {' '.join(tokens)}"
+    if reason == REASON_PERIOD_MISMATCH:
+        return f"{BADGE_PERIOD}: {', '.join(tokens)}"
+    clause = rejection_clause(reason, tokens, why)
+    if clause.startswith(" (") and clause.endswith(")"):
+        return clause[2:-1]
+    return f"{BADGE_NOT_FOUND}: {', '.join(tokens)}"
 
 
 @dataclass(frozen=True)

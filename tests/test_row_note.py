@@ -256,6 +256,95 @@ def test_no_note_is_shown_under_a_fixed_template() -> None:
     assert not any(c.value.startswith(ROW_NOTE_HEAD) for c in at.caption)
 
 
+# --- a ref written whole in an answer, file:N (session 34, REQ-AS-35 amendment) -----------------
+
+ZOMBIE_FILE = "zombie_demo_statement.csv"
+
+
+def test_the_z06_answer_names_its_ref_whole_and_gets_its_line() -> None:
+    record = _record("Z06")
+    lines = _zombie_lines()
+    ref = f"{ZOMBIE_FILE}:10"
+    assert f"{ref}." in record["raw_answer"]  # the recorded text writes the internal key
+
+    found = row_mentions_to_lines(record["raw_answer"], record["source_refs"], lines)
+
+    assert found == [RowLine(10, ref, lines[ref], ref)]
+    assert lines[ref] == 12  # the chip of this row says line 12
+    assert "SECUREPASS" in _file_line(SAMPLES / ZOMBIE_FILE, found[0].line)
+    note = answer_row_note(record["raw_answer"], record["source_refs"], lines)
+    assert note == f"{ROW_NOTE_HEAD}{ref} is {ZOMBIE_FILE} {DOT} line 12."
+
+
+def test_the_z21_answer_names_its_ref_whole_and_gets_its_line() -> None:
+    record = _record("Z21")
+    lines = _zombie_lines()
+    ref = f"{ZOMBIE_FILE}:236"
+    assert ref in record["raw_answer"]
+
+    found = _by_ref(row_mentions_to_lines(record["raw_answer"], record["source_refs"], lines))
+
+    assert found[ref] == RowLine(236, ref, lines[ref], ref)
+    assert lines[ref] == 238  # the chip of this row says line 238
+    assert "GYMPLUS" in _file_line(SAMPLES / ZOMBIE_FILE, found[ref].line)
+    note = answer_row_note(record["raw_answer"], record["source_refs"], lines)
+    assert f"{ref} is {ZOMBIE_FILE} {DOT} line 238" in note
+    assert note.startswith(ROW_NOTE_HEAD) and "\n" not in note
+
+
+def test_a_ref_written_whole_maps_to_exactly_that_ref_even_when_the_number_is_shared() -> None:
+    # `row 5` alone is ambiguous between a.csv and b.csv; the whole ref is not
+    found = row_mentions_to_lines("See b.csv:5 and a.csv:6.", REFS, LINES)
+
+    assert found == [RowLine(5, "b.csv:5", 30, "b.csv:5"), RowLine(6, "a.csv:6", 8, "a.csv:6")]
+
+
+def test_a_ref_written_whole_that_is_not_cited_or_has_no_line_gives_nothing() -> None:
+    assert row_mentions_to_lines("See z.csv:5 and a.csv:55.", REFS, LINES) == []
+    assert row_mentions_to_lines("See c.csv:2.", ["c.csv:2"], {}) == []
+    assert row_mentions_to_lines("See c.csv:2.", ["a.csv:5"], {"c.csv:2": 4}) == []
+    assert answer_row_note("See z.csv:5.", REFS, LINES) == ""
+
+
+def test_a_ref_written_whole_and_the_same_row_as_row_n_give_one_entry_in_answer_order() -> None:
+    found = row_mentions_to_lines("b.csv:5 is it; in b.csv, row 5 again.", REFS, LINES)
+    assert found == [RowLine(5, "b.csv:5", 30, "b.csv:5")]
+
+    mixed = row_mentions_to_lines("Row 6 of a.csv, then b.csv:9.", REFS, LINES)
+    assert mixed == [RowLine(6, "a.csv:6", 8), RowLine(9, "b.csv:9", 34, "b.csv:9")]
+    reverse = row_mentions_to_lines("b.csv:9 first, then row 6 of a.csv.", REFS, LINES)
+    assert [m.ref for m in reverse] == ["b.csv:9", "a.csv:6"]
+
+
+def test_the_note_says_the_ref_as_the_answer_wrote_it() -> None:
+    ref = f"{ZOMBIE_FILE}:236"
+
+    note = row_lines_note([RowLine(236, ref, 238, ref)])
+    both = row_lines_note([RowLine(46, "payments.csv:46", 50), RowLine(236, ref, 238, ref)])
+
+    assert note == f"{ROW_NOTE_HEAD}{ref} is {ZOMBIE_FILE} {DOT} line 238."
+    assert both == (
+        f"{ROW_NOTE_HEAD}row 46 is payments.csv {DOT} line 50, "
+        f"{ref} is {ZOMBIE_FILE} {DOT} line 238."
+    )
+
+
+def test_the_z06_card_shows_the_note_with_the_ref_and_its_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(replay, "REPLAY_RUN_PATH", REPLAY_RUN)
+    monkeypatch.setattr(first_run, "AUTOLOAD_DEMO", True)
+    record = _record("Z06")
+    expected = answer_row_note(record["raw_answer"], record["source_refs"], _zombie_lines())
+
+    at = _open("zs")
+
+    values = [element.value for element in at.markdown]
+    assert values.count(record["raw_answer"]) == 1  # the recorded text, not edited
+    assert [c.value for c in at.caption].count(expected) == 1
+    assert expected.endswith(f"{ZOMBIE_FILE}:10 is {ZOMBIE_FILE} {DOT} line 12.")
+
+
 @pytest.mark.parametrize("prefix", sorted(SCRIPTS))
 def test_every_app_writes_the_note_under_cards_and_provoke_results(prefix: str) -> None:
     source = (ROOT / SCRIPTS[prefix]).read_text(encoding="utf-8")

@@ -247,6 +247,7 @@ def home_moment() -> Moment | None:
         alert = next((a for a in _phantom_alerts(pipeline) if a.id == recording.alert_id), None)
         if alert is None:
             return None
+        lines = source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
         explanation = pi_support.explain_alert(
             alert,
             pipeline.invoices,
@@ -254,6 +255,7 @@ def home_moment() -> Moment | None:
             pipeline.payments,
             client=replay.ReplayClient(recording.raw_answer),
             question=recording.question_text,
+            lines=lines,
         )
     except Exception:  # a moment that cannot be built must never take Home down
         return None

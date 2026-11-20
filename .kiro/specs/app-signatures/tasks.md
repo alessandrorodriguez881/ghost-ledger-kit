@@ -237,3 +237,41 @@ file is written, not that it was run. The hooks lint each file and run the tests
   `_NEVER_SENT_COLUMNS`, `ledger_kit/replay.py`, `data/live_runs`, `tests/test_recorded_verdicts.py`,
   `docs/benchmark.md`, the 18 folders of `.kiro/specs`, the 6 files of `.kiro/steering`.
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
+
+## Task AS12 — Small fixes of a fresh-eyes review (session 34)
+
+**Covers**: REQ-AS-35 (amendment), REQ-AS-36 to REQ-AS-39
+
+Requirements first (`requirements.md` section 12 and the amendment of REQ-AS-35), then the tests,
+then the code. This session could not run commands and had no search: a box ticked here means the
+file is written, not that it was run. The hooks lint each file and run the tests on stop.
+
+- [x] `tests/test_row_note.py`: `row_mentions_to_lines` on the recorded answers Z06 and Z21 (the
+  internal key written whole, lines read by the readers); a ref written whole beats an ambiguous
+  `row N`; a ref that is not cited or has no line; order and one entry per ref; the note text; the
+  Z06 card on the Zombie page.
+- [x] `ledger_kit/ui/signatures.py`: `RowLine.written`, the `file:N` mention in
+  `row_mentions_to_lines`, `row_lines_note`; `chip_source_template`.
+- [x] `tests/test_fresh_eyes_fixes.py` (new): `chip_source_template`; one template per app; the
+  cards of the three apps; the Phantom duplicate card (`invoices.csv · line 2, invoices.csv ·
+  line 3`); the Home moment template; one rejection of each reason for the three badges; the guard
+  sentences; the Try it texts. `tests/judge_path_support.py` gets `lines_of` and `shown_template`;
+  `tests/test_judge_path_pages.py` compares the rejected card with `shown_template` (the same check,
+  the new string).
+- [x] `apps/zombie_subscriptions/app.py`, `apps/vampire_fees/app.py`,
+  `apps/phantom_invoices/app.py`, `apps/phantom_invoices/explain_support.py` (`explain_alert(...,
+  lines=None)`), `apps/home_tiles.py`: the fixed template is rewritten by `chip_source_template`
+  before it is filled; the alert, the rows and the prompt are the same.
+- [x] `ledger_kit/live_guard.py` (`rejection_reason_text`, `NOTE_GUARD_SCOPE`, `VERDICT_ACCEPTED`);
+  `guard_badge` in `apps/zombie_subscriptions/settings.py`, `apps/vampire_fees/settings.py` and
+  `apps/phantom_invoices/explain_support.py`.
+- [x] `ledger_kit/ui/landing.py` (`MOMENT_NOTE`), `streamlit_app.py` (`PROMISE`, `TRY_IT`), the
+  caption of each app, `docs/how-it-works.md` (lines 25 and 27), `README.md` (step 3).
+- Seen, not changed: `EXAMPLE_NOTE` of `landing.py` still says the guard does not check the
+  wording; it is not shown on Home today. The word count of Home (limit 650) could not be run; the
+  texts added are about 25 words and the `TRY_IT` text lost the sentence on the warning badge.
+- Not changed, by design: `source_row`, `source_ref`, `Alert.id`, `source_refs` and `data` of every
+  alert, every detector, the number guard, the calc module, the columns sent to the model,
+  `ledger_kit/replay.py`, `data/live_runs`, `tests/test_recorded_verdicts.py`, `docs/benchmark.md`,
+  the 18 folders of `.kiro/specs`, the 6 files of `.kiro/steering`, the kicker of `theme.py`.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

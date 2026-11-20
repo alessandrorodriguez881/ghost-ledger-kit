@@ -1,0 +1,13 @@
+Session 35: README.md sentences that a fresh-eyes review found out of date. Change only README.md, and any test that pins one of these exact strings (update it to the new string and keep the check). Before each change, read the code or the files it describes and write only what they show. Write files only with your file tools; never use a shell command. Keep the README short; do not add sections.
+
+1. The Kiro table row that says Four recorded runs of real model answers in data/live_runs/: the folder holds six files (three of 10 Nov, one each of 11, 15 and 16 Nov). Say six, keep that the first three led to A-LG-01 to A-LG-03, and say that the apps replay the 16 Nov run.
+2. Line 3 says any amount, date or IBAN in digits or in English or Spanish words sends the card back. Ordinal dates in words (the twenty-first of August) are not read, as line 74 admits. Say which dates the guard reads: in digits or with a month name.
+3. Line 74 says 3 months in digits is rejected. It is rejected only when 3 is in neither the cited rows nor the alert data (on GYMPLUS, post_cancellation_count is 3, so it passes). Say so.
+4. The Try it step about GYMPLUS mentions a rejected total added to its own parts. That rejection is on the Vampire Fees overdraft card (record V41), not on GYMPLUS (whose rejected calculation is Z22). Put the example on the card where it happens.
+5. The quoted second line of the INE notice (around lines 96 to 98): copy the exact text the page shows, from the constant in the code that renders it.
+6. Line 106 says two of the apps read the same bank statement. Check which demo file each app loads; if Zombie Subscriptions and Vampire Fees load different files, say two of them read a bank statement.
+7. Line 91 says IBANs pass the ISO 13616 mod-97 check. The invoice TR-2026-014 carries an IBAN that fails it on purpose (the Poltergeist IBAN alert). Say all pass except that planted one.
+8. Line 36 says tasks are ticked off as work was done. Count the open boxes in .kiro/specs/*/tasks.md; if the open ones are checks left to a person, say so in a few words.
+9. Line 53 says Kiro wrote every spec, test and line of code. Task VF17 in .kiro/specs/vampire-fees/tasks.md is a record filled in by the reviewer. Search the specs for other parts marked as filled in by the reviewer and make the sentence exact, for example by saying that the reviewer filled in only the call records. Do not change any other sentence about who did what.
+
+Environment: Windows. When done, list every change as old sentence and new sentence.

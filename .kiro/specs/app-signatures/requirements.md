@@ -308,3 +308,55 @@ Under the answer the person gets one note that says which line of the file each 
   - AE-AS-23 `payments.csv:46` and `suppliers.csv:12` with the answer `... payments.csv file at
     row 46 and the suppliers.csv file at row 12` give both lines. `a.csv:5` and `b.csv:5` with
     `row 5` give nothing; with `In b.csv ... row 5` they give `b.csv:5`.
+  - *Amendment (session 34).* A mention is also a ref written whole: a file name, a colon and a
+    number, as `payments.csv:46`. It maps to the cited ref with exactly that `source_ref` whose
+    line is in `lines`, whatever stands before it; a text that is not a cited ref maps to nothing.
+    The entries stay in the order of the answer, one per ref (a ref written whole and the same ref
+    as `row N` give one entry), and the note says what the answer wrote: `zombie_demo_statement.csv:236
+    is zombie_demo_statement.csv · line 238`. The `row N` behaviour does not change.
+  - AE-AS-24 The recorded answers Z06 (SECUREPASS, `zombie_demo_statement.csv:10`) and Z21
+    (GYMPLUS, `zombie_demo_statement.csv:236`) of `2026-11-16_llama3.2-3b_calc2.json` give the
+    notes `The model counts data rows from 0, as the kit names them to it:
+    zombie_demo_statement.csv:10 is zombie_demo_statement.csv · line 12.` and `The model counts
+    data rows from 0, as the kit names them to it: zombie_demo_statement.csv:236 is
+    zombie_demo_statement.csv · line 238.`; the lines are read by
+    the reader, never computed as N plus 2.
+
+## 12 — Small fixes of a fresh-eyes review (session 34)
+
+Each one makes a sentence the person reads true, or shows the line instead of the internal key.
+None changes an alert, a detector, the number guard, `source_ref` or what the model receives.
+
+- **REQ-AS-36** *Where* a card, a Provoke result or the Home moment shows a fixed fallback
+  template, its `Source:` clause shall name each cited row as the chip of that row does
+  (`chip_text`: `file · line N`, `file · invoice N` for an `.xml` ref without a line, the raw
+  `source_ref` otherwise), joined with a comma and a space, in the three apps and on Home. The
+  template is rewritten by `chip_source_template(template, refs, lines)` of
+  `ledger_kit/ui/signatures.py` before `fill_fallback` fills it; `Alert`, `source_refs`, the rows
+  and the system prompt sent to the model are not touched. The hallucinating stub keeps the plain
+  filled fallback, since it plays a model.
+  - AE-AS-25 The Phantom Invoices card of a fixed template that cites `invoices.csv:0` and
+    `invoices.csv:1` ends `Source: invoices.csv · line 2, invoices.csv · line 3.`
+
+- **REQ-AS-37** The badge of a rejected card in the three apps (`guard_badge` of
+  `apps/zombie_subscriptions/settings.py`, `apps/vampire_fees/settings.py` and
+  `apps/phantom_invoices/explain_support.py`) shall say the real reason of the rejection, in the
+  words of `ledger_kit/replay.py` (`rejection_reason_text` of `ledger_kit/live_guard.py`): `not
+  found in the cited rows or the alert data: tokens` for a figure (as before), `the answer names
+  the price index as the cause of the price change: ...` for the index, `the answer gives a figure
+  a period that contradicts the alert field it matches: ...` for a period, and the calculation and
+  currency sentences of `rejection_clause`.
+
+- **REQ-AS-38** The sentences that describe the guard shall say what it does. `NOTE_GUARD_SCOPE`,
+  `MOMENT_NOTE` and line 27 of `docs/how-it-works.md` say it does not judge wording, except a
+  period that contradicts the field a figure matches and the price index named as the cause.
+  `VERDICT_ACCEPTED` says every figure the model wrote itself was found in the cited rows or the
+  alert data and that a figure in a calc placeholder was computed by the kit. The promise (Home
+  `PROMISE` and the caption of each app) says every figure comes from, or is computed by plain
+  code from, rows you can check. The kicker of `theme.py` does not change.
+
+- **REQ-AS-39** The Try it texts (`TRY_IT` of `streamlit_app.py`, the Home paragraph of
+  `docs/how-it-works.md` and step 3 of the README) shall say that, with no API key, every card
+  replays a recorded answer only on the CSV demo that loads by itself, and that the Real formats
+  and Norma 43 demos have no recording; `TRY_IT` names the overdraft card in Vampire Fees. The Home
+  stays under 650 words.

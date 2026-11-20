@@ -27,6 +27,7 @@ from apps.vampire_fees.detectors.utils import (
 from ledger_kit.detectors import DetectorResult, run_all
 from ledger_kit.ingestion.normaliser import normalise
 from ledger_kit.ingestion.sniffer import format_label, read_bank_statement, sniff_format
+from ledger_kit.live_guard import rejection_reason_text
 from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount
 
@@ -51,6 +52,9 @@ BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
 BADGE_REJECTED: str = (
     "⚠️ LLM answer rejected: not found in the cited rows or the alert data: {numbers}"
 )
+# The same badge for any reason; `{reason}` comes from `rejection_reason_text` (a missing figure
+# reads exactly as BADGE_REJECTED does).
+BADGE_REJECTED_REASON: str = "⚠️ LLM answer rejected: {reason}"
 
 # The rule in force, per detected format (REQ-VF-45).
 RULE_CSV: str = "A CSV has no bank concept: fees are recognised by words only."
@@ -207,8 +211,10 @@ def guard_badge(explanation: Explanation, *, has_api_key: bool) -> GuardBadge:
     if explanation.source == "llm":
         return GuardBadge("llm", BADGE_LLM)
     if explanation.rejected_numbers:
-        numbers = ", ".join(explanation.rejected_numbers)
-        return GuardBadge("rejected", BADGE_REJECTED.format(numbers=numbers))
+        reason = rejection_reason_text(
+            explanation.rejected_reason, explanation.rejected_numbers, explanation.rejected_why
+        )
+        return GuardBadge("rejected", BADGE_REJECTED_REASON.format(reason=reason))
     if has_api_key:
         return GuardBadge("unavailable", BADGE_UNAVAILABLE)
     return GuardBadge("template", BADGE_TEMPLATE)

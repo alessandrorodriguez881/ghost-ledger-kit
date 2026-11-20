@@ -418,7 +418,9 @@ def test_both_demos_show_the_same_explanations_up_to_the_row_numbers() -> None:
 
     def strip(texts: list[str], name: str) -> list[str]:
         # The reference and, now, the line of the file next to it differ by format (REQ-AS-29).
+        # The chip form is the file name, " · line " and a number (REQ-AS-36 to REQ-AS-39).
         refs = [re.sub(rf"{re.escape(name)}:\d+", "REF", text) for text in texts]
+        refs = [re.sub(rf"{re.escape(name)} · line \d+", "REF", text) for text in refs]
         return sorted(re.sub(r"\(line \d+\)", "(line N)", text) for text in refs)
 
     assert strip(_explanations(real), N43_NAME) == strip(_explanations(csv), CSV_NAME)

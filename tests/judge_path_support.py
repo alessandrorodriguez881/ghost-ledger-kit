@@ -24,7 +24,9 @@ from apps.vampire_fees import settings as vf_settings
 from apps.zombie_subscriptions import explain_support as zs_support
 from apps.zombie_subscriptions import settings as zs_settings
 from apps.zombie_subscriptions.detectors.utils import normalise_alias_map, normalise_date_map
+from ledger_kit.explainer import fill_fallback
 from ledger_kit.models import Alert
+from ledger_kit.ui.signatures import chip_source_template, source_lines_of
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "data" / "live_runs"
@@ -129,6 +131,24 @@ def template_of(case: Case) -> str:
     """The fixed fallback template the app of `case` uses for its alert."""
     support = {"zs": zs_support, "pi": pi_support, "vf": vf_support}[case.prefix]
     return support.template_for(case.alert)
+
+
+def lines_of(prefix: str) -> dict[str, int]:
+    """source_ref to source_line of the demo files of one app, as its page builds the map."""
+    if prefix == "zs":
+        return source_lines_of(_zombie().debit_ledger)
+    if prefix == "vf":
+        return source_lines_of(_vampire().ledger)
+    pipeline = _phantom()
+    return source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
+
+
+def shown_template(case: Case) -> str:
+    """The fixed template as the card shows it: the cited rows read as their chips read them."""
+    template = chip_source_template(
+        template_of(case), case.alert.source_refs, lines_of(case.prefix)
+    )
+    return fill_fallback(template, case.alert)
 
 
 def find_case(alert_id: str) -> Case | None:

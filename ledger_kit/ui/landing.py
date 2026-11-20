@@ -329,8 +329,8 @@ def example_html(
 MOMENT_STAMP = "Rejected by the number guard."
 MOMENT_TEMPLATE_LABEL = "Fixed template shown instead"
 MOMENT_NOTE = (
-    "A recorded answer: no model is called. The number guard ran now on the recorded text. It "
-    "checks figures, not wording."
+    "A recorded answer: no model is called. The number guard ran now on the recorded text; it "
+    "does not judge wording, except a contradicted period and the price index named as the cause."
 )
 
 

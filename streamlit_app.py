@@ -55,7 +55,8 @@ HOME_TITLE = "Ghost Ledger Kit"
 HOW_IT_WORKS = "How it works"  # the closed expander below the tiles
 
 PROMISE = (
-    "Financial apps that cannot make up a number: every figure comes from a row you can check."
+    "Financial apps that cannot make up a number: every figure comes from, or is computed by "
+    "plain code from, rows you can check."
 )
 
 # The story under the promise (judge-path, REQ-JP-14): three short lines, no figure.
@@ -79,13 +80,13 @@ LAYERS = """
 """
 
 TRY_IT = (
-    "**Try it:** open an app and switch on **Simulate a hallucinating LLM** in the sidebar. A "
-    "stub model invents 99999.99 EUR; the guard rejects it and the card shows a warning badge. "
-    "With no API key every card replays a recorded answer of a real model, checked now by the "
-    "number guard (no model is called), or the fixed template if rejected. The *Provoke the "
-    "LLM* panel replays recorded answers only "
-    "on the first critical card of each app (GYMPLUS, Suministros Ibéricos, Vampire Fees); on "
-    "every other card it stays off until you set an API key."
+    "**Try it:** open an app and switch on **Simulate a hallucinating LLM** in the sidebar: a "
+    "stub model invents 99999.99 EUR and the guard rejects it. With no API key, the CSV demo "
+    "that loads first replays a recorded answer on every card, checked now by the number guard "
+    "(no model is called), or the fixed template if rejected; the Real formats and Norma 43 "
+    "demos have no recording. The *Provoke the LLM* panel replays recorded answers only on the "
+    "first critical card of each app (GYMPLUS, Suministros Ibéricos, the overdraft card in "
+    "Vampire Fees); on every other card it stays off until you set an API key."
 )
 
 SYNTHETIC_NOTE = (

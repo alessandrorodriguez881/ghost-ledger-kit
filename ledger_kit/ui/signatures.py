@@ -232,6 +232,20 @@ def refs_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None)
     return " ".join(_chip(ref, lines) for ref in refs)
 
 
+def chip_source_template(
+    template: str, refs: Iterable[str], lines: Mapping[str, int] | None = None
+) -> str:
+    """Return a fallback template whose `{source_refs}` reads as the chips of the refs read.
+
+    Each ref is written as `chip_text` writes it ('invoices.csv · line 2'), joined with a comma
+    and a space, so the sentence a person reads agrees with the chips under it (REQ-AS-36). The
+    alert is not touched and the model never receives this text: only the template changes, and
+    a brace in a file name is doubled so the template still fills.
+    """
+    shown = ", ".join(chip_text(str(ref), lines) for ref in refs)
+    return template.replace("{source_refs}", shown.replace("{", "{{").replace("}", "}}"))
+
+
 # --- the row numbers of a model answer, as lines of the file (REQ-AS-34, REQ-AS-35) ------------
 
 ROW_NOTE_HEAD: str = "The model counts data rows from 0, as the kit names them to it: "
@@ -245,13 +259,22 @@ _ROW_MENTION = re.compile(
 )
 
 
+# A cited ref written whole in an answer: a file name, a colon and a number (payments.csv:46).
+_REF_MENTION = re.compile(r"(?<![\w.:/-])(?P<ref>[\w.-]+:\d+)(?!\d)")
+
+
 @dataclass(frozen=True)
 class RowLine:
-    """One row number of a model answer: the cited ref it names and the line of that ref."""
+    """One row number of a model answer: the cited ref it names and the line of that ref.
+
+    `written` is the ref as the answer wrote it (``payments.csv:46``) when the answer wrote the
+    file and the number together; '' when it wrote the word row and a number.
+    """
 
     number: int
     ref: str
     line: int
+    written: str = ""
 
 
 def _ref_number(ref: str) -> tuple[str, int] | None:
@@ -269,16 +292,21 @@ def row_mentions_to_lines(
     a comma or a dash. A number N maps to the ref of `refs` whose source_ref ends in :N and
     whose line is in `lines`. If refs of two files have that N, it maps only when the name of one
     of those files is written in the ROW_FILE_WINDOW characters before the mention (the nearest
-    one wins); otherwise it maps to nothing, as does a number that no ref carries. One ref gives
-    one entry however many times the answer writes its number. The text is only read.
+    one wins); otherwise it maps to nothing, as does a number that no ref carries. A ref written
+    whole (a file name, a colon and a number: payments.csv:46) maps to the cited ref with exactly
+    that source_ref when its line is in `lines`, whatever stands before it. One ref gives one
+    entry however many times the answer writes its number; the entries follow the answer.
+    The text is only read.
     """
     known = lines or {}
+    ordered = list(dict.fromkeys(str(r) for r in refs))
+    cited = set(ordered)
     by_number: dict[int, list[tuple[str, str]]] = {}
-    for ref in dict.fromkeys(str(r) for r in refs):
+    for ref in ordered:
         parsed = _ref_number(ref)
         if parsed is not None and ref in known:
             by_number.setdefault(parsed[1], []).append((ref, parsed[0]))
-    found: dict[str, RowLine] = {}
+    hits: list[tuple[int, RowLine]] = []
     for mention in _ROW_MENTION.finditer(text):
         before = text[max(0, mention.start() - ROW_FILE_WINDOW) : mention.start()].lower()
         for number_text in re.findall(r"\d+", mention["numbers"]):
@@ -291,8 +319,17 @@ def row_mentions_to_lines(
                 named = [(before.rfind(file.lower()), ref) for ref, file in candidates]
                 position, ref = max(named)
                 chosen = ref if position >= 0 else None
-            if chosen is not None and chosen not in found:
-                found[chosen] = RowLine(number, chosen, int(known[chosen]))
+            if chosen is not None:
+                hits.append((mention.start(), RowLine(number, chosen, int(known[chosen]))))
+    # A ref written whole (file:N) is that exact ref, whatever stands before it.
+    for written in _REF_MENTION.finditer(text):
+        ref = written["ref"]
+        parsed = _ref_number(ref)
+        if parsed is not None and ref in known and ref in cited:
+            hits.append((written.start(), RowLine(parsed[1], ref, int(known[ref]), ref)))
+    found: dict[str, RowLine] = {}
+    for _position, hit in sorted(hits, key=lambda item: item[0]):
+        found.setdefault(hit.ref, hit)
     return list(found.values())
 
 
@@ -300,9 +337,13 @@ def row_lines_note(mentions: Iterable[RowLine]) -> str:
     """Return the one-line note that says which line of the file each row number is; '' for none.
 
     'The model counts data rows from 0, as the kit names them to it: row 46 is payments.csv ·
-    line 48, row 12 is suppliers.csv · line 14.'
+    line 48, row 12 is suppliers.csv · line 14.' A ref the answer wrote whole reads as it was
+    written: 'zombie_demo_statement.csv:236 is zombie_demo_statement.csv · line 238'.
     """
-    parts = [f"row {m.number} is {chip_text(m.ref, {m.ref: m.line})}" for m in mentions]
+    parts = []
+    for m in mentions:
+        said = m.written or f"row {m.number}"
+        parts.append(f"{said} is {chip_text(m.ref, {m.ref: m.line})}")
     return f"{ROW_NOTE_HEAD}{', '.join(parts)}." if parts else ""
 
 

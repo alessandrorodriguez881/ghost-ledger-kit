@@ -310,12 +310,15 @@ def test_the_verdict_and_the_llm_badges_say_figures_checked(name: str) -> None:
 
 def test_the_exact_label_texts() -> None:
     assert live_guard.VERDICT_ACCEPTED == (
-        "✅ Guard verdict: accepted. Every figure in the answer, in digits or in words, was found "
-        "in the cited rows or the alert data. Figures checked; wording not checked."
+        "✅ Guard verdict: accepted. Every figure the model wrote itself, in digits or in words, "
+        "was found in the cited rows or the alert data; a figure in a calc placeholder was "
+        "computed by the kit. Figures checked; wording not checked."
     )
     assert live_guard.NOTE_GUARD_SCOPE == (
         "The guard checks figures (digits, and numbers in English or Spanish words), dates and "
-        "IBANs. It does not judge wording and does no arithmetic."
+        "IBANs. It does not judge wording, except a period that contradicts the field a figure "
+        "matches and the price index named as the cause of a price change. It does no "
+        "arithmetic."
     )
     badge = "🤖 ✓ LLM text · figures checked by the number guard; wording not checked"
     assert zs_settings.BADGE_LLM == vf_settings.BADGE_LLM == pi_support.BADGE_LLM == badge
@@ -329,9 +332,10 @@ def test_the_exact_label_texts() -> None:
 
 LINE_3 = (
     "Financial apps where an LLM may word the explanation but cannot slip in a figure: any "
-    "amount, date or IBAN that is not in the cited rows or the alert data, in digits or in "
-    "English or Spanish words, sends the card back to a fixed template. It checks figures, "
-    "not meaning (see What the guard does not check)."
+    "amount or IBAN that is not in the cited rows or the alert data, in digits or in English "
+    "or Spanish words, or any such date in digits or with an English month name, sends the "
+    "card back to a fixed template. It checks figures, not meaning (see What the guard does "
+    "not check)."
 )
 STEP_1 = (
     "1. Open Home. Once the page has loaded, the moment plays in under three seconds (a cold "
@@ -343,8 +347,8 @@ STEP_1 = (
 STEP_4_ADDED = (
     "The model asks the kit for `yearly_cost` × 5 in a placeholder, the kit computes 539,40 EUR "
     "and shows the formula (`5 x yearly_cost 107,88 EUR = 539,40 EUR`); a figure the model "
-    "writes itself is still checked against the rows, and the recording also holds rejected "
-    "calculations, for example a total added to its own parts."
+    "writes itself is still checked against the rows. On the Vampire Fees overdraft card, the "
+    "recording also holds a rejected calculation: a total added to its own parts."
 )
 PROMISE = (
     "Ghost Ledger Kit is built around one promise: an LLM touches the explanation layer only. "

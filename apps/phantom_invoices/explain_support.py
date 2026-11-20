@@ -8,13 +8,16 @@ module defines no wrapper around it.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, Self
 
 import pandas as pd
 
 from ledger_kit.explainer import Explanation, explain_with_meta
+from ledger_kit.live_guard import rejection_reason_text
 from ledger_kit.models import Alert
+from ledger_kit.ui.signatures import chip_source_template
 
 # Columns of the cited rows that may reach the LLM (REQ-PI-42). Never iban, supplier_tax_id,
 # tax_id, id or description.
@@ -114,6 +117,9 @@ BADGE_UNAVAILABLE: str = "📋 Template (LLM unavailable)"
 BADGE_REJECTED: str = (
     "⚠️ LLM answer rejected: not found in the cited rows or the alert data: {numbers}"
 )
+# The same badge for any reason; `{reason}` comes from `rejection_reason_text` (a missing figure
+# reads exactly as BADGE_REJECTED does).
+BADGE_REJECTED_REASON: str = "⚠️ LLM answer rejected: {reason}"
 
 
 def template_for(alert: Alert) -> str:
@@ -163,16 +169,23 @@ def explain_alert(
     *,
     client: Any = None,
     question: str | None = None,
+    lines: Mapping[str, int] | None = None,
 ) -> Explanation:
     """Explain one alert from its cited rows; falls back to the filled template on any problem.
 
     `question` is the optional trick question of the live-guard panel; None leaves the call as is.
+    `lines` maps a source_ref to its source_line: with it the fixed template names each cited row
+    as its chip does ('invoices.csv · line 2'); without it the template is the plain one. The
+    alert and the rows sent to the model do not change.
     """
     rows = build_explain_rows(alert, invoices, suppliers, payments)
+    template = template_for(alert)
+    if lines is not None:
+        template = chip_source_template(template, alert.source_refs, lines)
     return explain_with_meta(
         alert,
         rows,
-        fallback_template=template_for(alert),
+        fallback_template=template,
         client=client,
         row_columns=ROW_COLUMNS,
         question=question,
@@ -184,7 +197,10 @@ def guard_badge(meta: Explanation, api_key_present: bool) -> str:
     if meta.source == "llm":
         return BADGE_LLM
     if meta.rejected_numbers:
-        return BADGE_REJECTED.format(numbers=", ".join(meta.rejected_numbers))
+        reason = rejection_reason_text(
+            meta.rejected_reason, meta.rejected_numbers, meta.rejected_why
+        )
+        return BADGE_REJECTED_REASON.format(reason=reason)
     return BADGE_UNAVAILABLE if api_key_present else BADGE_TEMPLATE
 
 
