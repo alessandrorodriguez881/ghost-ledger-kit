@@ -1,0 +1,11 @@
+Session 36: the repository is about to become public, but the hosted app and the video do not exist yet. Change only README.md, plus any test that pins one of these exact strings (update it to the new string and keep the check). Write files only with your file tools; never use a shell command. Keep the README short; do not add sections.
+
+1. Lines 5 and 6 are placeholders that start with TODO. A judge must not read TODO. Replace them with two honest lines:
+   - Live app: not deployed yet; it will be on Streamlit Community Cloud, and the link will go here. Until then it runs locally in four commands, see Try it in docs/developing.md (link to it).
+   - Demo video: not recorded yet; the link will go here and on the Devpost page.
+
+2. Line 10 says No key and no install are needed on the public app. While the hosted app does not exist, say instead that no key is needed, and that the steps below work on the hosted app once it is deployed or on a local run (docs/developing.md). One short sentence.
+
+3. Read the whole README once more and list, without changing them, any other sentence that assumes the hosted app or the video already exist.
+
+Environment: Windows. When done, list every change as old sentence and new sentence.

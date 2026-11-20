@@ -234,11 +234,14 @@ def test_more_detail_names_every_docs_file(text: str) -> None:
         assert f"(docs/{name})" in section, name
 
 
-def test_todo_lines_for_live_url_and_video(text: str) -> None:
-    """The live URL and the demo video are clearly marked TODO until they exist."""
-    todo_lines = [line for line in text.splitlines() if "TODO" in line]
-    assert any("Community Cloud" in line for line in todo_lines)
-    assert any("video" in line.lower() for line in todo_lines)
+def test_live_url_and_video_lines_say_they_do_not_exist_yet(text: str) -> None:
+    """The live app and demo video lines say they are not deployed or recorded yet; no TODO."""
+    lines = text.splitlines()
+    live = [line for line in lines if line.startswith("- Live app:")]
+    video = [line for line in lines if line.startswith("- Demo video:")]
+    assert any("not deployed yet" in line and "Community Cloud" in line for line in live)
+    assert any("not recorded yet" in line for line in video)
+    assert not [line for line in lines if "TODO" in line]
 
 
 def _kiro_section(text: str) -> str:

@@ -1,0 +1,9 @@
+Session 36b: session 36 replaced the two TODO lines at the top of README.md with honest lines (Live app: not deployed yet ... Community Cloud ...; Demo video: not recorded yet ...). One test still pins the old TODO form: tests/test_readme.py, test_todo_lines_for_live_url_and_video (line 237). Change only that test. Write files only with your file tools; never use a shell command.
+
+Rename it to test_live_url_and_video_lines_say_they_do_not_exist_yet and make it check, against the current README.md:
+1. a line that starts with - Live app: says not deployed yet and names Community Cloud;
+2. a line that starts with - Demo video: says not recorded yet;
+3. no line of README.md contains TODO.
+Update its docstring to match. Do not weaken or delete any other test.
+
+Environment: Windows. When done, show the new test.

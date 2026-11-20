@@ -2,14 +2,14 @@
 
 Financial apps where an LLM may word the explanation but cannot slip in a figure: any amount or IBAN that is not in the cited rows or the alert data, in digits or in English or Spanish words, or any such date in digits or with an English month name, sends the card back to a fixed template. It checks figures, not meaning (see What the guard does not check).
 
-- Live app: TODO add the Streamlit Community Cloud URL here once the app is deployed.
-- Demo video: TODO add the demo video link here once it is recorded.
+- Live app: not deployed yet; it will be on Streamlit Community Cloud, and the link will go here. Until then it runs locally in four commands, see Try it in [docs/developing.md](docs/developing.md).
+- Demo video: not recorded yet; the link will go here and on the Devpost page.
 
 ![Home: a recorded answer of llama3.2:3b invents 5% and 617.51, and the number guard strikes both out](docs/img/home_moment.gif)
 
 ## For judges: 60 seconds
 
-No key and no install are needed on the public app.
+No key is needed; the steps below work on the hosted app once it is deployed, or on a local run ([docs/developing.md](docs/developing.md)).
 
 1. Open Home. Once the page has loaded, the moment plays in under three seconds (a cold load takes longer): one recorded answer of a real model (`llama3.2:3b`) that assumed a 5% interest rate found in no row and built 617.51 on it, and the number guard striking both figures out and showing a fixed template instead. Each app tile shows that app's own drawing, and the rest of the text is under *How it works*.
 2. Open Zombie Subscriptions. The demo loads by itself.
