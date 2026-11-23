@@ -9,8 +9,8 @@ from typing import Any, Literal, TypeVar
 
 import pandas as pd
 
-from ledger_kit.public_data import ACCOUNT_TYPES, SERVICES
-from ledger_kit.utils.money import round_to_cents
+from ledger_kit.public_data import ACCOUNT_TYPES, SERVICES, FeeSnapshot
+from ledger_kit.utils.money import median_amount, round_to_cents
 
 T = TypeVar("T")
 
@@ -66,6 +66,15 @@ DAYS_PER_YEAR: int = 365
 SUMMARY_MIN_SPAN_DAYS: int = 90
 # About 16.67 EUR a month in bank fees: heavier than any single recurring fee of a normal account.
 SUMMARY_WARNING_YEARLY_EQUIVALENT: Decimal = Decimal("200.00")
+
+# --- Fee comparison with the Banco de España (public-fees); they decide no alert ----------------
+# Fewest accounts with a declared amount for which the comparison sentence is shown (DN-PF-07).
+PEER_MIN_ACCOUNTS: int = 10
+# Most days between the last charge of the fee and the declaration date of the snapshot, in either
+# direction; a fee run older than a year would be compared with another period (DN-PF-08).
+PEER_MAX_DATE_GAP_DAYS: int = 365
+# The source named by the `peer_source` field of an alert (REQ-PF-12).
+PEER_SOURCE: str = "Banco de España, Comisiones de Cuentas de Pago"
 
 IntervalName = Literal["monthly", "quarterly", "yearly"]
 
@@ -213,6 +222,15 @@ class PeerService:
     label: str  # English words for the sentence
     words: tuple[Phrase, ...]
     exclude: tuple[Phrase, ...]
+
+
+@dataclass(frozen=True)
+class PeerContext:
+    """The snapshot, the account type to compare with and the [peer_fees] services (no I/O)."""
+
+    snapshot: FeeSnapshot
+    account_type: str  # a Banco de España code such as "CNO"
+    services: tuple[PeerService, ...]
 
 
 def _peer_phrases(key: str, name: str, raw: object, *, required: bool) -> tuple[Phrase, ...]:
@@ -371,6 +389,41 @@ def match_peer_service(fee: Fee, services: Sequence[PeerService]) -> PeerService
     if any(contains_phrase(tokens, service.exclude) for tokens in fields):
         return None
     return service
+
+
+def peer_context_fields(last: Fee, cost: Decimal, peers: object) -> dict[str, Any]:
+    """Return the peer keys of REQ-PF-12 for a fee run, or {} when REQ-PF-14 says no.
+
+    `last` is the last fee of the run and `cost` its yearly cost as a Decimal (the exact value, not
+    its display string). Every key starts with "peer_", so the alert id does not change.
+    """
+    if not isinstance(peers, PeerContext) or peers.account_type not in ACCOUNT_TYPES:
+        return {}
+    service = match_peer_service(last, peers.services)
+    if service is None:
+        return {}
+    found = peers.snapshot.declarations(peers.account_type, service.service_code, service.concept)
+    if found is None or len(found.amounts) < PEER_MIN_ACCOUNTS:
+        return {}
+    gap = abs((last.date - date.fromisoformat(found.declaration_date)).days)
+    if gap > PEER_MAX_DATE_GAP_DAYS:
+        return {}
+    amounts = found.amounts  # sorted ascending, Decimal, two places
+    return {
+        "peer_source": PEER_SOURCE,
+        "peer_account_type": peers.account_type,
+        "peer_account_type_label": ACCOUNT_TYPES[peers.account_type].phrase,
+        "peer_service": service.service_code,
+        "peer_service_label": service.label,
+        "peer_concept": service.concept,
+        "peer_declaration_date": found.declaration_date,
+        "peer_account_count": len(amounts),
+        "peer_not_offered_count": found.not_offered_count,
+        "peer_lower_count": sum(1 for amount in amounts if amount < cost),
+        "peer_zero_count": sum(1 for amount in amounts if amount == 0),
+        "peer_median_yearly": str(median_amount(amounts)),
+        "peer_max_yearly": str(amounts[-1]),
+    }
 
 
 def _unique_records(ledger: pd.DataFrame) -> list[dict[str, Any]]:

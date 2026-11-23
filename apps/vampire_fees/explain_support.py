@@ -40,10 +40,34 @@ FEE_SUMMARY_NO_YEARLY_TEMPLATE: str = (
     "Between {first_date} and {last_date} ({span_days} days) your statement shows "
     "{fee_count} bank fees totalling {total_fees:money}. Source: {source_refs}."
 )
+# The comparison with the Banco de España declarations (public-fees REQ-PF-18): two short
+# sentences that state counts, a median and a maximum, draw no conclusion and advise nothing
+# (Finance Rule 8). Every placeholder is a peer_ key of Alert.data or `yearly_cost`; the date is
+# ISO so the number guard reads it as a date. The wording is the reviewer's decision Q9.
+PEER_SENTENCE: str = (
+    "Of {peer_account_count} {peer_account_type_label} accounts that declared an annual "
+    "{peer_service_label} fee to the Banco de España on {peer_declaration_date}, "
+    "{peer_lower_count} charge less than this fee costs a year ({yearly_cost:money}). "
+    "{peer_zero_count} charge nothing; the median is {peer_median_yearly:money} "
+    "and the highest {peer_max_yearly:money}."
+)
+# Today's recurring-fee text with the comparison before `Source: {source_refs}.`, which stays the
+# tail so that `chip_source_template` keeps rewriting the refs.
+RECURRING_FEE_WITH_PEERS_TEMPLATE: str = (
+    "{counterparty} charged you a {interval_type} fee of {current_amount:money} "
+    "({description}), {charge_count} times between {first_charge_date} and "
+    "{last_charge_date}, about {yearly_cost:money} per year. "
+    + PEER_SENTENCE
+    + " Source: {source_refs}."
+)
+# The one key that marks an alert carrying the peer fields (they appear together or not at all).
+PEER_MARKER_KEY: str = "peer_median_yearly"
 
 
 def template_for(alert: Alert) -> str:
-    """Return the fallback template of an alert; the summary variant depends on its data."""
+    """Return the fallback template of an alert; the summary and peer variants follow its data."""
+    if alert.detector == "vf.recurring_fee" and PEER_MARKER_KEY in alert.data:
+        return RECURRING_FEE_WITH_PEERS_TEMPLATE
     if alert.detector == "vf.fee_summary" and "yearly_equivalent" not in alert.data:
         return FEE_SUMMARY_NO_YEARLY_TEMPLATE
     return TEMPLATES[alert.detector]

@@ -24,7 +24,9 @@ from apps.vampire_fees.detectors.utils import (
     build_vocabulary,
     skipped_currency_rows,
 )
+from apps.vampire_fees.explain_support import PEER_MARKER_KEY, PEER_SENTENCE
 from ledger_kit.detectors import DetectorResult, run_all
+from ledger_kit.explainer import fill_fallback
 from ledger_kit.ingestion.normaliser import normalise
 from ledger_kit.ingestion.sniffer import format_label, read_bank_statement, sniff_format
 from ledger_kit.live_guard import rejection_reason_text
@@ -33,6 +35,7 @@ from ledger_kit.utils.money import format_amount
 
 if TYPE_CHECKING:
     from ledger_kit.explainer import Explanation
+    from ledger_kit.public_data import FeeSnapshot
 
 # Alert severities in display order.
 SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
@@ -277,3 +280,62 @@ def summary_view(alerts: Iterable[Alert]) -> SummaryView | None:
             else format_amount(Decimal(str(yearly))),
         )
     return None
+
+
+# --- Fee comparison card helpers (public-fees PF5, REQ-PF-19) ------------------------------------
+
+# The line under a card that names the source of the comparison; every `{...}` is a peer_ field.
+PEER_SOURCE_LINE: str = (
+    "Comparison source: {peer_source}, account type {peer_account_type} "
+    "({peer_account_type_label}), service {peer_service} ({peer_service_label}), "
+    "declared {peer_declaration_date}; {not_offered}."
+)
+# The licence line of the footer; the two dates are the snapshot's own.
+PEER_LICENCE_LINE: str = (
+    "Licence: see the Banco de España legal notice · retrieved {retrieved_on} · "
+    "declarations of {declaration_date}"
+)
+
+
+def _not_offered_text(count: int) -> str:
+    """Return '3 accounts do not offer this service' (and the singular for one account)."""
+    if count == 1:
+        return "1 account does not offer this service"
+    return f"{count} accounts do not offer this service"
+
+
+def peer_source_line(alert: Alert) -> str | None:
+    """Return the comparison source line of a card, or None when the alert has no peer fields.
+
+    Plain text from the alert's own fields; the page shows it through `markdown_safe`.
+    """
+    data = alert.data
+    if PEER_MARKER_KEY not in data:
+        return None
+    fields = {key: str(value) for key, value in data.items() if key.startswith("peer_")}
+    return PEER_SOURCE_LINE.format(
+        **fields, not_offered=_not_offered_text(int(data["peer_not_offered_count"]))
+    )
+
+
+def peer_sentence_to_add(alert: Alert, explanation: Explanation) -> str | None:
+    """Return the comparison sentences to add under the explanation, or None.
+
+    None when the alert has no peer fields or the explanation already holds the sentences (the
+    fallback template does), so they are shown once; otherwise the sentences filled from the alert.
+    """
+    if PEER_MARKER_KEY not in alert.data:
+        return None
+    sentence = fill_fallback(PEER_SENTENCE, alert)
+    return None if sentence in explanation.text else sentence
+
+
+def peer_attribution_lines(snapshot: FeeSnapshot) -> list[str]:
+    """Return the footer lines: attribution, licence line, licence note, no-endorsement text.
+
+    The texts are the snapshot's own (decision Q1); they are shown once on the page.
+    """
+    licence = PEER_LICENCE_LINE.format(
+        retrieved_on=snapshot.retrieved_on, declaration_date=snapshot.declaration_date
+    )
+    return [snapshot.attribution, licence, snapshot.licence_note, snapshot.no_endorsement]

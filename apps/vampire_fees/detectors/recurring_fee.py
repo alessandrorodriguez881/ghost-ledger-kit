@@ -10,6 +10,7 @@ from apps.vampire_fees.detectors.utils import (
     RECURRING_FEE_WARNING_YEARLY_COST,
     extract_fees,
     in_first_row_order,
+    peer_context_fields,
     recurring_runs,
     sorted_refs,
     yearly_cost,
@@ -23,26 +24,29 @@ from ledger_kit.utils.money import round_to_cents
 def detect_recurring_fees(ledger: pd.DataFrame, context: Mapping[str, Any]) -> list[Alert]:
     """Emit one alert for every regular monthly, quarterly or yearly run of a fee."""
     fees = extract_fees(ledger, context.get("vocabulary", EMPTY_VOCABULARY))
+    peers = context.get("peers")
     entries: list[tuple[Any, Alert]] = []
     for interval, run in recurring_runs(fees):
         last = run[-1]
         cost = yearly_cost(last.amount, interval)
         severity = "warning" if cost >= RECURRING_FEE_WARNING_YEARLY_COST else "info"
+        data = {
+            "counterparty": last.counterparty,
+            "description": last.description,
+            "interval_type": interval.name,
+            "charge_count": len(run),
+            "current_amount": str(round_to_cents(last.amount)),
+            "yearly_cost": str(cost),
+            "first_charge_date": run[0].date.isoformat(),
+            "last_charge_date": last.date.isoformat(),
+        }
+        data.update(peer_context_fields(last, cost, peers))
         alert = Alert(
             detector="vf.recurring_fee",
             severity=severity,
             title=f"Recurring {interval.name} fee: {last.counterparty} · {last.description}",
             source_refs=sorted_refs(run),
-            data={
-                "counterparty": last.counterparty,
-                "description": last.description,
-                "interval_type": interval.name,
-                "charge_count": len(run),
-                "current_amount": str(round_to_cents(last.amount)),
-                "yearly_cost": str(cost),
-                "first_charge_date": run[0].date.isoformat(),
-                "last_charge_date": last.date.isoformat(),
-            },
+            data=data,
         )
         entries.append((run[0], alert))
     return in_first_row_order(entries)

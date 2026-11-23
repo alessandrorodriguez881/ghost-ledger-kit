@@ -4,16 +4,29 @@ Dates are always explicit; nothing here reads the system clock. Counterparties a
 names (Finance Rule 5) and every amount is a Decimal built from text.
 """
 
+import importlib.util
+import tomllib
 from collections.abc import Iterable
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pandas as pd
 from hypothesis import strategies as st
 
-from apps.vampire_fees.detectors.utils import Fee, FeeVocabulary, build_vocabulary, series_key
+from apps.vampire_fees.detectors.utils import (
+    Fee,
+    FeeVocabulary,
+    PeerContext,
+    PeerService,
+    build_peer_services,
+    build_vocabulary,
+    series_key,
+)
 from ledger_kit.ingestion.normaliser import CANONICAL_COLUMNS, normalise
+from ledger_kit.public_data import FeeSnapshot
 
 SOURCE_FILE = "vf_fixture.csv"
 
@@ -200,6 +213,172 @@ def peer_fee(
     )
 
 
+# --- Peer context (public-fees PF4, PF5): synthetic snapshots and demo series ------------------
+
+PEER_DECLARATION_DATE = "2026-11-23"
+MAINTENANCE_DESCRIPTION = MAINTENANCE
+CARD_DESCRIPTION = "Comisión anual tarjeta débito"
+CUSTODY_DESCRIPTION = "Comisión custodia valores"
+# The file name the REQ-PF-16 and REQ-PF-18 examples cite.
+PEER_SOURCE_FILE = "s.csv"
+_CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.toml"
+_BDE_BUILDERS_PATH = (
+    Path(__file__).resolve().parents[3] / "tests" / "public_data" / "bde_builders.py"
+)
+_loaded_bde_builders: list[ModuleType] = []
+
+
+def bde_builders() -> ModuleType:
+    """Return tests/public_data/bde_builders.py (synthetic snapshots), loaded once by its path."""
+    if not _loaded_bde_builders:
+        spec = importlib.util.spec_from_file_location("vf_loaded_bde_builders", _BDE_BUILDERS_PATH)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _loaded_bde_builders.append(module)
+    return _loaded_bde_builders[0]
+
+
+def peer_services() -> tuple[PeerService, ...]:
+    """Return the services of the committed config.toml [peer_fees] table."""
+    config = tomllib.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+    return build_peer_services(config["peer_fees"])
+
+
+def snapshot_dict_of(
+    maintenance: Iterable[str] = (),
+    card: Iterable[str] = (),
+    *,
+    maintenance_asterisks: int = 0,
+    declaration_date: str = PEER_DECLARATION_DATE,
+) -> dict[str, Any]:
+    """Return a synthetic CNO snapshot: one account per amount of service 101 or 401.
+
+    Account i has the i-th maintenance amount (then `maintenance_asterisks` accounts hold the
+    asterisk) and the i-th card amount; an account with neither has no row. Every amount is a
+    two-decimal string and everything is synthetic (never a Banco de España figure).
+    """
+    b = bde_builders()
+    maintenance, card = tuple(maintenance), tuple(card)
+    count = max(len(maintenance) + maintenance_asterisks, len(card), 1)
+    accounts = [b.account(str(9901 + i), declaration_date=declaration_date) for i in range(count)]
+    rows: list[dict[str, Any]] = []
+    for i, acc in enumerate(accounts):
+        if i < len(maintenance):
+            rows.append(b.amount_row(acc, "101", b.MAINTENANCE_CONCEPT, maintenance[i]))
+        elif i < len(maintenance) + maintenance_asterisks:
+            rows.append(b.asterisk_row(acc, "101", b.MAINTENANCE_CONCEPT))
+        if i < len(card):
+            rows.append(b.amount_row(acc, "401", b.CARD_CONCEPT, card[i]))
+    ordered = b.sort_rows(rows, accounts)
+    return b.make_snapshot(accounts, ordered, declaration_date=declaration_date)
+
+
+# S12 and S10 of REQ-PF-07 and REQ-PF-12, as amounts of the demo fees (synthetic).
+S12_AMOUNTS: tuple[str, ...] = (
+    "0.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "12.00",
+    "24.00",
+    "36.00",
+    "60.00",
+    "78.00",
+    "96.00",
+    "240.00",
+)
+S10_AMOUNTS: tuple[str, ...] = (
+    "0.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "12.00",
+    "18.00",
+    "24.00",
+    "30.00",
+    "45.00",
+)
+
+
+def s12_snapshot_dict() -> dict[str, Any]:
+    """S12 (synthetic): 12 amounts and 3 asterisks for service 101, declared 2026-11-23."""
+    return snapshot_dict_of(S12_AMOUNTS, maintenance_asterisks=3)
+
+
+def s10_snapshot_dict() -> dict[str, Any]:
+    """S10 (synthetic): ten amounts for service 401, declared 2026-11-23."""
+    return snapshot_dict_of(card=S10_AMOUNTS)
+
+
+def peer_context(snapshot: FeeSnapshot | dict[str, Any], account_type: str = "CNO") -> PeerContext:
+    """Return a PeerContext for a snapshot (a dict is validated first) and the config services."""
+    loaded = snapshot if isinstance(snapshot, FeeSnapshot) else FeeSnapshot.from_dict(snapshot)
+    return PeerContext(loaded, account_type, peer_services())
+
+
+def monthly_entries(
+    count: int, amount: str, start: date = date(2025, 1, 5)
+) -> list[tuple[date, str]]:
+    """Return `count` (date, amount) entries on the same day of consecutive months."""
+    entries = []
+    for i in range(count):
+        month = start.month - 1 + i
+        entries.append((date(start.year + month // 12, month % 12 + 1, start.day), amount))
+    return entries
+
+
+def demo_maintenance_rows(
+    first_row: int = 0, source_file: str = PEER_SOURCE_FILE
+) -> list[dict[str, Any]]:
+    """The demo maintenance series: 22 monthly 6.50 from 2025-01-05 to 2026-10-05 (78.00 a year)."""
+    return series_rows(
+        monthly_entries(22, "6.50"),
+        description=MAINTENANCE_DESCRIPTION,
+        first_row=first_row,
+        source_file=source_file,
+    )
+
+
+def demo_card_rows(first_row: int = 0, source_file: str = PEER_SOURCE_FILE) -> list[dict[str, Any]]:
+    """The demo yearly card fee: 30.00 on 2025-02-14 and 2026-02-16 (30.00 a year)."""
+    return series_rows(
+        [(date(2025, 2, 14), "30.00"), (date(2026, 2, 16), "30.00")],
+        description=CARD_DESCRIPTION,
+        first_row=first_row,
+        source_file=source_file,
+    )
+
+
+def demo_custody_rows(
+    first_row: int = 0, source_file: str = PEER_SOURCE_FILE
+) -> list[dict[str, Any]]:
+    """A monthly custody fee (a service with no comparison): 5.00 on 2026-03-05, 04-05, 05-05."""
+    return series_rows(
+        monthly_entries(3, "5.00", date(2026, 3, 5)),
+        description=CUSTODY_DESCRIPTION,
+        first_row=first_row,
+        source_file=source_file,
+    )
+
+
+def demo_maintenance_ledger() -> pd.DataFrame:
+    """The maintenance series alone (rows 0 to 21 of s.csv)."""
+    return make_ledger(demo_maintenance_rows())
+
+
+def demo_card_ledger() -> pd.DataFrame:
+    """The card series alone (rows 0 and 1 of s.csv)."""
+    return make_ledger(demo_card_rows())
+
+
+def demo_fee_ledger() -> pd.DataFrame:
+    """Maintenance (rows 0 to 21), card (22, 23) and custody (24 to 26), all in s.csv."""
+    return make_ledger([*demo_maintenance_rows(), *demo_card_rows(22), *demo_custody_rows(24)])
+
+
 # --- Hypothesis strategies ---------------------------------------------------------------------
 
 _DATES = st.dates(min_value=date(2025, 1, 1), max_value=date(2026, 12, 31))
@@ -258,3 +437,34 @@ def regular_series_strategy(draw: st.DrawFn) -> list[dict[str, Any]]:
         rows.append(fee_row(i, day, draw(_AMOUNTS)))
         day = day + timedelta(days=draw(st.integers(min_value=0, max_value=400)))
     return rows
+
+
+_PEER_AMOUNTS = st.decimals(min_value=Decimal("0.00"), max_value=Decimal("400.00"), places=2).map(
+    lambda amount: format(amount.quantize(Decimal("0.01")), "f")
+)
+_PEER_DECLARATION_DATES = st.dates(min_value=date(2025, 6, 1), max_value=date(2027, 6, 30))
+
+
+@st.composite
+def peer_snapshot_dict_strategy(draw: st.DrawFn) -> dict[str, Any]:
+    """Draw a synthetic CNO snapshot with 0 to 14 amounts for service 101 and for 401."""
+    return snapshot_dict_of(
+        draw(st.lists(_PEER_AMOUNTS, max_size=14)),
+        draw(st.lists(_PEER_AMOUNTS, max_size=14)),
+        maintenance_asterisks=draw(st.integers(min_value=0, max_value=4)),
+        declaration_date=draw(_PEER_DECLARATION_DATES).isoformat(),
+    )
+
+
+@st.composite
+def peer_series_ledger_strategy(draw: st.DrawFn) -> pd.DataFrame:
+    """Draw one regular fee series: maintenance, debit card or custody, 3 to 5 charges."""
+    description = draw(
+        st.sampled_from((MAINTENANCE_DESCRIPTION, CARD_DESCRIPTION, CUSTODY_DESCRIPTION))
+    )
+    step = draw(st.sampled_from((30, 91, 365)))
+    start = draw(st.dates(min_value=date(2024, 6, 1), max_value=date(2026, 6, 30)))
+    amount = draw(_AMOUNTS)
+    count = draw(st.integers(min_value=3, max_value=5))
+    entries = [(start + timedelta(days=step * i), amount) for i in range(count)]
+    return make_ledger(series_rows(entries, description=description))

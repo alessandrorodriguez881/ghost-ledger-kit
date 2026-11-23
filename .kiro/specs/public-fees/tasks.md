@@ -104,9 +104,9 @@ docstring; lines are at most 100 characters; constants are named and commented (
 
 **Covers**: REQ-PF-11, REQ-PF-12, REQ-PF-13, REQ-PF-14, REQ-PF-17, §6.1, §6.3
 
-- [ ] Before editing, search the vf tests for 64-hex literals (an asserted alert id) and read
+- [x] Before editing, search the vf tests for 64-hex literals (an asserted alert id) and read
   `test_vf_recurring_fee.py`: none may change.
-- [ ] `apps/vampire_fees/tests/test_vf_recurring_fee_peers.py` (the existing `test_vf_recurring_fee.py` is not edited; it
+- [x] `apps/vampire_fees/tests/test_vf_recurring_fee_peers.py` (the existing `test_vf_recurring_fee.py` is not edited; it
   keeps proving the no-peers behaviour). Tier 1: the exact dict of REQ-PF-12 for the demo maintenance series with `S12`
   (built from rows through `vf_builders.py`, 22 monthly charges, last `6.50`); the `S10` case for the yearly card fee
   (`peer_lower_count` 8, `peer_median_yearly` `6.00`); the same ledger without `peers` equals the eight-key dict; the same
@@ -119,7 +119,7 @@ docstring; lines are at most 100 characters; constants are named and commented (
   builder strategy, ids included), the `source_refs ⊆ loaded_source_refs(ledger, context)` property with
   `context["peers"]` set, idempotency, and the independent recomputation of REQ-PF-22 (`statistics.median` on `Decimal`
   plus a half-up quantize written in the test, `sum(...)` counts).
-- [ ] Add `PEER_MIN_ACCOUNTS`, `PEER_MAX_DATE_GAP_DAYS`, `PeerContext`, `peer_context_fields` to `detectors/utils.py` and
+- [x] Add `PEER_MIN_ACCOUNTS`, `PEER_MAX_DATE_GAP_DAYS`, `PeerContext`, `peer_context_fields` to `detectors/utils.py` and
   the two lines of §6.3 to `recurring_fee.py`. The run, severity, title and `sorted_refs` lines are not touched. Every
   key `peer_context_fields` returns starts with `peer_` (a test asserts it), so PF0 keeps the id.
 
@@ -127,7 +127,7 @@ docstring; lines are at most 100 characters; constants are named and commented (
 
 **Covers**: REQ-PF-16, REQ-PF-18, REQ-PF-19 (helpers), §7, §8
 
-- [ ] Tests in `apps/vampire_fees/tests/test_vf_peer_support.py` (template and guard part):
+- [x] Tests in `apps/vampire_fees/tests/test_vf_peer_support.py` (template and guard part):
   `template_for` returns `TEMPLATES["vf.recurring_fee"]` for an alert without peer keys and
   `RECURRING_FEE_WITH_PEERS_TEMPLATE` with them; the filled text equals the string of REQ-PF-18 exactly (the two
   sentences of decision Q9); the two templates start with the same text; `TEMPLATES` keys still equal the registered
@@ -146,7 +146,7 @@ docstring; lines are at most 100 characters; constants are named and commented (
   contains the sentence), the sentence for a model text without it, `None` without keys, never twice;
   `peer_attribution_lines` returns the lines of REQ-PF-19 from a snapshot; markdown characters in a label are escaped by
   `markdown_safe`.
-- [ ] Add `PEER_SENTENCE`, `RECURRING_FEE_WITH_PEERS_TEMPLATE` and the extra branch of `template_for` to
+- [x] Add `PEER_SENTENCE`, `RECURRING_FEE_WITH_PEERS_TEMPLATE` and the extra branch of `template_for` to
   `explain_support.py`; add the three helpers to `settings.py`. Read `ledger_kit/ui/signatures.py`
   (`chip_source_template`) first and confirm it still finds `Source: {source_refs}.` in the new template.
 
