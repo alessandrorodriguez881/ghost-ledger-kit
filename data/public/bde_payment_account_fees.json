@@ -1,0 +1,5729 @@
+{
+  "snapshot_format": 1,
+  "source": "Banco de España, Comisiones y tipos de interés de los servicios financieros, Comisiones de Cuentas de Pago, Comparación entre entidades para una fecha y cuenta",
+  "start_page": "https://app.bde.es/csfwciu/csfwciuias/pub/InicioComisionesCuentasPago.html",
+  "retrieved_on": "2026-11-23",
+  "declaration_date": "2026-11-23",
+  "account_types": [
+    "CNO"
+  ],
+  "licence_note": "The Banco de España legal notice allows reuse and use for calculations if the information is reproduced faithfully and the Banco de España is cited as the source. The data keeps that condition and is not covered by the repository MIT licence.",
+  "attribution": "Fuente: Banco de España, comparador de comisiones de cuentas de pago (declaraciones a fecha 2026-11-23). Elaboración propia: recuento, mediana y máximo.",
+  "no_endorsement": "The Banco de España does not take part in, endorse or support this reuse.",
+  "excel_files": [
+    {
+      "account_type": "CNO",
+      "name": "CompararEntidadesCCP.xls",
+      "size_bytes": 212928,
+      "sha256": "e9cddbe0a7737b050a68e79db01db225d80f3a2147ad7f43791f01a5597602a2"
+    }
+  ],
+  "accounts": [
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0049",
+      "entity_name": "BANCO SANTANDER, S.A.",
+      "account_key": "0049-01",
+      "account_name": "Cuenta Santander"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0073",
+      "entity_name": "OPEN BANK, S.A.",
+      "account_key": "0073-01",
+      "account_name": "CUENTA NOMINA OPEN"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0078",
+      "entity_name": "BANCA PUEYO, S.A.",
+      "account_key": "0078-01",
+      "account_name": "LIBRETA VIP"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0078",
+      "entity_name": "BANCA PUEYO, S.A.",
+      "account_key": "0078-02",
+      "account_name": "Libreta Pensionista"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0081",
+      "entity_name": "BANCO DE SABADELL, S.A.",
+      "account_key": "0081-01",
+      "account_name": "Cuenta Sabadell"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0128",
+      "entity_name": "BANKINTER, S.A.",
+      "account_key": "0128-01",
+      "account_name": "Cuenta Nomina/Pensión/Profesional"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0133",
+      "entity_name": "NUEVO MICRO BANK, S.A.",
+      "account_key": "0133-01",
+      "account_name": "Cuenta Corriente Estrella"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0133",
+      "entity_name": "NUEVO MICRO BANK, S.A.",
+      "account_key": "0133-02",
+      "account_name": "Libreta Microbank"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0169",
+      "entity_name": "BANCO DE LA NACION ARGENTINA, S.E.",
+      "account_key": "0169-01",
+      "account_name": "BANCO DE LA NACION ARGENTINA S.E."
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0182",
+      "entity_name": "BANCO BILBAO VIZCAYA ARGENTARIA, S.A.",
+      "account_key": "0182-01",
+      "account_name": "CUENTA ELECCION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0182",
+      "entity_name": "BANCO BILBAO VIZCAYA ARGENTARIA, S.A.",
+      "account_key": "0182-02",
+      "account_name": "CUENTA VA CONTIGO"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0182",
+      "entity_name": "BANCO BILBAO VIZCAYA ARGENTARIA, S.A.",
+      "account_key": "0182-03",
+      "account_name": "CUENTA ELECCIÓN"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0234",
+      "entity_name": "CBNK BANCO DE COLECTIVOS, S.A.",
+      "account_key": "0234-01",
+      "account_name": "CUENTA ESENCIAL CBNK"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0235",
+      "entity_name": "BANCO PICHINCHA ESPAÑA, S.A.",
+      "account_key": "0235-01",
+      "account_name": "Tu Cuenta Plus"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "0235",
+      "entity_name": "BANCO PICHINCHA ESPAÑA, S.A.",
+      "account_key": "0235-02",
+      "account_name": "CUENTA NOMINA PIBANK"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "1465",
+      "entity_name": "ING BANK N.V. SUCURSAL EN ESPAÑA",
+      "account_key": "1465-01",
+      "account_name": "Cuenta NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "2045",
+      "entity_name": "CAJA DE AHORROS Y M.P. DE ONTINYENT",
+      "account_key": "2045-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "2100",
+      "entity_name": "CAIXABANK, S.A.",
+      "account_key": "2100-01",
+      "account_name": "Cuenta Family Senior"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "2100",
+      "entity_name": "CAIXABANK, S.A.",
+      "account_key": "2100-02",
+      "account_name": "Cuenta Corriente Estrella"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "2100",
+      "entity_name": "CAIXABANK, S.A.",
+      "account_key": "2100-03",
+      "account_name": "Cuenta Family"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "2103",
+      "entity_name": "UNICAJA BANCO, S.A.",
+      "account_key": "2103-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3001",
+      "entity_name": "CAJA R. DE ALMENDRALEJO, S.C.C.",
+      "account_key": "3001-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3001",
+      "entity_name": "CAJA R. DE ALMENDRALEJO, S.C.C.",
+      "account_key": "3001-02",
+      "account_name": "LIBRETA PENSIÓN"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3001",
+      "entity_name": "CAJA R. DE ALMENDRALEJO, S.C.C.",
+      "account_key": "3001-03",
+      "account_name": "LIBRETA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3005",
+      "entity_name": "CAJA R. CENTRAL, S.C.C.",
+      "account_key": "3005-01",
+      "account_name": "Cuenta Verde Trabajador"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3005",
+      "entity_name": "CAJA R. CENTRAL, S.C.C.",
+      "account_key": "3005-02",
+      "account_name": "Cuenta Verde Pensión"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3009",
+      "entity_name": "CAJA R. DE EXTREMADURA, S.C.C.",
+      "account_key": "3009-01",
+      "account_name": "LIBRETA DE AHORRO - PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3017",
+      "entity_name": "CAJA R. DE SORIA, S.C.C.",
+      "account_key": "3017-01",
+      "account_name": "CUENTA NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3017",
+      "entity_name": "CAJA R. DE SORIA, S.C.C.",
+      "account_key": "3017-02",
+      "account_name": "CUENTA PENSIÓN"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3017",
+      "entity_name": "CAJA R. DE SORIA, S.C.C.",
+      "account_key": "3017-03",
+      "account_name": "LIBRETA PENSION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3017",
+      "entity_name": "CAJA R. DE SORIA, S.C.C.",
+      "account_key": "3017-04",
+      "account_name": "LIBRETA NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3018",
+      "entity_name": "CAJA R.R.S.AGUSTIN DE FUENTE ALAMO M., S.C.C.",
+      "account_key": "3018-01",
+      "account_name": "CUENTA CORRIENTE CONSUMIDORES"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3018",
+      "entity_name": "CAJA R.R.S.AGUSTIN DE FUENTE ALAMO M., S.C.C.",
+      "account_key": "3018-02",
+      "account_name": "LIBRETA DORADA - PENSIONES"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3020",
+      "entity_name": "CAJA RURAL DE UTRERA, SOCIEDAD COOPERATIVA ANDALUZ",
+      "account_key": "3020-01",
+      "account_name": "NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3029",
+      "entity_name": "CAJA DE CREDITO DE PETREL, CAJA RURAL, C.C.V.",
+      "account_key": "3029-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3029",
+      "entity_name": "CAJA DE CREDITO DE PETREL, CAJA RURAL, C.C.V.",
+      "account_key": "3029-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3035",
+      "entity_name": "CAJA LABORAL POPULAR COOP. DE CREDITO",
+      "account_key": "3035-01",
+      "account_name": "CUENTA PLUS SIN VINCULACION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3035",
+      "entity_name": "CAJA LABORAL POPULAR COOP. DE CREDITO",
+      "account_key": "3035-02",
+      "account_name": "CUENTA PLUS CON VINCULACION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3035",
+      "entity_name": "CAJA LABORAL POPULAR COOP. DE CREDITO",
+      "account_key": "3035-03",
+      "account_name": "CUENTA SUPER LK SIN VINCULACION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3035",
+      "entity_name": "CAJA LABORAL POPULAR COOP. DE CREDITO",
+      "account_key": "3035-04",
+      "account_name": "SUPER LK CON VINCULACION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3045",
+      "entity_name": "CAIXA R. ALTEA, C.C.V.",
+      "account_key": "3045-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3045",
+      "entity_name": "CAIXA R. ALTEA, C.C.V.",
+      "account_key": "3045-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3058",
+      "entity_name": "CAJAMAR CAJA RURAL, S.C.C.",
+      "account_key": "3058-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3058",
+      "entity_name": "CAJAMAR CAJA RURAL, S.C.C.",
+      "account_key": "3058-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3059",
+      "entity_name": "CAJA R. DE ASTURIAS, S.C.C.",
+      "account_key": "3059-01",
+      "account_name": "Cuenta Nos Gustas Tú Nómina"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3059",
+      "entity_name": "CAJA R. DE ASTURIAS, S.C.C.",
+      "account_key": "3059-02",
+      "account_name": "Cuenta Nos Gustas Tú Pensión"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3067",
+      "entity_name": "CAJA R. DE JAEN, BARCELONA Y MADRID, S.C.C.",
+      "account_key": "3067-01",
+      "account_name": "Cuenta Nómina/Pensión"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3070",
+      "entity_name": "CAIXA R. GALEGA, S.C.C.L.G.",
+      "account_key": "3070-01",
+      "account_name": "CUENTA CORRIENTE NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3070",
+      "entity_name": "CAIXA R. GALEGA, S.C.C.L.G.",
+      "account_key": "3070-02",
+      "account_name": "LIBRETA DE AHORRO NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3076",
+      "entity_name": "CAJASIETE, CAJA RURAL, S.C.C.",
+      "account_key": "3076-01",
+      "account_name": "Cuenta Nuestra Gente Nómina"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3076",
+      "entity_name": "CAJASIETE, CAJA RURAL, S.C.C.",
+      "account_key": "3076-02",
+      "account_name": "Cuenta Nuestra Gente Pensión"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3080",
+      "entity_name": "CAJA R. DE TERUEL, S.C.C.",
+      "account_key": "3080-01",
+      "account_name": "CUENTA NÓMINA/PENSIÓN"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3085",
+      "entity_name": "CAJA R. DE ZAMORA, C.C.",
+      "account_key": "3085-01",
+      "account_name": "CUENTA NOMINA LEON - VALLADOLID"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3085",
+      "entity_name": "CAJA R. DE ZAMORA, C.C.",
+      "account_key": "3085-02",
+      "account_name": "CUENTA NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3095",
+      "entity_name": "CAJA R. S. ROQUE DE ALMENARA S.C.C.V.",
+      "account_key": "3095-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3095",
+      "entity_name": "CAJA R. S. ROQUE DE ALMENARA S.C.C.V.",
+      "account_key": "3095-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3102",
+      "entity_name": "CAIXA R. S. VICENT FERRER DE LA VALL D'UIXO,C.C.V.",
+      "account_key": "3102-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3102",
+      "entity_name": "CAIXA R. S. VICENT FERRER DE LA VALL D'UIXO,C.C.V.",
+      "account_key": "3102-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3105",
+      "entity_name": "CAIXA R. DE CALLOSA D'EN SARRIA, C.C.V.",
+      "account_key": "3105-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3105",
+      "entity_name": "CAIXA R. DE CALLOSA D'EN SARRIA, C.C.V.",
+      "account_key": "3105-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3110",
+      "entity_name": "CAJA R. CATOLICO AGRARIA, S.C.C.V.",
+      "account_key": "3110-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3110",
+      "entity_name": "CAJA R. CATOLICO AGRARIA, S.C.C.V.",
+      "account_key": "3110-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3112",
+      "entity_name": "CAJA R. S. JOSE DE BURRIANA, S.C.C.V.",
+      "account_key": "3112-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3112",
+      "entity_name": "CAJA R. S. JOSE DE BURRIANA, S.C.C.V.",
+      "account_key": "3112-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3117",
+      "entity_name": "CAIXA R. D'ALGEMESI, S.C.V.C.",
+      "account_key": "3117-01",
+      "account_name": "Cuenta Nómina"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3117",
+      "entity_name": "CAIXA R. D'ALGEMESI, S.C.V.C.",
+      "account_key": "3117-02",
+      "account_name": "Cuenta Pensión"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3118",
+      "entity_name": "CAIXA RURAL TORRENT C.C.V.",
+      "account_key": "3118-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3118",
+      "entity_name": "CAIXA RURAL TORRENT C.C.V.",
+      "account_key": "3118-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3119",
+      "entity_name": "CAJA R. S. JAIME ALQUERIAS NIÑO PERDIDO S.C.C.V.",
+      "account_key": "3119-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3119",
+      "entity_name": "CAJA R. S. JAIME ALQUERIAS NIÑO PERDIDO S.C.C.V.",
+      "account_key": "3119-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3121",
+      "entity_name": "CAJA R. DE CHESTE, S.C.C.V.",
+      "account_key": "3121-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3121",
+      "entity_name": "CAJA R. DE CHESTE, S.C.C.V.",
+      "account_key": "3121-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3123",
+      "entity_name": "CAIXA R. DE TURIS, C.C.V.",
+      "account_key": "3123-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3123",
+      "entity_name": "CAIXA R. DE TURIS, C.C.V.",
+      "account_key": "3123-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3134",
+      "entity_name": "CAJA R. NTRA. SRA. LA ESPERANZA DE ONDA, S.C.C.V.",
+      "account_key": "3134-01",
+      "account_name": "NOMINA/PENSION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3135",
+      "entity_name": "CAJA R. S. JOSE DE NULES S.C.C.V.",
+      "account_key": "3135-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3135",
+      "entity_name": "CAJA R. S. JOSE DE NULES S.C.C.V.",
+      "account_key": "3135-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3150",
+      "entity_name": "CAJA RURAL DE ALBAL COOP. DE CREDITO V.",
+      "account_key": "3150-01",
+      "account_name": "CUENTA NOMINA/PENSION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3152",
+      "entity_name": "CAJA R. DE VILLAR C.C.V.",
+      "account_key": "3152-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3152",
+      "entity_name": "CAJA R. DE VILLAR C.C.V.",
+      "account_key": "3152-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3157",
+      "entity_name": "CAJA R. LA JUNQUERA DE CHILCHES, S.C.C.V.",
+      "account_key": "3157-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3157",
+      "entity_name": "CAJA R. LA JUNQUERA DE CHILCHES, S.C.C.V.",
+      "account_key": "3157-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3159",
+      "entity_name": "CAIXA POPULAR-CAIXA RURAL, S.C.C.V.",
+      "account_key": "3159-01",
+      "account_name": "CUENTA NOMINA/PENSION"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3160",
+      "entity_name": "CAIXA R.S.JOSEP DE VILAVELLA, S.C.C.V.",
+      "account_key": "3160-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3160",
+      "entity_name": "CAIXA R.S.JOSEP DE VILAVELLA, S.C.C.V.",
+      "account_key": "3160-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3165",
+      "entity_name": "CAJA R. S. ISIDRO DE VILAFAMES, S.C.C.V.",
+      "account_key": "3165-01",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3174",
+      "entity_name": "CAIXA R. VINAROS, S.C.C.V.",
+      "account_key": "3174-01",
+      "account_name": "CUENTA NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3174",
+      "entity_name": "CAIXA R. VINAROS, S.C.C.V.",
+      "account_key": "3174-02",
+      "account_name": "LIBRETA NOMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3179",
+      "entity_name": "CAJA R. DE ALGINET, S.C.C.V.",
+      "account_key": "3179-01",
+      "account_name": "CUENTA NÓMINA"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3179",
+      "entity_name": "CAJA R. DE ALGINET, S.C.C.V.",
+      "account_key": "3179-02",
+      "account_name": "CUENTA PENSIONISTAS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3190",
+      "entity_name": "C.R. DE ALBACETE, CIUDAD REAL Y CUENCA, S.C.C.",
+      "account_key": "3190-01",
+      "account_name": "CUENTA CORRIENTE ASALARIADOS"
+    },
+    {
+      "account_type": "CNO",
+      "declaration_date": "2026-11-23",
+      "entity_code": "3190",
+      "entity_name": "C.R. DE ALBACETE, CIUDAD REAL Y CUENCA, S.C.C.",
+      "account_key": "3190-02",
+      "account_name": "CUENTA CORRIENTE SENIOR > 67 AÑOS"
+    }
+  ],
+  "rows": [
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta Débito Santander",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0049-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA OPEN DEBIT",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0073-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0078-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "BS CARD MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0081-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta de débito Bankinter",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "30,00",
+      "amount": "30.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0128-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "30,00",
+      "amount": "30.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0133-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0169-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "160,00",
+      "amount": "160.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta Ahora BBVA o Aqua Débito",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "160,00",
+      "amount": "160.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta Ahora BBVA o Aqua Débito",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "160,00",
+      "amount": "160.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta Ahora BBVA o Aqua Débito",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0182-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0234-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Pichincha",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DEBITO PIBANK",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "0235-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Mastercard",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "1465-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA CAIXA ONTINYENT DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2045-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Visa Electron",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "21,00",
+      "amount": "21.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Visa Debit",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2100-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "50,00",
+      "amount": "50.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "120,00",
+      "amount": "120.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "2103-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "32,00",
+      "amount": "32.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3001-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta de Débito Visa",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Tarjeta de Débito Visa",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3005-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "60,00",
+      "amount": "60.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA DEBITO PARTICULARES",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "6,00",
+      "amount": "6.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3009-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DE DEBITO NOMINA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DE DEBITO VISA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DE DEBITO VISA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "TARJETA DE DEBITO NOMINA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3017-04",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "18,00",
+      "amount": "18.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3018-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "9,00",
+      "amount": "9.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3020-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3029-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "100,00",
+      "amount": "100.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA SERVIRED ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "100,00",
+      "amount": "100.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA SERVIRED ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "100,00",
+      "amount": "100.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA SERVIRED ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-03",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "35,00",
+      "amount": "35.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "100,00",
+      "amount": "100.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA SERVIRED ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3035-04",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3045-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3058-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Débito",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Débito",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3059-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "120,00",
+      "amount": "120.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3067-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "20,00",
+      "amount": "20.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "12,02",
+      "amount": "12.02",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRÓN",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "7,50",
+      "amount": "7.50",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "7,50",
+      "amount": "7.50",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "12,02",
+      "amount": "12.02",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRÓN",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "7,50",
+      "amount": "7.50",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3070-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "7,50",
+      "amount": "7.50",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "28,00",
+      "amount": "28.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "28,00",
+      "amount": "28.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "28,00",
+      "amount": "28.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3076-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "28,00",
+      "amount": "28.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "56,00",
+      "amount": "56.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRÓN",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3080-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "80,00",
+      "amount": "80.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "10,00",
+      "amount": "10.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "50,00",
+      "amount": "50.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "*",
+      "amount": null,
+      "not_offered": true
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "10,00",
+      "amount": "10.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3085-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3095-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3102-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3105-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3110-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3112-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "72,00",
+      "amount": "72.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA DÉBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3117-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3118-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3119-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3121-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3123-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "SEMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "60,00",
+      "amount": "60.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3134-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3135-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "60,00",
+      "amount": "60.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3150-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "15,00",
+      "amount": "15.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3152-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3157-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "DEBITO",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3159-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3160-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3165-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "12,00",
+      "amount": "12.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA ELECTRON",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3174-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "0,00",
+      "amount": "0.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "MENSUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "240,00",
+      "amount": "240.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "VISA O MASTERCARD",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3179-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "36,00",
+      "amount": "36.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "96,00",
+      "amount": "96.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "Débito Particulares",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-01",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "101",
+      "concept": "Periodicidad",
+      "text": "TRIMESTRAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "101",
+      "concept": "Comisión ANUAL total (euros)",
+      "text": "96,00",
+      "amount": "96.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "401",
+      "concept": "Marca comercial",
+      "text": "DEBITO PARTICULARES",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "401",
+      "concept": "Comisión de emisión (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. Periodicidad.",
+      "text": "ANUAL",
+      "amount": null,
+      "not_offered": false
+    },
+    {
+      "account_type": "CNO",
+      "account_key": "3190-02",
+      "service_code": "401",
+      "concept": "Comisión mantenimiento. ANUAL total (euros)",
+      "text": "25,00",
+      "amount": "25.00",
+      "not_offered": false
+    }
+  ]
+}
