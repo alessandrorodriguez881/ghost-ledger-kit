@@ -9,6 +9,7 @@ from typing import Any, Literal, TypeVar
 
 import pandas as pd
 
+from ledger_kit.public_data import ACCOUNT_TYPES, SERVICES
 from ledger_kit.utils.money import round_to_cents
 
 T = TypeVar("T")
@@ -196,6 +197,76 @@ def contains_phrase(tokens: Sequence[str], phrases: Sequence[Phrase]) -> bool:
     return False
 
 
+# --- Services of the fee comparison (public-fees design 6.2) ----------------------------------
+
+# Only concepts that are an annual total are compared, so the sentence can say "annual".
+ANNUAL_TOTAL_TOKENS: Phrase = ("anual", "total")
+
+
+@dataclass(frozen=True)
+class PeerService:
+    """One compared Banco de España service of [peer_fees]; phrases are folded."""
+
+    key: str  # the sub-table name, e.g. "maintenance"
+    service_code: str  # e.g. "101"
+    concept: str  # the published concept, verbatim
+    label: str  # English words for the sentence
+    words: tuple[Phrase, ...]
+    exclude: tuple[Phrase, ...]
+
+
+def _peer_phrases(key: str, name: str, raw: object, *, required: bool) -> tuple[Phrase, ...]:
+    """Fold the `name` list of the peer service `key`; ValueError naming the key."""
+    if raw is None and not required:
+        return ()
+    if not isinstance(raw, (list, tuple)) or (required and not raw):
+        raise ValueError(f"peer service {key!r}: {name} must be a non-empty list of strings")
+    phrases: list[Phrase] = []
+    for item in raw:
+        if not isinstance(item, str):
+            raise ValueError(f"peer service {key!r}: {name} holds a non-string: {item!r}")
+        tokens = fold_tokens(item)
+        if not any(ch.isalpha() for token in tokens for ch in token):
+            raise ValueError(
+                f"peer service {key!r}: {name} holds a phrase with no letter: {item!r}"
+            )
+        phrases.append(tokens)
+    return tuple(phrases)
+
+
+def _peer_text(key: str, name: str, value: object) -> str:
+    """Return a non-empty text field of the peer service `key`; ValueError naming the key."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"peer service {key!r}: {name} is missing or empty")
+    return value
+
+
+def build_peer_services(table: Mapping[str, Any]) -> tuple[PeerService, ...]:
+    """Fold the sub-tables of [peer_fees] into services; ValueError naming the key when invalid."""
+    if not isinstance(table, Mapping):
+        raise ValueError("peer_fees must be a table")
+    default = table.get("default_account_type")
+    if default is not None and (not isinstance(default, str) or default not in ACCOUNT_TYPES):
+        raise ValueError(
+            f"peer_fees: default_account_type {default!r} is not a Banco de España account type"
+        )
+    services: list[PeerService] = []
+    for key, sub in table.items():
+        if not isinstance(sub, Mapping):
+            continue
+        code = sub.get("service")
+        if not isinstance(code, str) or code not in SERVICES:
+            raise ValueError(f"peer service {key!r}: {code} is not a Banco de España service code")
+        concept = _peer_text(key, "concept", sub.get("concept"))
+        if not contains_phrase(fold_tokens(concept), (ANNUAL_TOTAL_TOKENS,)):
+            raise ValueError(f"peer service {key!r}: concept must be an annual total")
+        label = _peer_text(key, "label", sub.get("label"))
+        words = _peer_phrases(key, "words", sub.get("words"), required=True)
+        exclude = _peer_phrases(key, "exclude", sub.get("exclude"), required=False)
+        services.append(PeerService(key, code, concept, label, words, exclude))
+    return tuple(services)
+
+
 def concept_of(tags: object) -> str | None:
     """Return the cc of the first 'common_concept:<cc>' tag; None for no tags, None or NaN."""
     if isinstance(tags, str) or not hasattr(tags, "__iter__"):
@@ -285,6 +356,21 @@ def classify_fee(row: Mapping[str, Any], vocabulary: FeeVocabulary) -> Fee | Non
         overdraft_interest=is_overdraft and has_interest,
         key=series_key(counterparty, description),
     )
+
+
+def match_peer_service(fee: Fee, services: Sequence[PeerService]) -> PeerService | None:
+    """Return the one service whose words the fee names (REQ-PF-10), else None (fail-safe).
+
+    Two or more services named, an exclusion word of the one service, or no service: None.
+    """
+    fields = (fold_tokens(fee.counterparty), fold_tokens(fee.description))
+    named = [s for s in services if any(contains_phrase(t, s.words) for t in fields)]
+    if len(named) != 1:
+        return None
+    service = named[0]
+    if any(contains_phrase(tokens, service.exclude) for tokens in fields):
+        return None
+    return service
 
 
 def _unique_records(ledger: pd.DataFrame) -> list[dict[str, Any]]:

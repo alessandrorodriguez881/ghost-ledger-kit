@@ -16,6 +16,7 @@ from ledger_kit.utils.money import (
     format_index,
     format_percent,
     implied_digits,
+    median_amount,
     net_total,
     percent_change,
     percent_of,
@@ -348,3 +349,68 @@ def test_percent_change_sign_follows_the_difference(a: Decimal, b: Decimal) -> N
         assert round_percent(exact) <= 0
     else:
         assert exact == 0
+
+
+# --- median_amount (REQ-PF-15); every amount is synthetic --------------------------------------
+
+_TWELVE = [D("0.00")] * 5 + [
+    D("12.00"),
+    D("24.00"),
+    D("36.00"),
+    D("60.00"),
+    D("78.00"),
+    D("96.00"),
+    D("240.00"),
+]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        (_TWELVE, "18.00"),
+        ([D("1.00"), D("2.00"), D("4.00")], "2.00"),
+        ([D("4.00"), D("2.00"), D("1.00")], "2.00"),
+        ([D("12.00"), D("12.01")], "12.01"),
+        ([D("0.00"), D("0.01")], "0.01"),
+        ([D("7.50")], "7.50"),
+    ],
+)
+def test_median_amount_examples(values: list[Decimal], expected: str) -> None:
+    result = median_amount(values)
+    assert result == D(expected)
+    assert str(result) == expected
+
+
+def test_median_amount_of_no_values_raises() -> None:
+    with pytest.raises(ValueError):
+        median_amount([])
+
+
+def test_median_amount_does_not_mutate_its_input() -> None:
+    values = [D("4.00"), D("1.00"), D("2.00"), D("3.00")]
+    copy = list(values)
+    assert median_amount(values) == D("2.50")
+    assert values == copy
+
+
+def test_median_amount_accepts_a_tuple() -> None:
+    assert median_amount((D("3.00"), D("1.00"))) == D("2.00")
+
+
+def test_median_amount_has_exactly_two_decimals() -> None:
+    for values in (_TWELVE, [D("7")], [D("1"), D("2")]):
+        assert median_amount(values).as_tuple().exponent == -2
+
+
+@settings(max_examples=200)
+@given(
+    values=st.lists(
+        st.decimals(min_value=0, max_value=1_000_000, places=2, allow_nan=False),
+        min_size=1,
+        max_size=30,
+    )
+)
+def test_median_amount_lies_between_min_and_max(values: list[Decimal]) -> None:
+    result = median_amount(values)
+    assert min(values) <= result <= max(values)
+    assert result.as_tuple().exponent == -2

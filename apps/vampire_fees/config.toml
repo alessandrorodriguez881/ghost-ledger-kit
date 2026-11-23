@@ -1,6 +1,7 @@
-# vampire-fees configuration: the fee vocabulary and the demo paths. No threshold lives here
-# (detectors/utils.py holds them as named constants). Phrases are folded on load: accents and
-# case do not matter, and a phrase matches whole words only.
+# vampire-fees configuration: the fee vocabulary, the demo paths and the fee comparison table.
+# No threshold lives here (detectors/utils.py holds them as named constants): [peer_fees] holds a
+# path, a default account type and words only. Phrases are folded on load: accents and case do
+# not matter, and a phrase matches whole words only.
 
 [vocabulary]
 # A debit whose counterparty or description holds one of these phrases is a fee.
@@ -16,3 +17,26 @@ exclude = ["notaria", "notario", "notary", "gestoria", "abogado", "lawyer", "hon
 [demo]
 csv_path = "data/samples/vampire_demo_statement.csv"
 n43_path = "data/samples/vampire_demo_statement.n43"
+
+# Comparison with the fees declared to the Banco de España (public-fees). The snapshot is read
+# from this path; without it the app shows no comparison. One sub-table per compared service:
+# a recurring fee whose last row names the `words` of exactly one service, and none of its
+# `exclude` words, is compared with the declared annual totals of that service and concept.
+[peer_fees]
+snapshot_path = "data/public/bde_payment_account_fees.json"
+default_account_type = "CNO"
+
+[peer_fees.maintenance]
+service = "101"
+concept = "Comisión anual total (euros)"
+label = "account maintenance"
+words = ["mantenimiento cuenta", "mantenimiento de cuenta", "mantenimiento de la cuenta",
+         "account maintenance"]
+exclude = ["tarjeta", "card", "descubierto", "overdraft"]
+
+[peer_fees.debit_card]
+service = "401"
+concept = "Comisión mantenimiento. Anual total (euros)"
+label = "debit card maintenance"
+words = ["tarjeta debito", "tarjeta de debito", "debit card"]
+exclude = ["credito", "credit"]

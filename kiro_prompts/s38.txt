@@ -1,0 +1,17 @@
+Session 38: two parts. Write files only with your file tools; never use a shell command.
+
+Part 1. Record the reviewer decisions on the public-fees open questions (23 November 2026) in .kiro/specs/public-fees/: answer each question in a Decisions on the former open questions section at the end of tasks.md, as public-cpi did, and change requirements.md, design.md and tasks.md wherever a decision changes them.
+Q1. Attribution, shown once on the page and under the sentence: Fuente: Banco de España, comparador de comisiones de cuentas de pago (declaraciones a fecha YYYY-MM-DD). Elaboración propia: recuento, mediana y máximo. The legal notice allows reuse and calculations with the data if it is reproduced faithfully and the source is cited, so counts, a median and a maximum are allowed when labelled Elaboración propia; apply the PF10 widening of Finance Rule 9 in one sentence.
+Q2. Default account type: CNO, the default of the Banco de España tool itself; the select box offers the types present in the snapshot.
+Q3. Keep PEER_MIN_ACCOUNTS = 10 and the 365-day limit.
+Q4. The Excel layout is decided when the file exists, with an amendment before any importer code. Keep PF8 and PF9 BLOCKED.
+Q5. First snapshot: CNO and COT are required; CDI and CJO are added if they were downloaded; CBA is not needed.
+Q6. No automated access to the Banco de España site, ever: the export is manual, the importer reads local files only.
+Q7. Changed decision, replaces DN-PF-17: the alert id must NOT change when peer fields are added, because data/live_runs/ holds recorded model answers for vf.recurring_fee alerts that the demo replays by alert id. Make _deterministic_alert_id in ledger_kit/models.py leave out of the hash every data key that starts with peer_ (one documented rule, one constant for the prefix), so the id of every alert is the same with or without the snapshot. Add tests: an alert with peer fields has the same id as the same alert without them, and every existing alert id is unchanged (no alert today has a peer_ key; check that in the test).
+Q8. account_key: entity code plus the position of the account within that entity in file order, stable within one snapshot; the snapshot keeps the account name for display.
+Q9. Wording: two short sentences instead of a nested one, for example: Of 63 payroll accounts declared to the Banco de España on 2026-11-23, 41 charge less than this fee costs a year (78.00). 30 charge nothing; the median is 0.00 and the highest 240.00. (synthetic numbers)
+Q10. Only the two annual-total concepts (101 Comisión anual total (euros), 401 Comisión mantenimiento. Anual total (euros)); waiver conditions are a non-goal.
+
+Part 2. Implement tasks PF1, PF2 and PF3 of .kiro/specs/public-fees/tasks.md, plus the alert id change of Q7, with their tests, exactly as the updated spec says. Do not start PF4 or later. Keep every existing test passing; do not weaken any test. Read the files a task names before editing them.
+
+Environment: Windows. When done, list each file you changed or created, the tests you added, and anything in the spec you could not follow.

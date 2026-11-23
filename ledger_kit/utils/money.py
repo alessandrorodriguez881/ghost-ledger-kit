@@ -1,6 +1,6 @@
 """Money helpers: the single point of truth for monetary arithmetic and formatting."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 # One decimal for every percentage shown or stored by the alerts (REQ-CPI-08, DN-CPI-05).
@@ -97,6 +97,21 @@ def net_total(additions: Iterable[Decimal], subtractions: Iterable[Decimal] = ()
 def sum_amounts(values: Iterable[Decimal]) -> Decimal:
     """Return the exact sum of `values`, unrounded; Decimal('0') when there are none."""
     return sum(values, Decimal(0))
+
+
+def median_amount(values: Sequence[Decimal]) -> Decimal:
+    """Return the median of `values`, rounded half-up to cents; ValueError when empty.
+
+    For an even count it is the mean of the two middle values; the sum is exact and the only
+    rounding is at the output (REQ-PF-15). The input is not mutated.
+    """
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("median of no values")
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return round_to_cents(ordered[mid])
+    return round_to_cents((ordered[mid - 1] + ordered[mid]) / 2)
 
 
 def balance_after(opening: Decimal, credits: Decimal, debits: Decimal) -> Decimal:

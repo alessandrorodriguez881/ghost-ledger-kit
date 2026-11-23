@@ -12,7 +12,7 @@ from typing import Any
 import pandas as pd
 from hypothesis import strategies as st
 
-from apps.vampire_fees.detectors.utils import FeeVocabulary, build_vocabulary
+from apps.vampire_fees.detectors.utils import Fee, FeeVocabulary, build_vocabulary, series_key
 from ledger_kit.ingestion.normaliser import CANONICAL_COLUMNS, normalise
 
 SOURCE_FILE = "vf_fixture.csv"
@@ -177,6 +177,27 @@ def summary_ledger(last_day: date = date(2026, 3, 31)) -> pd.DataFrame:
 def refs_of(rows: Iterable[dict[str, Any]]) -> list[str]:
     """Return the source_ref of each row, in order."""
     return [row["source_ref"] for row in rows]
+
+
+def peer_fee(
+    description: str,
+    counterparty: str = BANK,
+    *,
+    day: date = date(2026, 10, 5),
+    amount: str = "6.50",
+) -> Fee:
+    """Build one Fee directly (no classifier), for the peer-service matching tests."""
+    return Fee(
+        source_ref=f"{SOURCE_FILE}:0",
+        source_row=0,
+        date=day,
+        amount=Decimal(amount),
+        counterparty=counterparty,
+        description=description,
+        kind="other",
+        overdraft_interest=False,
+        key=series_key(counterparty, description),
+    )
 
 
 # --- Hypothesis strategies ---------------------------------------------------------------------

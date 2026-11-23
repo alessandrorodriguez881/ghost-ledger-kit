@@ -107,10 +107,28 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
+# A `data` key that starts with this prefix is context from a public reference snapshot added
+# around an alert that already fired (Finance Rule 9). It is left out of the id hash, so the id of
+# an alert is the same with or without that context and recorded model answers, which the demo
+# replays by alert id, keep being found (DN-PF-17).
+ALERT_ID_EXCLUDED_PREFIX: str = "peer_"
+
+
+def _identity_data(data: Any) -> Any:
+    """Return `data` without the top-level keys that start with ALERT_ID_EXCLUDED_PREFIX."""
+    if not isinstance(data, dict):
+        return data
+    return {
+        key: value
+        for key, value in data.items()
+        if not (isinstance(key, str) and key.startswith(ALERT_ID_EXCLUDED_PREFIX))
+    }
+
+
 def _deterministic_alert_id(detector: str, source_refs: list[str], data: dict) -> str:
-    """Compute a deterministic sha256 id from the alert identity fields."""
+    """Compute a deterministic sha256 id from the alert identity fields (not `peer_*` data)."""
     payload = json.dumps(
-        {"detector": detector, "source_refs": sorted(source_refs), "data": data},
+        {"detector": detector, "source_refs": sorted(source_refs), "data": _identity_data(data)},
         sort_keys=True,
         separators=(",", ":"),
         default=_json_default,
