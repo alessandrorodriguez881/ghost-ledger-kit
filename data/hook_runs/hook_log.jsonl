@@ -1354,3 +1354,5 @@ ds": 0.8}
 {"time": "2026-11-23T10:41:21", "event": "post-write", "session": "sess_43dde6cc-89e4-4fcb-9cb2-3dbac37fa79c", "file": ".kiro/specs/public-fees/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-23T10:41:22", "event": "post-write", "session": "sess_43dde6cc-89e4-4fcb-9cb2-3dbac37fa79c", "file": ".kiro/specs/public-fees/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-23T10:41:34", "event": "stop", "session": "sess_43dde6cc-89e4-4fcb-9cb2-3dbac37fa79c", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.2}
+{"time": "2026-11-23T12:25:52", "event": "post-write", "session": "sess_89811edd-2dfb-4036-9d84-fb544144726e", "file": "README.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
+{"time": "2026-11-23T12:26:01", "event": "stop", "session": "sess_89811edd-2dfb-4036-9d84-fb544144726e", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.8}

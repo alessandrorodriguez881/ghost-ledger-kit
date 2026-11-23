@@ -66,6 +66,7 @@ This is a student project. I chose what to build and directed it: the goal, the 
 | 13 Nov | Give each app its own drawing on every alert card (a pulse for Zombie, bites for Vampire, a lantern for Phantom), drawn only from the cited rows and checked by the number guard, after the fresh jury found the three apps looked the same | Claude Code, after the fresh jury | Claude Code, within my go-ahead to keep working through the night |
 | 15 Nov | Home with one clear moment: the recorded invention appears and the guard strikes it out in under three seconds; the rest of the text moves into How it works; each app tile shows its own drawing | the adversarial review of 14 Nov, drafted by Claude Code | Me |
 | 15 Nov | The model asks, the kit computes: placeholders that the kit evaluates from the alert fields, shown with their formula | the adversarial review of 14 Nov, drafted by Claude Code | Me |
+| 23 Nov | Compare the recurring maintenance and debit-card fees that Vampire Fees finds with the fees that Spanish banks declared to the Banco de España comparator (payroll or pension accounts only; counts, median and maximum, as context that never decides an alert) | Claude Code (an option in its report of 20 Nov) | Me |
 
 ## What the guard does not check
 

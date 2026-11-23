@@ -1,0 +1,6 @@
+Session 43: one row in the README decisions table. Write files only with your file tools; never use a shell command.
+
+In README.md, the table headed | Date | Decision | Proposed by | Decided by | (about line 56) ends with two 15 Nov rows (about lines 67 and 68). The public-fees work of 23 Nov is missing. Add exactly one row right after the second 15 Nov row, in the same style:
+| 23 Nov | Compare the recurring maintenance and debit-card fees that Vampire Fees finds with the fees that Spanish banks declared to the Banco de España comparator (payroll or pension accounts only; counts, median and maximum, as context that never decides an alert) | Claude Code (an option in its report of 20 Nov) | Me |
+
+Read tests/test_readme.py first and keep it green. Change nothing else in README.md or in any other file. Environment: Windows. When done, show the new row.
