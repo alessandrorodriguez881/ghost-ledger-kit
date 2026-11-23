@@ -26,6 +26,7 @@ from typing import Any, NamedTuple
 import streamlit as st
 
 from apps import home_tiles
+from ledger_kit.public_data import bde_fees
 from ledger_kit.ui import landing, theme
 
 
@@ -104,6 +105,22 @@ INE_NOTE = (
     f"{INE_ATTRIBUTION}. Licence {INE_LICENCE}."
 )
 
+
+def fee_credit() -> str | None:
+    """A short credit of the Banco de España fee snapshot, or None when it does not load.
+
+    Vampire Fees compares recurring fees with that committed snapshot (public-fees) and shows the
+    full attribution of decision Q1 on its own page. Home shows no fee figure, so it carries only
+    this short credit, with the snapshot's declaration date, while the file loads (DN-PF-16); the
+    path is read at call time so a test can move it.
+    """
+    try:
+        snapshot = bde_fees.load_fee_snapshot(bde_fees.DEFAULT_FEE_SNAPSHOT_PATH)
+    except bde_fees.FeeSnapshotError:
+        return None
+    return f"Vampire Fees: Banco de España, declaraciones a fecha {snapshot.declaration_date}."
+
+
 # The Benchmark page shows the committed results file and nothing else (REQ-BM-20, REQ-BM-21).
 # Home reads the same file for its proof strip, through the same (patchable) path.
 RESULTS_PATH = Path(__file__).parent / "data" / "benchmark" / "results.json"
@@ -147,6 +164,9 @@ def home() -> None:
         st.info(TRY_IT)
         st.caption(SYNTHETIC_NOTE)
         st.caption(INE_NOTE)
+        credit = fee_credit()
+        if credit is not None:
+            st.caption(credit)
 
 
 NO_RESULTS = "No usable benchmark results. Run: python scripts/benchmark.py"

@@ -1,0 +1,7 @@
+Session 41d: finish session 41c. Write files only with your file tools; never use a shell command. streamlit_app.py is already right (INE_NOTE caption unchanged, then a separate fee_credit() caption only while the snapshot loads). Change only these two files:
+
+1. tests/test_showcase_app.py, function test_home_credits_the_banco_de_espana_once_while_the_fee_snapshot_loads (about line 225): the credit is now its own caption, so replace the two lines that take the one caption holding the credit and assert that it holds INE_ATTRIBUTION and INE_LICENCE by two checks: the credit equals one whole caption value exactly (credit in captions), and streamlit_app.INE_NOTE is also in captions; keep the other checks. Update its docstring: a separate short caption after the INE caption.
+2. The same file, function test_home_shows_no_fee_credit_without_the_fee_snapshot (about line 244): delete the line that calls streamlit_app.public_data_note(), which no longer exists; keep the other checks.
+3. .kiro/specs/public-fees/tasks.md, the session 41b line under PF6 (about line 191): say the short credit is a separate caption right after the INE caption, not in the same caption.
+
+Do not change any other test or file. Environment: Windows. When done, show the two updated test functions.

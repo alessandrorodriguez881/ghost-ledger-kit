@@ -365,7 +365,7 @@ EXPECTED_SENTENCES = (
 EXPECTED_SOURCE_LINE = (
     "Comparison source: Banco de España, Comisiones de Cuentas de Pago, account type CNO "
     "(payroll or pension), service 101 (account maintenance), declared 2026-11-23; "
-    "3 accounts do not offer this service."
+    "3 accounts show an asterisk (no fee is charged or the service is not offered)."
 )
 BANNED_WORDS = ("above", "below", "too", "expensive", "should", "cheaper", "switch")
 
@@ -607,9 +607,10 @@ def test_peer_source_line_is_none_without_peer_keys() -> None:
 
 def test_peer_source_line_says_one_account_in_the_singular() -> None:
     one = ALERT.model_copy(update={"data": {**ALERT.data, "peer_not_offered_count": 1}})
-    assert peer_source_line(one).endswith("; 1 account does not offer this service.")
+    legend = "(no fee is charged or the service is not offered)"
+    assert peer_source_line(one).endswith(f"; 1 account shows an asterisk {legend}.")
     none = ALERT.model_copy(update={"data": {**ALERT.data, "peer_not_offered_count": 0}})
-    assert peer_source_line(none).endswith("; 0 accounts do not offer this service.")
+    assert peer_source_line(none).endswith(f"; 0 accounts show an asterisk {legend}.")
 
 
 def test_markdown_characters_of_a_label_are_escaped_by_markdown_safe() -> None:

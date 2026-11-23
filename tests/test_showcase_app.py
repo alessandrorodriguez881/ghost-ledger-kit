@@ -23,6 +23,7 @@ from apps.phantom_invoices.settings import SIGNATURE_NOTE
 from apps.vampire_fees import app as vf_app
 from apps.zombie_subscriptions import app as zs_app
 from ledger_kit.detectors import _restore_registry, _snapshot_registry, registered_names
+from ledger_kit.public_data import bde_fees, load_fee_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ENTRY = str(REPO_ROOT / "streamlit_app.py")
@@ -219,6 +220,40 @@ def test_home_credits_the_ine_once() -> None:
     assert _home_text(at).count(attribution) == 1
     assert streamlit_app.INE_ATTRIBUTION == attribution
     assert streamlit_app.INE_LICENCE == "CC BY 4.0"
+
+
+def test_home_credits_the_banco_de_espana_once_while_the_fee_snapshot_loads() -> None:
+    """public-fees DN-PF-16 (session 41b): a short credit with the snapshot's date, one line.
+
+    Home shows no fee figure, so it carries a separate short caption after the INE caption; the
+    full attribution of decision Q1 lives on the Vampire Fees page and in the documents.
+    """
+    snapshot = load_fee_snapshot(bde_fees.DEFAULT_FEE_SNAPSHOT_PATH)
+    credit = f"Vampire Fees: Banco de España, declaraciones a fecha {snapshot.declaration_date}."
+    at = _run()
+    captions = [caption.value for caption in at.caption]
+
+    assert streamlit_app.fee_credit() == credit
+    assert sum(credit in value for value in captions) == 1
+    assert credit in captions
+    assert streamlit_app.INE_NOTE in captions
+    assert _home_text(at).count(credit) == 1
+    assert snapshot.attribution not in _home_text(at)
+
+
+def test_home_shows_no_fee_credit_without_the_fee_snapshot(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """With no snapshot Home shows no fee data, so it credits no fee source (DN-PF-16)."""
+    monkeypatch.setattr(bde_fees, "DEFAULT_FEE_SNAPSHOT_PATH", tmp_path / "missing.json")
+
+    at = _run()
+
+    assert not at.exception
+    assert streamlit_app.fee_credit() is None
+    assert streamlit_app.INE_NOTE in [caption.value for caption in at.caption]
+    assert not any("Banco de España" in caption.value for caption in at.caption)
+    assert not any("comparador de comisiones" in value for value in _markdown(at))
 
 
 # --- the app pages load their demo data -------------------------------------------------------

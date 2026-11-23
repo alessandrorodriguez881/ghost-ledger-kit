@@ -30,17 +30,31 @@ from apps.vampire_fees.explain_support import (  # noqa: E402
 )
 from apps.vampire_fees.settings import (  # noqa: E402
     DEMO_FORMATS,
+    PEER_SELECT_LABEL,
     SEVERITY_ORDER,
     SOURCE_KEY,
     CoffinView,
     apply_demo,
     coffin_view,
+    configured_peer_type,
+    default_peer_type,
     demo_inputs,
+    explanation_cache_key,
     group_alerts_by_severity,
     guard_badge,
     load_config,
     load_vocabulary,
     markdown_safe,
+    peer_attribution_lines,
+    peer_context_for,
+    peer_sentence_to_add,
+    peer_snapshot_path,
+    peer_source_line,
+    peer_status,
+    peer_type_label,
+    peer_type_options,
+    peer_unavailable_caption,
+    read_fee_snapshot,
     rule_sentences,
     run_pipeline,
     statement_caption,
@@ -75,6 +89,7 @@ from ledger_kit.live_guard import (  # noqa: E402
     verdict_line,
 )
 from ledger_kit.models import Alert  # noqa: E402
+from ledger_kit.public_data import FeeSnapshot  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
 from ledger_kit.ui.first_run import should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
@@ -122,11 +137,18 @@ AUTOLOAD_KEY = "vf_autoloaded"
 # Live-guard panel: plain session values (probe results and the counter), not widgets.
 LG_RESULTS_KEY = "vf_lg_results"
 LG_COUNTS_KEY = "vf_lg_counts"
+# The account type the fees are compared with (public-fees REQ-PF-20): a select box when the
+# snapshot holds two or more types, a plain value otherwise (DN-PF-32).
+PEER_TYPE_KEY = "vf_peer_type"
+# The comparison each cached explanation was written for: (alert.id, mode) -> the full
+# explanation_cache_key. The peer fields are not in the alert id (decision Q7), so an explanation
+# is reused only while its comparison is the same (design 9).
+EXPLANATION_PEERS_KEY = "vf_explanation_peers"
 
 # Widget state is dropped when a run does not render the widget (the user visited another page of
 # the showcase). The widget values are copied to a plain key after the sidebar is drawn and put
 # back before the widgets are built (copied from zombie_subscriptions, C6).
-WIDGET_KEYS: tuple[str, ...] = (HALLUCINATE_KEY, DEMO_FORMAT_KEY)
+WIDGET_KEYS: tuple[str, ...] = (HALLUCINATE_KEY, DEMO_FORMAT_KEY, PEER_TYPE_KEY)
 
 # Coffins per row of the crypt.
 COFFINS_PER_ROW: int = 3
@@ -215,11 +237,42 @@ def _init_state() -> None:
     st.session_state.setdefault(DEMO_FORMAT_KEY, next(iter(DEMO_FORMATS)))
     st.session_state.setdefault(INGESTION_CACHE_KEY, {})
     st.session_state.setdefault(EXPLANATIONS_KEY, {})
+    st.session_state.setdefault(EXPLANATION_PEERS_KEY, {})
+    st.session_state.setdefault(PEER_TYPE_KEY, None)
     st.session_state.setdefault(LG_RESULTS_KEY, {})
     st.session_state.setdefault(LG_COUNTS_KEY, Counts(0, 0, 0))
 
 
-def _render_sidebar(config: dict[str, Any]) -> Any:
+@st.cache_resource(show_spinner=False)
+def _cached_snapshot(path: str, stamp: tuple[int, int]) -> FeeSnapshot | None:
+    """Load the fee snapshot once per (path, modification time, size); the object is immutable.
+
+    `stamp` is only part of the cache key, so a refreshed or newly added file is picked up.
+    """
+    return read_fee_snapshot(Path(path))
+
+
+def _load_snapshot(config: dict[str, Any]) -> tuple[FeeSnapshot | None, str | None]:
+    """Return the fee snapshot (None when unavailable) and the caption to show when it is None."""
+    path = peer_snapshot_path(config, ROOT)
+    snapshot = None
+    if path is not None and path.is_file():
+        stat = path.stat()
+        snapshot = _cached_snapshot(str(path), (stat.st_mtime_ns, stat.st_size))
+    if snapshot is None:
+        return None, peer_unavailable_caption(peer_status(config, ROOT))
+    return snapshot, None
+
+
+def _prepare_peer_type(config: dict[str, Any], snapshot: FeeSnapshot | None) -> None:
+    """Before the sidebar: keep the chosen account type only when the snapshot still has it."""
+    if snapshot is None:
+        return
+    if st.session_state.get(PEER_TYPE_KEY) not in peer_type_options(snapshot):
+        st.session_state[PEER_TYPE_KEY] = default_peer_type(snapshot, configured_peer_type(config))
+
+
+def _render_sidebar(config: dict[str, Any], snapshot: FeeSnapshot | None = None) -> Any:
     """Draw the sidebar widgets and return the uploaded file (None when there is none)."""
     with st.sidebar:
         st.header("Controls")
@@ -236,6 +289,16 @@ def _render_sidebar(config: dict[str, Any]) -> Any:
             key=HALLUCINATE_KEY,
             help="Replaces the LLM with a stub that invents 99999.99; the guard rejects it.",
         )
+        # With one account type in the snapshot there is nothing to choose (DN-PF-32).
+        options = () if snapshot is None else peer_type_options(snapshot)
+        if len(options) >= 2:
+            st.selectbox(
+                PEER_SELECT_LABEL,
+                options,
+                key=PEER_TYPE_KEY,
+                format_func=peer_type_label,
+                help="The account type of the declarations the fees are compared with.",
+            )
         uploaded = st.file_uploader(
             "Bank statement (.csv or Norma 43)",
             type=["csv", "n43", "txt", "aeb", "csb43"],
@@ -273,11 +336,14 @@ def _card_recording(alert: Alert, hallucinate: bool) -> replay.Recording | None:
 
 
 def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanation:
-    """Explain one alert; cached per (alert.id, client mode) across reruns.
+    """Explain one alert; cached per (alert.id, client mode) and its comparison across reruns.
 
     The mode is `replay` when a recorded answer goes through the guard instead of a live call.
+    The peer fields are not in the alert id, so the cached text is reused only while
+    `explanation_cache_key` (id, mode and peer fields) is the one it was written for.
     """
     cache = st.session_state[EXPLANATIONS_KEY]
+    written_for = st.session_state[EXPLANATION_PEERS_KEY]
     recording = _card_recording(alert, hallucinate)
     client: Any = None
     if hallucinate:
@@ -287,12 +353,14 @@ def _explain(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> Explanati
     else:
         mode = "real"
     key = (alert.id, mode)
-    if key not in cache:
+    full_key = explanation_cache_key(alert, mode)
+    if key not in cache or written_for.get(key) != full_key:
         rows = ledger[ledger["source_ref"].isin(alert.source_refs)]
         template = chip_source_template(
             template_for(alert), alert.source_refs, source_lines_of(ledger)
         )
         cache[key] = explain_with_meta(alert, rows, fallback_template=template, client=client)
+        written_for[key] = full_key
     return cache[key]
 
 
@@ -455,6 +523,20 @@ def _render_signature(alert: Alert, ledger: pd.DataFrame) -> None:
         st.markdown(drawing, unsafe_allow_html=True)
 
 
+def _render_peer_lines(alert: Alert, explanation: Explanation) -> None:
+    """Under the explanation: the comparison when the text lacks it, then its source line.
+
+    Both come from the alert's peer fields, so the comparison is shown whatever the LLM wrote and
+    never twice (REQ-PF-19). An alert without peer fields shows neither.
+    """
+    sentence = peer_sentence_to_add(alert, explanation)
+    if sentence is not None:
+        st.caption(markdown_safe(sentence))
+    source_line = peer_source_line(alert)
+    if source_line is not None:
+        st.caption(markdown_safe(source_line))
+
+
 def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
     """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
     explanation = _explain(alert, ledger, hallucinate)
@@ -478,6 +560,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
             unsafe_allow_html=True,
         )
         _render_signature(alert, ledger)
+        _render_peer_lines(alert, explanation)
         st.markdown(
             "**Source refs:** " + refs_chips_html(alert.source_refs, source_lines_of(ledger)),
             unsafe_allow_html=True,
@@ -520,6 +603,16 @@ def _render_quarantine(quarantine: Sequence[dict]) -> None:
         st.dataframe(quarantine_table(quarantine), hide_index=True, width="stretch")
 
 
+def _render_attribution(snapshot: FeeSnapshot | None, unavailable: str | None) -> None:
+    """Footer, drawn once: the Banco de España credit while a snapshot is loaded, else why not."""
+    if snapshot is None:
+        if unavailable:
+            st.caption(unavailable)
+        return
+    for line in peer_attribution_lines(snapshot):
+        st.caption(line)
+
+
 def main() -> None:
     """Render the vampire-fees page."""
     set_page("Vampire Fees", VAMPIRE)
@@ -527,7 +620,9 @@ def main() -> None:
     config = load_config(CONFIG_PATH)
     _init_state()
     _autoload_demo()
-    uploaded = _render_sidebar(config)
+    snapshot, peer_unavailable = _load_snapshot(config)
+    _prepare_peer_type(config, snapshot)
+    uploaded = _render_sidebar(config, snapshot)
     _keep_widgets()
 
     show_masthead(VAMPIRE)
@@ -545,11 +640,17 @@ def main() -> None:
         return
 
     name, data = source
+    peers = (
+        None
+        if snapshot is None
+        else peer_context_for(snapshot, st.session_state[PEER_TYPE_KEY], config)
+    )
     pipeline = run_pipeline(
         name,
         data,
         vocabulary=load_vocabulary(config),
         cache=st.session_state[INGESTION_CACHE_KEY],
+        peers=peers,
     )
     ledger = pipeline.ledger
     debits = int((ledger["flow"] == "debit").sum()) if not ledger.empty else 0
@@ -571,6 +672,7 @@ def main() -> None:
     _render_quarantine(pipeline.quarantine)
     _render_coffins(alerts, source_lines_of(ledger))
     _render_alerts(alerts, ledger, bool(st.session_state[HALLUCINATE_KEY]))
+    _render_attribution(snapshot, peer_unavailable)
 
 
 # Streamlit executes the script as __main__; importing the module (tests) renders nothing.

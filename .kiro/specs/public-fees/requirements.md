@@ -430,14 +430,14 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   | `peer_concept` | the concept, verbatim from the config (equals the published one) |
   | `peer_declaration_date` | the snapshot's `declaration_date`, ISO |
   | `peer_account_count` | the number of accounts **with an amount** (`len(amounts)`) |
-  | `peer_not_offered_count` | accounts that do not offer the service (`not_offered_count`) |
+  | `peer_not_offered_count` | accounts marked with the asterisk (`not_offered_count`; no fee is charged or the service is not offered, decision D6) |
   | `peer_lower_count` | accounts whose amount is **strictly less than** `yearly_cost` |
   | `peer_zero_count` | accounts whose amount equals `0.00` |
   | `peer_median_yearly` | `median_amount(amounts)` (REQ-PF-15), two decimals |
   | `peer_max_yearly` | `max(amounts)` as a string, two decimals, verbatim from the snapshot |
 
   The names ending in `_yearly` are deliberate: the guard reads a field name containing `yearly` as a yearly
-  figure (REQ-PF-16). Accounts that do not offer the service are **never** counted as `0.00`: `0.00` is a declared
+  figure (REQ-PF-16). Accounts marked with the asterisk are **never** counted as `0.00`: `0.00` is a declared
   amount, an asterisk is a different statement.
   Worked example with the synthetic snapshot `S12` of REQ-PF-07 and the demo maintenance series
   (counterparty `BANCO FICTICIO`, `yearly_cost` `78.00`): `alert.data` equals
@@ -570,8 +570,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   (a) the comparison sentences **once**: *when* the displayed explanation already contains them (fallback
   template) the card adds nothing; *when* it is accepted model text that lacks them, the card adds them as a
   caption; (b) a source line `Comparison source: Banco de España, Comisiones de Cuentas de Pago, account type
-  CNO (payroll or pension), service 101 (account maintenance), declared 2026-11-23; 3 accounts do not offer this
-  service.` A card whose alert has no peer keys shows neither. The page shall show, **once**, below the alerts and
+  CNO (payroll or pension), service 101 (account maintenance), declared 2026-11-23; 3 accounts show an asterisk (no fee is charged or the service is not offered).` A card whose alert has no peer keys shows neither. The page shall show, **once**, below the alerts and
   only *while* a snapshot is loaded, the snapshot's `attribution` (decision Q1: shown **once on the page**; with
   `S12` it reads `Fuente: Banco de España, comparador de comisiones de cuentas de pago (declaraciones a fecha
   2026-11-23). Elaboración propia: recuento, mediana y máximo.`), a line `Licence: see the Banco de España legal

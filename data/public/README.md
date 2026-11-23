@@ -55,3 +55,67 @@ classification, `retrieved_on`, licence, attribution, non-endorsement text), `fi
 a string with exactly three decimals, never a float. `tests/public_data/test_ine_cpi_snapshot.py`
 pins the figures of 2026-08 and 2026-09 and the texts above, and `tests/test_public_data_docs.py`
 checks that this file, the root `README.md` and the snapshot carry the same attribution.
+
+## `bde_payment_account_fees.json`
+
+| Item | Value |
+|---|---|
+| Source | Banco de España, Comisiones y tipos de interés de los servicios financieros, Comisiones de Cuentas de Pago, Comparación entre entidades para una fecha y cuenta |
+| Start page | `https://app.bde.es/csfwciu/csfwciuias/pub/InicioComisionesCuentasPago.html` |
+| Account types | `CNO` (Cuenta Nómina/Pensión) only |
+| Content | 51 entities, 92 accounts (one per declaration) and 552 rows: the published cells of the services 101 (Mantenimiento de la cuenta) and 401 (Emisión y mantenimiento de una tarjeta de débito) |
+| Declaration date | 2026-11-23 |
+| Retrieved on | 2026-11-23 |
+| Excel file | `CompararEntidadesCCP.xls`, 212928 bytes, SHA-256 `e9cddbe0a7737b050a68e79db01db225d80f3a2147ad7f43791f01a5597602a2` |
+
+The file holds the fees that the entities declared to the Banco de España for payroll or pension
+accounts. It contains no personal data and no figure of any user.
+
+### Licence and attribution
+
+The snapshot is Banco de España data:
+
+The Banco de España legal notice allows reuse and use for calculations if the information is reproduced faithfully and the Banco de España is cited as the source. The data keeps that condition and is not covered by the repository MIT licence.
+
+The attribution, with the declaration date of the snapshot, is:
+
+Fuente: Banco de España, comparador de comisiones de cuentas de pago (declaraciones a fecha 2026-11-23). Elaboración propia: recuento, mediana y máximo.
+
+The Banco de España does not take part in, endorse or support this reuse.
+
+The second sentence of the attribution labels the counts, the median and the highest value as our
+own calculation. The Vampire Fees page shows these texts once, below its alerts, while the snapshot
+loads, and the showcase Home page carries the attribution in one line.
+
+### How the snapshot is made
+
+1. The Excel is exported by hand, with the owner's approval, in the Banco de España tool
+   *Comparación entre entidades para una fecha y cuenta*, one export per account type. No script,
+   test or CI step ever accesses the Banco de España site. The Excel is kept outside the
+   repository and is not committed: `.gitignore` ignores every `*.xls` and `*.xlsx` file.
+2. On the developer machine, with the optional extra `import` installed
+   (`pip install -e ".[import]"`, which adds `xlrd`), the developer runs the importer:
+
+   ```powershell
+   python scripts/import_bde_fees.py --declaration-date 2026-11-23 --excel CNO=<folder>\CompararEntidadesCCP.xls --expect-entities CNO=51
+   ```
+
+   `scripts/import_bde_fees.py` reads local files only. It takes both dates from the Excel, keeps
+   the services 101 and 401, records the name, size and SHA-256 of each Excel as downloaded,
+   validates the result with the library validator and replaces the snapshot only when every
+   check passes.
+3. The import keeps only complete account types: it fails unless the files of a type hold every
+   entity the tool lists for it (`--expect-entities`). The export of 23 November 2026 holds every
+   `CNO` entity; `COT` (Otras Cuentas) is left out until all its entities are exported.
+
+The apps, the tests and the explanation layer never call the network: they read this committed
+file, and the app works without it (it then shows no comparison).
+
+### What the figures are for
+
+Vampire Fees compares a recurring account-maintenance or debit-card fee that it already found
+with the annual totals declared for that service: how many accounts charge less, how many charge
+nothing, the median and the highest. The figures are context, not a verdict: they never decide
+whether an alert fires, never change its severity, title or source rows, and are never a source
+row of the user's file. An account marked with the asterisk (`(*) No se cobra comisión/no se
+ofrece el servicio`) is counted apart, never as a zero fee.

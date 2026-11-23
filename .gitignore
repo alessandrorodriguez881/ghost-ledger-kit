@@ -248,3 +248,8 @@ kiro_prompts/*_out.txt
 # The ghost-ledger-detector power manifest (powers/**/plugin.json) is JSON that must stay tracked.
 !powers/
 !powers/**
+# Excel exports of the Banco de España comparator (public-fees DN-PF-20): the importer reads them
+# from a folder outside the repository and they are never committed. Kept last so that no
+# exception above (data/public/ included) lets one in.
+*.xls
+*.xlsx

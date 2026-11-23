@@ -313,6 +313,73 @@ def s10_snapshot_dict() -> dict[str, Any]:
     return snapshot_dict_of(card=S10_AMOUNTS)
 
 
+# COT of the demo tests (synthetic): eight amounts for service 101, fewer than PEER_MIN_ACCOUNTS.
+COT_EIGHT_AMOUNTS: tuple[str, ...] = (
+    "0.00",
+    "6.00",
+    "12.00",
+    "24.00",
+    "36.00",
+    "48.00",
+    "60.00",
+    "120.00",
+)
+
+
+def typed_snapshot_dict(
+    parts: dict[str, tuple[Iterable[str], Iterable[str], int]],
+    *,
+    declaration_date: str = PEER_DECLARATION_DATE,
+) -> dict[str, Any]:
+    """Return a synthetic snapshot with several account types.
+
+    `parts` maps an account type to (service 101 amounts, service 401 amounts, asterisks of 101),
+    laid out per type as in `snapshot_dict_of`. Every type gets its own placeholder entities, so
+    no entity code is shared. Everything is synthetic (never a Banco de España figure).
+    """
+    b = bde_builders()
+    accounts: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
+    entity = 9901
+    for code in b.ACCOUNT_TYPE_ORDER:
+        if code not in parts:
+            continue
+        raw_maintenance, raw_card, asterisks = parts[code]
+        maintenance, card = tuple(raw_maintenance), tuple(raw_card)
+        count = max(len(maintenance) + asterisks, len(card), 1)
+        for i in range(count):
+            acc = b.account(str(entity), account_type=code, declaration_date=declaration_date)
+            entity += 1
+            accounts.append(acc)
+            if i < len(maintenance):
+                rows.append(b.amount_row(acc, "101", b.MAINTENANCE_CONCEPT, maintenance[i]))
+            elif i < len(maintenance) + asterisks:
+                rows.append(b.asterisk_row(acc, "101", b.MAINTENANCE_CONCEPT))
+            if i < len(card):
+                rows.append(b.amount_row(acc, "401", b.CARD_CONCEPT, card[i]))
+    ordered = b.sort_rows(rows, accounts)
+    return b.make_snapshot(accounts, ordered, declaration_date=declaration_date)
+
+
+def cno_only_snapshot_dict() -> dict[str, Any]:
+    """CNO only (synthetic, the shape of the first real snapshot): S12 for 101 and S10 for 401."""
+    return snapshot_dict_of(S12_AMOUNTS, S10_AMOUNTS, maintenance_asterisks=3)
+
+
+def cno_cot_snapshot_dict() -> dict[str, Any]:
+    """CNO (S12 for 101, S10 for 401) and COT (eight amounts for 101), synthetic."""
+    return typed_snapshot_dict(
+        {"CNO": (S12_AMOUNTS, S10_AMOUNTS, 3), "COT": (COT_EIGHT_AMOUNTS, (), 0)}
+    )
+
+
+def cdi_cot_snapshot_dict() -> dict[str, Any]:
+    """CDI and COT only, no CNO (synthetic)."""
+    return typed_snapshot_dict(
+        {"CDI": (S12_AMOUNTS, S10_AMOUNTS, 3), "COT": (COT_EIGHT_AMOUNTS, (), 0)}
+    )
+
+
 def peer_context(snapshot: FeeSnapshot | dict[str, Any], account_type: str = "CNO") -> PeerContext:
     """Return a PeerContext for a snapshot (a dict is validated first) and the config services."""
     loaded = snapshot if isinstance(snapshot, FeeSnapshot) else FeeSnapshot.from_dict(snapshot)

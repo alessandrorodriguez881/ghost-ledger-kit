@@ -319,7 +319,7 @@ that few accounts describe those accounts, not "the Spanish banks". The only cou
 entities for `CNO`, so a real snapshot is far above 10 and the limit never blocks real data; it blocks a partial
 snapshot (a type with a few declarations, a fixture, a damaged import) from producing a sentence that sounds like a
 market statement. Ten is the smallest round number at which the 9-versus-10 boundary can be tested with a readable
-fixture (`S10`). The count is of accounts **with an amount**: accounts that do not offer the service do not make the
+fixture (`S10`). The count is of accounts **with an amount**: accounts marked with the asterisk do not make the
 sample bigger. The reviewer kept 10 (decision Q3).
 
 **Why 365** (DN-PF-08). A yearly fee run (`YEARLY_NOMINAL_DAYS = 365`) has its last charge up to a year old and is

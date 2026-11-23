@@ -178,7 +178,11 @@ def test_session_keys_start_with_vf() -> None:
         *vf_app.WIDGET_KEYS,
     ]
     assert all(key.startswith("vf_") for key in keys)
-    assert set(vf_app.WIDGET_KEYS) == {vf_app.HALLUCINATE_KEY, vf_app.DEMO_FORMAT_KEY}
+    assert set(vf_app.WIDGET_KEYS) == {
+        vf_app.HALLUCINATE_KEY,
+        vf_app.DEMO_FORMAT_KEY,
+        vf_app.PEER_TYPE_KEY,  # the account-type select box of public-fees (REQ-PF-20)
+    }
 
 
 def test_coffins_per_row_is_three() -> None:

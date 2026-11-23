@@ -21,6 +21,9 @@ import apps.vampire_fees.detectors  # noqa: F401  (registers the vf.* detectors)
 from apps.vampire_fees.detectors.utils import (
     VOCABULARY_KEYS,
     FeeVocabulary,
+    PeerContext,
+    PeerService,
+    build_peer_services,
     build_vocabulary,
     skipped_currency_rows,
 )
@@ -30,12 +33,18 @@ from ledger_kit.explainer import fill_fallback
 from ledger_kit.ingestion.normaliser import normalise
 from ledger_kit.ingestion.sniffer import format_label, read_bank_statement, sniff_format
 from ledger_kit.live_guard import rejection_reason_text
-from ledger_kit.models import Alert
+from ledger_kit.models import ALERT_ID_EXCLUDED_PREFIX, Alert
+from ledger_kit.public_data import (
+    ACCOUNT_TYPE_ORDER,
+    ACCOUNT_TYPES,
+    FeeSnapshot,
+    FeeSnapshotError,
+    load_fee_snapshot,
+)
 from ledger_kit.utils.money import format_amount
 
 if TYPE_CHECKING:
     from ledger_kit.explainer import Explanation
-    from ledger_kit.public_data import FeeSnapshot
 
 # Alert severities in display order.
 SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
@@ -162,10 +171,18 @@ def run_pipeline(
     *,
     vocabulary: FeeVocabulary,
     cache: MutableMapping[str, Any] | None = None,
+    peers: PeerContext | None = None,
 ) -> Pipeline:
-    """Read, normalise and run every vf.* detector on the whole ledger, credits included."""
+    """Read, normalise and run every vf.* detector on the whole ledger, credits included.
+
+    `peers` is the fee comparison context; it is put into the detector context only when it is
+    not None, so a call without it runs exactly as before (public-fees design 9).
+    """
     ledger, quarantine = ingest_statement(name, data, cache)
-    results = run_all(ledger, namespace="vf", context={"vocabulary": vocabulary})
+    context: dict[str, Any] = {"vocabulary": vocabulary}
+    if peers is not None:
+        context["peers"] = peers
+    results = run_all(ledger, namespace="vf", context=context)
     return Pipeline(
         ledger=ledger,
         quarantine=quarantine,
@@ -298,10 +315,16 @@ PEER_LICENCE_LINE: str = (
 
 
 def _not_offered_text(count: int) -> str:
-    """Return '3 accounts do not offer this service' (and the singular for one account)."""
+    """Return '3 accounts show an asterisk (...)' with the Excel legend (singular for one).
+
+    The asterisk means no fee is charged or the service is not offered; the kit does not guess
+    which one applies (decision D6). The character itself is spelled out as a word because the
+    page escapes it.
+    """
+    legend = "(no fee is charged or the service is not offered)"
     if count == 1:
-        return "1 account does not offer this service"
-    return f"{count} accounts do not offer this service"
+        return f"1 account shows an asterisk {legend}"
+    return f"{count} accounts show an asterisk {legend}"
 
 
 def peer_source_line(alert: Alert) -> str | None:
@@ -339,3 +362,116 @@ def peer_attribution_lines(snapshot: FeeSnapshot) -> list[str]:
         retrieved_on=snapshot.retrieved_on, declaration_date=snapshot.declaration_date
     )
     return [snapshot.attribution, licence, snapshot.licence_note, snapshot.no_endorsement]
+
+
+# --- Fee comparison: loading the snapshot and the account type (public-fees PF6, design 9) -------
+
+PeerStatus = Literal["ok", "missing", "invalid"]
+
+# The label of the sidebar select box of the account type (REQ-PF-20).
+PEER_SELECT_LABEL: str = "Compare my fees with"
+# The captions shown instead of the footer when no snapshot can be used (REQ-PF-19).
+PEER_UNAVAILABLE_NOT_FOUND: str = "Fee comparison unavailable: snapshot not found."
+PEER_UNAVAILABLE_INVALID: str = "Fee comparison unavailable: snapshot invalid."
+
+
+def _peer_table(config: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return the [peer_fees] table of a config, or an empty mapping when there is none."""
+    table = config.get("peer_fees")
+    return table if isinstance(table, Mapping) else {}
+
+
+def peer_snapshot_path(config: Mapping[str, Any], root: Path) -> Path | None:
+    """Return the snapshot path of [peer_fees] relative to `root`, or None when none is set."""
+    path = _peer_table(config).get("snapshot_path")
+    if not isinstance(path, str) or not path.strip():
+        return None
+    return Path(root) / path
+
+
+def read_fee_snapshot(path: Path | None) -> FeeSnapshot | None:
+    """Load a fee snapshot; None for no path, a missing file or an invalid one (never raises)."""
+    if path is None:
+        return None
+    try:
+        return load_fee_snapshot(Path(path))
+    except FeeSnapshotError:
+        return None
+
+
+def peer_status(config: Mapping[str, Any], root: Path) -> PeerStatus:
+    """Say whether the configured snapshot loads: 'ok', 'missing' (no file) or 'invalid'."""
+    path = peer_snapshot_path(config, root)
+    if path is None or not path.is_file():
+        return "missing"
+    return "ok" if read_fee_snapshot(path) is not None else "invalid"
+
+
+def peer_unavailable_caption(status: PeerStatus) -> str | None:
+    """Return the caption that replaces the footer, or None when the snapshot loaded."""
+    if status == "missing":
+        return PEER_UNAVAILABLE_NOT_FOUND
+    if status == "invalid":
+        return PEER_UNAVAILABLE_INVALID
+    return None
+
+
+def peer_services_of(config: Mapping[str, Any]) -> tuple[PeerService, ...]:
+    """Fold the services of [peer_fees]; no table gives no service (no comparison)."""
+    table = _peer_table(config)
+    return build_peer_services(table) if table else ()
+
+
+def configured_peer_type(config: Mapping[str, Any]) -> str | None:
+    """Return `default_account_type` of [peer_fees], or None when it is not set."""
+    value = _peer_table(config).get("default_account_type")
+    return value if isinstance(value, str) else None
+
+
+def peer_context_for(
+    snapshot: FeeSnapshot, account_type: str, config: Mapping[str, Any]
+) -> PeerContext:
+    """Return the detector context of the comparison: snapshot, account type, config services."""
+    return PeerContext(snapshot, account_type, peer_services_of(config))
+
+
+def load_peers(config: Mapping[str, Any], root: Path, account_type: str) -> PeerContext | None:
+    """Load the configured snapshot and return its PeerContext; None when it does not load."""
+    snapshot = read_fee_snapshot(peer_snapshot_path(config, root))
+    return None if snapshot is None else peer_context_for(snapshot, account_type, config)
+
+
+def peer_type_options(snapshot: FeeSnapshot) -> tuple[str, ...]:
+    """Return the account types present in the snapshot, in the fixed order (REQ-PF-20)."""
+    return tuple(code for code in ACCOUNT_TYPE_ORDER if code in snapshot.account_types)
+
+
+def peer_type_label(code: str) -> str:
+    """Return how an account type is shown in the select box: 'CNO · Cuenta Nómina/Pensión'."""
+    known = ACCOUNT_TYPES.get(code)
+    return code if known is None else f"{code} · {known.label}"
+
+
+def default_peer_type(snapshot: FeeSnapshot, configured: str | None) -> str:
+    """Return the configured type when the snapshot has it, else its first type in order."""
+    options = peer_type_options(snapshot)
+    if configured is not None and configured in options:
+        return configured
+    return options[0]
+
+
+PeerItems = tuple[tuple[str, Any], ...]
+
+
+def explanation_cache_key(alert: Alert, mode: str) -> tuple[str, str, PeerItems]:
+    """Return (alert.id, mode, peer items): the peer_ fields are not in the id (decision Q7).
+
+    The peer items are the (key, value) pairs of the `peer_` keys of `alert.data`, in data order,
+    so a new account type or a new snapshot never reuses an explanation of another comparison.
+    """
+    items = tuple(
+        (key, value)
+        for key, value in alert.data.items()
+        if isinstance(key, str) and key.startswith(ALERT_ID_EXCLUDED_PREFIX)
+    )
+    return alert.id, mode, items

@@ -109,7 +109,20 @@ def test_one_template_per_app_shows_lines_and_no_internal_key(prefix: str) -> No
 
 
 @pytest.mark.parametrize("prefix", PREFIXES)
-def test_the_cards_without_a_model_answer_show_the_chip_template(prefix: str) -> None:
+def test_the_cards_without_a_model_answer_show_the_chip_template(
+    prefix: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if prefix == "vf":
+        # No snapshot here; the cards with the comparison are checked in test_vf_peer_demo.py.
+        real_load_config = vf_settings.load_config
+
+        def without_snapshot(config_path: Path) -> dict:
+            config = real_load_config(config_path)
+            missing = str(Path(__file__).parent / "missing_fee_snapshot.json")
+            config["peer_fees"] = {**config["peer_fees"], "snapshot_path": missing}
+            return config
+
+        monkeypatch.setattr(vf_settings, "load_config", without_snapshot)
     at = AppTest.from_file(str(ROOT / SCRIPTS[prefix]), default_timeout=TIMEOUT_SECONDS).run()
     at.button(key=f"{prefix}_load_demo").click().run()
 

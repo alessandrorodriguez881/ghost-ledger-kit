@@ -156,12 +156,12 @@ docstring; lines are at most 100 characters; constants are named and commented (
 
 Uses a synthetic snapshot in `tmp_path`; does not need the real one.
 
-- [ ] Read first: the rest of `apps/vampire_fees/app.py` (`_render_alert` and the page function; only the first 450 lines
+- [x] Read first: the rest of `apps/vampire_fees/app.py` (`_render_alert` and the page function; only the first 450 lines
   were read when the spec was written), `ledger_kit/replay.py`, `tests/judge_path_support.py`,
   `tests/test_showcase_app.py` and the existing `test_vf_app_logic.py`. Q7 is answered: `data/live_runs/` holds
   recorded answers for `vf.recurring_fee` alerts, and PF0 keeps their ids, so the replay keeps finding them with or
   without the snapshot; nothing is re-recorded.
-- [ ] Tests: in `test_vf_app_logic.py`-style pure tests, `peer_type_options` and `default_peer_type` (REQ-PF-20 examples:
+- [x] Tests: in `test_vf_app_logic.py`-style pure tests, `peer_type_options` and `default_peer_type` (REQ-PF-20 examples:
   `CNO` + `COT`; `CDI` + `COT`; a default absent from the snapshot), `peer_status` (`ok`, `missing`, `invalid`),
   `load_peers` (`None` for a missing and for an invalid file), `run_pipeline(..., peers=None)` gives results identical to
   today's (same `data`, same ids) and `peers=PeerContext(...)` adds the keys **and keeps the ids**;
@@ -184,16 +184,17 @@ Uses a synthetic snapshot in `tmp_path`; does not need the real one.
   The Norma 43 demo gives the same peer lines as the CSV demo (dates come from the rows). `tests/test_showcase_app.py`:
   the Home caption appears only when a snapshot loads (patch the default path). Existing `test_vf_*` tests pass
   unchanged.
-- [ ] Add `load_peers`, `peer_status`, `peer_type_options`, `default_peer_type`, `explanation_cache_key` and the `peers`
+- [x] Add `load_peers`, `peer_status`, `peer_type_options`, `default_peer_type`, `explanation_cache_key` and the `peers`
   argument of `run_pipeline` to `settings.py`; in `app.py` the cached loader, the select box (key `vf_peer_type`, added
   to `WIDGET_KEYS`, drawn only when the snapshot holds two or more types, DN-PF-32), the cache key, the card lines in the alert card, the footer and the unavailable captions; in
   `streamlit_app.py` the conditional Home caption.
+- [x] Session 41b: Home shows a short credit (`fee_credit()`: Banco de España and the declaration date, as a separate caption right after the INE caption, not in the same caption, only while the snapshot loads); the full attribution of decision Q1 lives on the Vampire Fees page and in the documents.
 
 ## Task PF7 — Documents and `.gitignore` (before the snapshot exists)
 
 **Covers**: REQ-PF-19 (documents), REQ-PF-21, §11
 
-- [ ] Read `tests/test_readme.py` (`REQUIRED_HEADINGS`), `tests/test_public_data_docs.py`, `tests/test_publish_ready.py` and
+- [x] Read `tests/test_readme.py` (`REQUIRED_HEADINGS`), `tests/test_public_data_docs.py`, `tests/test_publish_ready.py` and
   the `.gitignore` tests first. Tests: `.gitignore` contains `*.xlsx` and `*.xls` and still has `!data/public/` and
   `!data/public/**` after `*.json`; `README.md` and `data/public/README.md` contain `attribution_for("YYYY-MM-DD")`,
   `LICENCE_NOTE` and `NO_ENDORSEMENT` of `bde_fees.py` verbatim (the date is the placeholder while no snapshot exists),
@@ -204,7 +205,7 @@ Uses a synthetic snapshot in `tmp_path`; does not need the real one.
   Q6); when the snapshot exists, all of them equal the snapshot's texts (skipif absent); the existing README, publish
   and public-data tests pass (extend `tests/test_public_data_docs.py`, do not weaken it). The README says the app never
   calls the network and that the figures are context, not a verdict.
-- [ ] Update `.gitignore`, `data/public/README.md` (second section, §11), `README.md` (paragraph in "Public data") and
+- [x] Update `.gitignore`, `data/public/README.md` (second section, §11), `README.md` (paragraph in "Public data") and
   `data/samples/README.md` (pointer line already says official public data lives in `data/public/`; extend only if it does
   not mention the BdE file).
 

@@ -1,7 +1,7 @@
 """Pinned checks of the committed Banco de España fee snapshot (REQ-PF-03).
 
-The snapshot is not committed yet: every test that reads it is skipped until task PF9. No fee
-amount is pinned, so a refreshed snapshot breaks nothing.
+The snapshot is committed (task PF9), so no test here is skipped. No fee amount is pinned, so a
+refreshed snapshot breaks nothing.
 """
 
 from __future__ import annotations
@@ -27,10 +27,6 @@ SNAPSHOT = REPO_ROOT / "data" / "public" / "bde_payment_account_fees.json"
 # The number of entities that had declared CNO accounts on 23 November 2026 (BdE, Source fact 3).
 CNO_ENTITIES_ON_2026_11_23 = 51
 
-needs_snapshot = pytest.mark.skipif(
-    not SNAPSHOT.exists(), reason="snapshot not committed yet (PF9 is blocked)"
-)
-
 
 @pytest.fixture(scope="module")
 def raw() -> dict[str, Any]:
@@ -50,31 +46,30 @@ def test_the_default_path_is_the_public_folder() -> None:
     assert DEFAULT_FEE_SNAPSHOT_PATH == SNAPSHOT
 
 
-@needs_snapshot
+def test_the_snapshot_file_is_committed_in_the_public_folder() -> None:
+    assert SNAPSHOT.is_file()
+
+
 def test_the_snapshot_passes_the_validator(raw: dict[str, Any]) -> None:
     validate_fee_snapshot(raw)
 
 
-@needs_snapshot
 def test_cno_is_present(snapshot: FeeSnapshot) -> None:
     # Amendment A1 (DN-PF-25, replaces Q5): a type enters only when its files hold every entity
     # the tool lists for it; the first snapshot holds CNO only, COT is added once complete.
     assert "CNO" in snapshot.account_types
 
 
-@needs_snapshot
 def test_every_declaration_date_equals_the_top_level_one(raw: dict[str, Any]) -> None:
     assert {a["declaration_date"] for a in raw["accounts"]} == {raw["declaration_date"]}
 
 
-@needs_snapshot
 def test_the_texts_equal_the_constants(snapshot: FeeSnapshot) -> None:
     assert snapshot.licence_note == LICENCE_NOTE
     assert snapshot.no_endorsement == NO_ENDORSEMENT
     assert snapshot.attribution == attribution_for(snapshot.declaration_date)
 
 
-@needs_snapshot
 def test_cno_entity_count_on_the_reviewed_date(raw: dict[str, Any]) -> None:
     if raw["declaration_date"] != "2026-11-23":
         pytest.skip("the pinned entity count is for the declaration date 2026-11-23")

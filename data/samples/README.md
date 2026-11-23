@@ -5,7 +5,8 @@ statement, invoice or person (Finance Rules 5 and 6). There are no public-domain
 no third-party licence applies.
 
 Official public data lives in `data/public/`, not here: see [`data/public/README.md`](../public/README.md)
-for its source, licence and attribution.
+for its source, licence and attribution. It holds the INE consumer price index and the Banco de
+España payment-account fee snapshot, bde_payment_account_fees.json.
 
 ## Generation script
 
