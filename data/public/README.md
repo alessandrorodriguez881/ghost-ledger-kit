@@ -85,7 +85,8 @@ The Banco de España does not take part in, endorse or support this reuse.
 
 The second sentence of the attribution labels the counts, the median and the highest value as our
 own calculation. The Vampire Fees page shows these texts once, below its alerts, while the snapshot
-loads, and the showcase Home page carries the attribution in one line.
+loads. The showcase Home page shows only a short credit in its own caption (`Vampire Fees: Banco de
+España, declaraciones a fecha YYYY-MM-DD.`); the full attribution is on the Vampire Fees page.
 
 ### How the snapshot is made
 

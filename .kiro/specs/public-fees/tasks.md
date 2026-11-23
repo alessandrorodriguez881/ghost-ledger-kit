@@ -265,7 +265,7 @@ in Source fact 8 (the amendment came before any importer code).
 
 **Waits for PF8 only** (amendment A1). Not done by an agent: the developer runs the importer on the files they keep.
 
-- [ ] **Developer step H2** (PowerShell, venv active with the extra `import` installed — `pip install -e ".[import]"`
+- [x] **Developer step H2** (PowerShell, venv active with the extra `import` installed — `pip install -e ".[import]"`
   — in the repository root; `<DOWNLOADS>` is the folder outside the repository that holds the exports):
   ```powershell
   python scripts/import_bde_fees.py --declaration-date 2026-11-23 --excel CNO=<DOWNLOADS>\nomina_pension\CompararEntidadesCCP.xls --expect-entities CNO=51
@@ -276,7 +276,7 @@ in Source fact 8 (the amendment came before any importer code).
   expected for `CNO`), check that `data/public/bde_payment_account_fees.json` is listed (not
   ignored), read the file's size (risk 7), open the file and check by eye three entities against the BdE page (code,
   name, one amount), then commit it. Record in the PR the file names, sizes and SHA-256 the importer wrote.
-- [ ] Remove the `skipif(not exists)` marks of `test_bde_fees_snapshot.py` and the "does not exist yet" statements of the
+- [x] Remove the `skipif(not exists)` marks of `test_bde_fees_snapshot.py` and the "does not exist yet" statements of the
   README and `data/public/README.md` (and their test assertions), replacing them by the real description (types, date,
   retrieval date, sizes, the attribution with the real date). The comparison now appears in the demo: run
   `streamlit run apps/vampire_fees/app.py`, Load demo data, and check the two cards (`BANCO FICTICIO` maintenance and
@@ -287,7 +287,7 @@ in Source fact 8 (the amendment came before any importer code).
 
 **Covers**: all REQ ids, §11, §12
 
-- [ ] **Steering edits, approved by the reviewer on 23 November 2026** (these files bind every later session):
+- [x] **Steering edits, approved by the reviewer on 23 November 2026** (these files bind every later session):
   `finance-rules.md` — Rule 6 (`data/public/` also holds the BdE snapshot, with its licence condition and attribution) and
   Rule 9: add the **one sentence** of design §11 about aggregates of public rows labelled *Elaboración propia*
   (decision Q1), and one sentence that the `peer_*` keys of `Alert.data` are left out of the alert id

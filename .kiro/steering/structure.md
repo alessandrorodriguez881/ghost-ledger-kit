@@ -29,7 +29,8 @@ ghost-ledger-kit/
 │   ├── replay.py                   # Replay of a recorded real-model run through today's guard (no model, no network)
 │   ├── public_data/
 │   │   ├── __init__.py             # public names only
-│   │   └── ine_cpi.py              # INE CPI snapshot reader and validator (stdlib only, no network)
+│   │   ├── ine_cpi.py              # INE CPI snapshot reader and validator (stdlib only, no network)
+│   │   └── bde_fees.py             # BdE payment-account fee snapshot reader and validator (stdlib only, no network)
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   ├── reference_app.py        # Library reference page (Streamlit)
@@ -94,13 +95,13 @@ ghost-ledger-kit/
 │   ├── vampire_fees/               # App 3: bank-fee detector (built from the finished template)
 │   │   ├── __init__.py
 │   │   ├── app.py                  # Streamlit entry point (path bootstrap at top)
-│   │   ├── config.toml             # fee vocabulary and demo paths (no thresholds)
-│   │   ├── settings.py             # load config.toml, run_pipeline, view-model helpers
+│   │   ├── config.toml             # fee vocabulary, demo paths and [peer_fees] (snapshot path, default account type, peer service words; no thresholds)
+│   │   ├── settings.py             # load config.toml, run_pipeline(peers=), view-model helpers, peer card helpers
 │   │   ├── explain_support.py      # fallback TEMPLATES, HallucinatingStubClient
 │   │   ├── action_templates.py     # Exorcise template: the complaint to the bank for each fee alert
 │   │   ├── detectors/
 │   │   │   ├── __init__.py         # auto_discover
-│   │   │   ├── utils.py            # constants, folding, vocabulary, classify_fee, runs
+│   │   │   ├── utils.py            # constants, folding, vocabulary, classify_fee, runs, PeerContext, peer_context_fields, PeerService, match_peer_service
 │   │   │   ├── recurring_fee.py
 │   │   │   ├── fee_increase.py
 │   │   │   ├── overdraft_cost.py
@@ -114,6 +115,9 @@ ghost-ledger-kit/
 │   │       ├── test_vf_series.py
 │   │       ├── test_vf_fixtures.py
 │   │       ├── test_vf_recurring_fee.py
+│   │       ├── test_vf_recurring_fee_peers.py  # peer context of vf.recurring_fee (PeerContext), ids unchanged
+│   │       ├── test_vf_peer_support.py  # [peer_fees] config, matching, template, guard, card helpers
+│   │       ├── test_vf_peer_demo.py     # headless AppTest of the demo with a synthetic BdE snapshot
 │   │       ├── test_vf_fee_increase.py
 │   │       ├── test_vf_overdraft_cost.py
 │   │       ├── test_vf_fee_summary.py
@@ -195,6 +199,10 @@ ghost-ledger-kit/
 │   ├── public_data/
 │   │   ├── conftest.py             # synthetic CPI series S, G and C as fixtures
 │   │   ├── cpi_builders.py         # synthetic CPI values and snapshot builders (not INE figures)
+│   │   ├── bde_builders.py         # synthetic fee snapshot builders (S12, S10, strategy); not BdE figures
+│   │   ├── test_bde_fees_validator.py  # every rejection of the snapshot validator
+│   │   ├── test_bde_fees_reader.py     # reader, load_fee_snapshot, attribution_for, stdlib-only import scan
+│   │   ├── test_bde_fees_snapshot.py   # pinned checks of the committed BdE snapshot (CNO only)
 │   │   ├── test_ine_cpi_reader.py
 │   │   └── test_ine_cpi_snapshot.py  # pinned checks of the committed INE snapshot, .gitignore
 │   ├── test_generate_real_formats.py   # Norma 43 / Facturae writers and committed samples
@@ -207,6 +215,8 @@ ghost-ledger-kit/
 │   ├── test_benchmark_matching.py  # matching rule and metrics (pure)
 │   ├── test_benchmark_runner.py    # pipelines, results, CLI, committed files equal a fresh run
 │   ├── test_benchmark_page.py      # Benchmark page of streamlit_app.py
+│   ├── test_alert_id_peer_keys.py  # the alert id leaves out the top-level `peer_` keys (ALERT_ID_EXCLUDED_PREFIX); every demo id unchanged
+│   ├── test_import_bde_fees.py     # importer: parse_grid, build_snapshot, read_grid with a fake `xlrd`, main; no network, no clock
 │   ├── test_models.py
 │   ├── test_explainer_question.py  # optional question and raw_answer of the explainer
 │   ├── test_explainer_timeout.py   # optional LEDGER_KIT_LLM_TIMEOUT (1 to 120, default 10)
@@ -232,7 +242,8 @@ ghost-ledger-kit/
 │   ├── generate_samples.py         # Deterministic synthetic sample generator (--mode, --seed)
 │   ├── generate_benchmark.py       # Seeded benchmark scenarios and labels (stdlib + money.py only)
 │   ├── benchmark.py                # Benchmark runner: pipelines, matching, results.json, benchmark.md
-│   └── fetch_ine_cpi.py            # Developer-run INE CPI snapshot download (stdlib only; never at run time)
+│   ├── fetch_ine_cpi.py            # Developer-run INE CPI snapshot download (stdlib only; never at run time)
+│   └── import_bde_fees.py          # Developer-run BdE fee importer: local .xls files exported by hand → snapshot; may import the library validator; reads local files only; `xlrd` only inside read_grid (optional extra `import`)
 ├── docs/
 │   ├── how-it-works.md             # The problem, how it works, the three apps in detail, the benchmark method
 │   ├── real-formats.md             # Real Spanish formats: Norma 43 and Facturae
@@ -249,7 +260,8 @@ ghost-ledger-kit/
 │   │   └── 2026-11-10_llama3.2-3b.json  # LG8: llama3.2:3b on Ollama; replayed by test_explainer_live_run.py
 │   ├── public/                     # Official public data under an open licence (never personal data)
 │   │   ├── README.md               # Source, licence, attribution, refresh command
-│   │   └── ine_cpi_ipc290751.json  # INE CPI snapshot written by scripts/fetch_ine_cpi.py
+│   │   ├── ine_cpi_ipc290751.json  # INE CPI snapshot written by scripts/fetch_ine_cpi.py
+│   │   └── bde_payment_account_fees.json  # BdE fee snapshot (CNO only, 51 entities, 92 accounts, 2026-11-23) written by scripts/import_bde_fees.py
 │   └── samples/                    # Synthetic or public-domain sample files only
 │       ├── README.md               # Licence reference for any public-domain files
 │       ├── bank_statement_sample.csv
@@ -311,7 +323,7 @@ files with the generator (`scripts/generate_samples.py`).
 - App packages (`apps.zombie_subscriptions`, `apps.phantom_invoices`) **import from `ledger_kit`** and from their own `detectors/` sub-package only.
 - The zombie app may import `ledger_kit` and its own `detectors/`, `settings.py`, `explain_support.py` and `action_templates.py`.
 - The phantom app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `prepare.py`, `explain_support.py`, `flashlight.py`, `action_templates.py`.
-- The vampire app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `explain_support.py` and `action_templates.py`.
+- The vampire app may import `ledger_kit` (public names only) and its own `detectors/`, `settings.py`, `explain_support.py` and `action_templates.py`. It receives the BdE fee snapshot through `context["peers"]`, a `PeerContext`; the detector does no I/O.
 - Apps must not import from each other.
 - Apps read bank statements and invoices through the routers of `ledger_kit/ingestion/sniffer.py`
   (`read_bank_statement`, `read_invoices`); the content, not the file extension, picks the reader.
@@ -321,6 +333,13 @@ files with the generator (`scripts/generate_samples.py`).
   it is run by the developer, imports nothing from the project, and is never called by an app, a
   test or CI.
 - The zombie app receives the CPI series through `context["cpi"]`; the detectors do no I/O.
+- `ledger_kit/public_data/bde_fees.py` is stdlib only and never touches the network; the committed snapshot
+  `data/public/bde_payment_account_fees.json` is its only input. `scripts/import_bde_fees.py` is the one script allowed
+  to import the library validator; it reads local files only (Excel files exported by hand, never committed), runs on
+  the developer machine only, imports no network module, and is never called by an app, a test of an app or CI. Its
+  `xlrd` import (optional extra `import`) is inside `read_grid` and appears nowhere under `ledger_kit/`, `apps/` or
+  `streamlit_app.py`.
+- `ledger_kit/models.py` leaves the top-level `peer_` keys of `Alert.data` out of the alert id (`ALERT_ID_EXCLUDED_PREFIX`).
 - `explainer.py` is the **only** module permitted to make LLM API calls.
 - `live_guard.py` is pure: no Streamlit, no model call; the explainer stays the only module that calls a model.
 - `replay.py` is pure too: it reads one committed run file and hands recorded text to the same call and the same guard as a live answer, through an OpenAI-shaped client that opens no connection.
@@ -333,7 +352,7 @@ files with the generator (`scripts/generate_samples.py`).
   ratios computed from synthetic scenarios made by `scripts/generate_benchmark.py`. No personal
   data, no real file. It is written by `python scripts/benchmark.py`, never edited by hand.
 - `data/public/` contains only official public data under an open licence (today the INE CPI
-  snapshot), with its licence reference and attribution in `data/public/README.md`. Never personal data.
+  snapshot and the Banco de España payment-account fee snapshot), with its licence reference and attribution in `data/public/README.md`. Never personal data.
 - Real user data must never be committed to the repository.
 - `.gitignore` must exclude `data/real/` and any `*.csv` / `*.json` outside `data/samples/`,
   `data/public/` and `data/benchmark/` (the lines `!data/public/`, `!data/public/**`,

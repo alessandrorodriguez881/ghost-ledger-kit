@@ -18,6 +18,7 @@
 | XML safety | **defusedxml** (exact pin, `0.7.1`) | `facturae_reader.py` parses untrusted XML only through `defusedxml.ElementTree` with `forbid_dtd=True`; no other module imports an XML parser. |
 | Bank statements | stdlib only | Norma 43 (AEB CSB 43) is fixed-width text read by `norma43_reader.py`; the content sniffer picks CSV or Norma 43. |
 | Public data (INE CPI) | stdlib only (`urllib.request`, `json`, `decimal`) | The INE JSON API is called only by `scripts/fetch_ine_cpi.py`, run by the developer, never at run time, in tests or in CI. It writes `data/public/ine_cpi_ipc290751.json`; `ledger_kit/public_data/ine_cpi.py` reads and validates that file. Index values are `Decimal` built from the JSON text (`parse_float=Decimal`), never `float`. |
+| Public data (BdE fees) | stdlib only at run time; **xlrd** `2.0.1` (exact pin) only in the optional extra `import` of `pyproject.toml` | The Banco de España fee comparator has no API and is **never accessed by automated means**: the developer exports the Excel files (`.xls`) by hand and `scripts/import_bde_fees.py` reads those local files and writes `data/public/bde_payment_account_fees.json`. `xlrd` is imported only inside `read_grid` of the importer, never at run time, never under `ledger_kit/`, `apps/` or `streamlit_app.py`, never in `requirements.txt`, and never in the tests of the apps (the importer tests use a fake `xlrd`). `ledger_kit/public_data/bde_fees.py` reads and validates the committed file; amounts are `Decimal` built from text. |
 | Typing | **pydantic ≥ 2.0** | `Transaction` and `Alert` models are Pydantic models for validation and serialisation. |
 | Linting / formatting | **ruff** | Single tool for lint + format; config in `pyproject.toml`. |
 
@@ -43,7 +44,7 @@ class Transaction(BaseModel):
 ### Alert
 ```python
 class Alert(BaseModel):
-    id: str                  # sha256 of canonical JSON of detector + sorted source_refs + data, unless given
+    id: str                  # sha256 of canonical JSON of detector + sorted source_refs + data, unless given; the top-level `data` keys that start with `peer_` (ALERT_ID_EXCLUDED_PREFIX) are left out of the hash
     detector: str            # name of the detector function that raised it
     severity: Literal["info", "warning", "critical"]
     title: str
