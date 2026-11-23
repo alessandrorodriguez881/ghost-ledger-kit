@@ -1,0 +1,5 @@
+Session 44: one count in the README is out of date. Write files only with your file tools; never use a shell command.
+
+In README.md, line 36 (the Specs row of the Kiro feature table) says 18 specs in .kiro/specs/ and lists them, but since the public-fees spec of 23 Nov there are 19 folders in .kiro/specs (app-signatures, benchmark, cli-hooks, detector-fixes, exorcise, guard-honesty, haunted-design, judge-path, ledger-core, live-guard, model-computes, phantom-invoices, public-cpi, public-fees, real-formats, scan-command, showcase, vampire-fees, zombie-subscriptions). In that row only: change 18 specs to 19 specs, and add public-fees to the list right after public-cpi, written as `public-fees` (Banco de España payment-account fees), in the same style as `public-cpi` (INE price-index context). Keep the row a three-cell row.
+
+Read tests/test_readme.py first and keep it green. Change nothing else in README.md or in any other file; the old task files that mention 18 folders are history and stay as they are. Environment: Windows. When done, show the new start of the row up to public-fees.
