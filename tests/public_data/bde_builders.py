@@ -7,6 +7,7 @@ placeholder range 9901 to 9999 and entity names are fictional (`BANCO FICTICIO`,
 from __future__ import annotations
 
 import copy
+import hashlib
 from decimal import Decimal
 from typing import Any
 
@@ -22,11 +23,18 @@ from ledger_kit.public_data.bde_fees import (
 )
 
 DECLARATION_DATE = "2026-11-23"
-MAINTENANCE_CONCEPT = "Comisión anual total (euros)"
-CARD_CONCEPT = "Comisión mantenimiento. Anual total (euros)"
+# The two compared concepts as the Excel spells them, ANUAL in capitals (amendment A1, DN-PF-28).
+MAINTENANCE_CONCEPT = "Comisión ANUAL total (euros)"
+CARD_CONCEPT = "Comisión mantenimiento. ANUAL total (euros)"
 PERIOD_CONCEPT = "Periodicidad"
 # A synthetic SHA-256 (64 lowercase hex digits) for the Excel entries of a fixture.
 FAKE_SHA256 = "ab" * 32
+
+
+def fake_sha256(label: str) -> str:
+    """Return a distinct synthetic SHA-256 for one fixture file entry (DN-PF-26: no repeat)."""
+    return hashlib.sha256(f"synthetic excel {label}".encode()).hexdigest()
+
 
 # S12 of REQ-PF-07: twelve amounts for service 101, in a scrambled order (synthetic).
 S12_AMOUNTS: tuple[str, ...] = (
@@ -147,9 +155,9 @@ def make_snapshot(
         "excel_files": [
             {
                 "account_type": code,
-                "name": f"synthetic_{code.lower()}.xlsx",
+                "name": f"synthetic_{code.lower()}.xls",
                 "size_bytes": 2048,
-                "sha256": FAKE_SHA256,
+                "sha256": fake_sha256(code),
             }
             for code in types
         ],

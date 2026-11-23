@@ -26,6 +26,11 @@ dev = [
 llm = [
     "openai==3.46.0",
 ]
+# Developer-only importer of the Banco de España fee Excel (public-fees PF8, DN-PF-24): read by
+# scripts/import_bde_fees.py only; never in requirements.txt, never imported at run time.
+import = [
+    "xlrd==2.0.1",
+]
 
 [tool.setuptools.packages.find]
 include = ["ledger_kit*"]

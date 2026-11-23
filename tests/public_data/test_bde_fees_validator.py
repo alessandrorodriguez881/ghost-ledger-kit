@@ -13,6 +13,7 @@ from bde_builders import (
     account,
     amount_row,
     asterisk_row,
+    fake_sha256,
     make_snapshot,
     row,
     snapshot_strategy,
@@ -168,7 +169,9 @@ def test_account_types_out_of_order() -> None:
 
 def test_account_type_without_account() -> None:
     data = synthetic_s12(account_types=["CNO", "COT"])
-    data["excel_files"].append({**data["excel_files"][0], "account_type": "COT"})
+    data["excel_files"].append(
+        {**data["excel_files"][0], "account_type": "COT", "sha256": fake_sha256("COT")}
+    )
     _rejects(data, "account type COT has no account")
 
 
@@ -176,10 +179,24 @@ def test_excel_files_missing_a_type() -> None:
     _rejects(synthetic_s12(excel_files=[]), "excel_files has no entry for CNO")
 
 
-def test_excel_files_with_two_entries_for_one_type() -> None:
+def test_excel_files_with_two_entries_for_one_type_pass() -> None:
+    # Amendment A1 (DN-PF-26): one type may need several exported files, all named alike.
+    data = synthetic_s12()
+    data["excel_files"].append({**data["excel_files"][0], "sha256": fake_sha256("CNO second")})
+    validate_fee_snapshot(data)
+
+
+def test_excel_files_with_the_same_sha256_twice() -> None:
     data = synthetic_s12()
     data["excel_files"].append(dict(data["excel_files"][0]))
-    _rejects(data, "excel_files has two entries for CNO")
+    _rejects(data, "excel_files has two entries with the same sha256 (CNO)")
+
+
+def test_excel_files_with_the_same_sha256_in_two_types() -> None:
+    cno, cot = account("9901"), account("9901", account_type="COT")
+    data = make_snapshot([cno, cot], [])
+    data["excel_files"][1]["sha256"] = data["excel_files"][0]["sha256"]
+    _rejects(data, "excel_files has two entries with the same sha256 (COT)")
 
 
 def test_excel_file_of_a_type_not_in_the_snapshot() -> None:
@@ -362,7 +379,7 @@ def test_not_offered_that_is_not_a_bool(flag: Any) -> None:
 def test_duplicate_row() -> None:
     data = _one_account()
     data["rows"].append(dict(data["rows"][0]))
-    _rejects(data, "duplicate row: CNO 0049-01 service 101 concept 'Comisión anual total (euros)'")
+    _rejects(data, "duplicate row: CNO 0049-01 service 101 concept 'Comisión ANUAL total (euros)'")
 
 
 def test_rows_out_of_order_by_service() -> None:

@@ -28,7 +28,7 @@ default_account_type = "CNO"
 
 [peer_fees.maintenance]
 service = "101"
-concept = "Comisión anual total (euros)"
+concept = "Comisión ANUAL total (euros)"
 label = "account maintenance"
 words = ["mantenimiento cuenta", "mantenimiento de cuenta", "mantenimiento de la cuenta",
          "account maintenance"]
@@ -36,7 +36,7 @@ exclude = ["tarjeta", "card", "descubierto", "overdraft"]
 
 [peer_fees.debit_card]
 service = "401"
-concept = "Comisión mantenimiento. Anual total (euros)"
+concept = "Comisión mantenimiento. ANUAL total (euros)"
 label = "debit card maintenance"
 words = ["tarjeta debito", "tarjeta de debito", "debit card"]
 exclude = ["credito", "credit"]

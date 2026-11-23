@@ -56,9 +56,10 @@ def test_the_snapshot_passes_the_validator(raw: dict[str, Any]) -> None:
 
 
 @needs_snapshot
-def test_cno_and_cot_are_present(snapshot: FeeSnapshot) -> None:
+def test_cno_is_present(snapshot: FeeSnapshot) -> None:
+    # Amendment A1 (DN-PF-25, replaces Q5): a type enters only when its files hold every entity
+    # the tool lists for it; the first snapshot holds CNO only, COT is added once complete.
     assert "CNO" in snapshot.account_types
-    assert "COT" in snapshot.account_types
 
 
 @needs_snapshot

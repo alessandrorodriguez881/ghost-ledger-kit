@@ -25,8 +25,8 @@ from apps.vampire_fees.tests.vf_builders import BANK, default_vocabulary, fee_ro
 from ledger_kit.public_data import ACCOUNT_TYPES
 
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.toml"
-MAINTENANCE_CONCEPT = "Comisión anual total (euros)"
-CARD_CONCEPT = "Comisión mantenimiento. Anual total (euros)"
+MAINTENANCE_CONCEPT = "Comisión ANUAL total (euros)"
+CARD_CONCEPT = "Comisión mantenimiento. ANUAL total (euros)"
 
 # The [peer_fees] table of REQ-PF-09, written here so the unit tests do not read config.toml.
 PEER_TABLE: dict[str, Any] = {

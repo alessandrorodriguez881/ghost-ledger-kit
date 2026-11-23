@@ -226,18 +226,17 @@ def _check_account_types(types: Any) -> tuple[str, ...]:
 
 
 def _check_excel_files(files: Any, types: tuple[str, ...]) -> None:
-    """Check `excel_files`: exactly one well-formed entry per account type."""
+    """Check `excel_files`: one well-formed entry or more per account type, no repeated hash."""
     if not isinstance(files, list):
         raise FeeSnapshotError("excel_files must be a list")
     seen: set[str] = set()
+    hashes: set[str] = set()
     for entry in files:
         if not isinstance(entry, dict) or set(entry) != set(EXCEL_FILE_KEYS):
             raise FeeSnapshotError(f"excel_files entry must have exactly {list(EXCEL_FILE_KEYS)}")
         code = entry["account_type"]
         if code not in types:
             raise FeeSnapshotError(f"excel_files names unknown account type {code!r}")
-        if code in seen:
-            raise FeeSnapshotError(f"excel_files has two entries for {code}")
         seen.add(code)
         name = entry["name"]
         if not isinstance(name, str) or not name or "/" in name or "\\" in name:
@@ -248,6 +247,10 @@ def _check_excel_files(files: Any, types: tuple[str, ...]) -> None:
         sha = entry["sha256"]
         if not isinstance(sha, str) or not _SHA256_RE.match(sha):
             raise FeeSnapshotError(f"invalid sha256 for {code}: expected 64 lowercase hex digits")
+        # Every export is named alike (amendment A1, DN-PF-26): the hash tells the files apart.
+        if sha in hashes:
+            raise FeeSnapshotError(f"excel_files has two entries with the same sha256 ({code})")
+        hashes.add(sha)
     for code in types:
         if code not in seen:
             raise FeeSnapshotError(f"excel_files has no entry for {code}")

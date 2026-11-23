@@ -13,12 +13,13 @@ maintenance fee to the Banco de España on 2026-11-23, 9 charge less than this f
 **synthetic** unless marked BdE).
 
 **Reviewer decisions of 23 November 2026** (Q1 to Q10, recorded at the end of `tasks.md`) are applied in this
-document: the attribution text (Q1), `CNO` and `COT` in the first snapshot (Q5), no automated access to the BdE site
-(Q6), an alert id that leaves out the `peer_*` keys (Q7), the two-sentence wording (Q9) and the two annual-total
-concepts only (Q10).
+document: the attribution text (Q1), no automated access to the BdE site (Q6), an alert id that leaves out the
+`peer_*` keys (Q7), the two-sentence wording (Q9) and the two annual-total concepts only (Q10). **Amendment A1
+(23 November 2026, end of `tasks.md`)** records the real Excel (Source fact 8) and the decisions D1 to D9 taken on
+it (DN-PF-24 to DN-PF-32); it replaces Q5: the first snapshot holds `CNO` only (DN-PF-25).
 
 It adds a committed snapshot in our own format, a reader in `ledger_kit/public_data/`, an importer script
-(blocked until the real Excel exists), a word list in `config.toml` that matches an alert to a service,
+(written against the real Excel, amendment A1), a word list in `config.toml` that matches an alert to a service,
 extra fields in the `data` of the existing alert, one sentence on the card and in the fallback template,
 an account type chosen in the app, and the BdE attribution. It adds no detector, no threshold that
 decides an alert, and changes no severity, title or `source_refs`; the demo alert counts stay the same
@@ -26,7 +27,9 @@ with and without the snapshot. The comparison is **decoration around an alert th
 never decides whether one fires (same rule as `public-cpi`, Finance Rule 8 spirit, Finance Rule 9).
 
 **State of the repository when this spec was written: the snapshot does not exist and the Excel has not
-been downloaded.** Everything that needs the real file is marked **BLOCKED**. Without the snapshot the
+been downloaded.** **Amendment A1:** the Excel files were exported by hand on 23 November 2026 and are kept
+outside the repository; the importer (REQ-PF-04) is no longer blocked. The snapshot still does not exist until
+the developer runs the importer (task PF9, a manual step). Without the snapshot the
 app behaves exactly as today: no comparison, no placeholder number, nothing invented (REQ-PF-19).
 
 Ids are `REQ-PF-nn`. EARS keywords: *shall*, *when*, *while*, *where*, *if ... then*. Every example gives a
@@ -61,19 +64,54 @@ where the spec says so.
    Cuenta* with concept *Nombre de la cuenta*; *Mantenimiento de la cuenta* with concepts *Periodicidad* (value
    `ANUAL`) and *Comisión anual total (euros)* (value `0,00`); *Emisión y mantenimiento de una tarjeta de
    débito* with *Marca comercial*, *Comisión de emisión (euros)*, *Comisión mantenimiento. Periodicidad.* and
-   *Comisión mantenimiento. Anual total (euros)*; *Descubierto expreso* and *Descubierto tácito*, each with
+   *Comisión mantenimiento. Anual total (euros)* (the Excel writes both with `ANUAL` in capitals, Source fact
+   8, and the snapshot keeps the Excel spelling, DN-PF-28); *Descubierto expreso* and *Descubierto tácito*, each with
    *Apertura* (value `IMPORTE FIJO`), *Importe fijo (euros)*, *Tipo de interés nominal anual. Porcentaje (%)*
    and *Reclamación de posiciones deudoras (euros)*. Amounts use a decimal comma (`3,99`; `33,00`; `7,72`).
    **An asterisk means *No practicado*: the entity does not apply that service on that account.** Cell text
    can carry long runs of trailing spaces and padding characters. The page says that only the data the
    entities communicated to the BdE are shown.
-6. **The Excel layout is not known yet.** The team will generate and download the Excel with the owner's
-   approval; the importer is a later task written against the real file. **Nothing in this spec assumes the
-   Excel column layout**; the spec defines our own snapshot format instead.
+6. **The Excel layout was not known when this spec was written.** It is now known (Source fact 8, amendment
+   A1). Only the importer knows it; the rest of the spec still depends only on our own snapshot format.
 7. **Licence** (BdE legal notice, *aviso legal*, checked on 15 November 2026): the information may be reused
    and used for calculations **if it is reproduced faithfully and the Banco de España is cited as the
    source**. The data keeps that condition and is **not** covered by the repository MIT licence. The reuse
    must not suggest that the BdE takes part in or endorses it.
+8. **The exported Excel** (read by the reviewer on 23 November 2026 from three exported files; row and column
+   numbers are 0-based, as `xlrd` gives them; facts F1 to F8 of amendment A1):
+   - **Format.** A real binary `.xls` (OLE2, BIFF8, Excel 97-2003), not `.xlsx` and not an HTML table. One sheet,
+     `CompararEntidadesCCP`. Every export has the same file name, `CompararEntidadesCCP.xls`, so each one is kept
+     in its own folder. `xlrd` 2.0.1 reads them and prints a harmless warning about the file size not being a
+     multiple of the sector size.
+   - **Above the table.** A cell `Fecha: 23/11/2026   8:06:35` (when the file was generated); the cell
+     `CSF - Comisiones y tipos de interés de los servicios financieros`; the title `COMPARACIÓN ENTRE
+     ENTIDADES. COMISIONES DE CUENTAS DE PAGOS CUENTA NÓMINA/PENSIÓN`, ending with the account type label in
+     capitals (`OTRAS CUENTAS` for `COT`); a cell `Fecha de referencia: 23-11-2026` (the declaration date,
+     `DD-MM-YYYY`).
+   - **Header.** The row whose column 0 is `SERVICIOS` holds each service label in the first column of its
+     block; the next row holds the concept labels, and its column 0 is `CONCEPTOS`, a line break and `(*) No se
+     cobra comisión/no se ofrece el servicio`. A block runs from its label column to the column before the next
+     non-empty label; a column with an empty concept inside a block is a blank spacer. Blocks, in order:
+     *Proveedor de la Cuenta* (*Nombre de la cuenta*); *Mantenimiento de la cuenta* (*Periodicidad*,
+     *Comisión ANUAL total (euros)*); *Emisión y mantenimiento de una tarjeta de débito* (*Marca comercial*,
+     *Comisión de emisión (euros)*, *Comisión mantenimiento. Periodicidad.*, *Comisión mantenimiento. ANUAL
+     total (euros)*); then *Retirada efectivo a débito mediante tarjeta en cajero*, *Descubierto expreso* and
+     *Descubierto tácito*. The cash-machine block has a variable number of sub-groups whose concepts repeat, so
+     every later column moves (60, 58 and 54 columns in the three files): **columns are found by header text,
+     never by position.**
+   - **Data.** One row per account (declaration) from the row after the concept row to the last row. Column 0
+     (entity code, four-digit text) and column 2 (entity name) are filled only on the first account of each
+     entity; the next accounts leave them empty and belong to the entity above. Column 5 is a running number
+     stored as a number cell, the only number cell. No merged cells. Up to 20 accounts per entity.
+   - **Cells.** Every value cell is text. Amounts use a decimal comma and two decimals (`240,00`, `0,00`); no
+     thousands separator was seen. A lone asterisk is the asterisk. Text cells carry trailing spaces only.
+   - **Asterisk legend.** `(*) No se cobra comisión/no se ofrece el servicio` (no fee is charged, or the
+     service is not offered); on screen it said *No practicado*.
+   - **Exported on 23 November 2026.** `CNO` with all entities: **51 entities, 92 accounts (BdE)**, the whole
+     list the tool offers for `CNO`. `COT` is **incomplete**: the tool refuses an export of more than 238
+     declarations and a captcha stopped the downloads; 22 banks (114 accounts) and 28 of the 58 savings banks
+     and credit cooperatives (136 accounts) were exported, the rest is missing. No entity appears in two `COT`
+     files.
 
 Facts that this spec deduces from the code, not from the BdE: the committed demo statement
 (`data/samples/vampire_demo_statement.csv`) has a monthly `BANCO FICTICIO` / `Comisión mantenimiento cuenta`
@@ -94,13 +132,13 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   | `snapshot_format` | `1` (integer) |
   | `source` | `Banco de España, Comisiones y tipos de interés de los servicios financieros, Comisiones de Cuentas de Pago, Comparación entre entidades para una fecha y cuenta` |
   | `start_page` | `https://app.bde.es/csfwciu/csfwciuias/pub/InicioComisionesCuentasPago.html` |
-  | `retrieved_on` | ISO date on which the Excel was generated, e.g. `"2026-11-23"` |
-  | `declaration_date` | ISO date entered as *Fecha a comparar*; **one date per snapshot** (format 1) |
-  | `account_types` | list of the account type codes included, in the fixed order `CNO`, `CDI`, `CJO`, `CBA`, `COT` |
+  | `retrieved_on` | ISO date on which the Excel was generated, the date of the `Fecha:` cell above the table, e.g. `"2026-11-23"` (DN-PF-30) |
+  | `declaration_date` | ISO date entered as *Fecha a comparar*, the date of the `Fecha de referencia:` cell; **one date per snapshot** (format 1) |
+  | `account_types` | list of the account type codes included, in the fixed order `CNO`, `CDI`, `CJO`, `CBA`, `COT`; a type is included only when its files hold every entity the tool lists for it (DN-PF-25) |
   | `licence_note` | `The Banco de España legal notice allows reuse and use for calculations if the information is reproduced faithfully and the Banco de España is cited as the source. The data keeps that condition and is not covered by the repository MIT licence.` |
   | `attribution` | `Fuente: Banco de España, comparador de comisiones de cuentas de pago (declaraciones a fecha YYYY-MM-DD). Elaboración propia: recuento, mediana y máximo.` with `YYYY-MM-DD` replaced by `declaration_date`, i.e. `attribution_for(declaration_date)` (decision Q1) |
   | `no_endorsement` | `The Banco de España does not take part in, endorse or support this reuse.` |
-  | `excel_files` | list, one object per account type: `{"account_type": "CNO", "name": "<file name>", "size_bytes": <int>, "sha256": "<64 lowercase hex>"}` |
+  | `excel_files` | list, one object per exported file, **one or more per account type** (amendment A1, DN-PF-26), in type order and, within a type, in the order the files were given: `{"account_type": "CNO", "name": "<file name>", "size_bytes": <int>, "sha256": "<64 lowercase hex>"}`; names may repeat (every export is `CompararEntidadesCCP.xls`), hashes may not |
   | `accounts` | list of declarations, see below |
   | `rows` | list of published cells, see below |
 
@@ -108,7 +146,8 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   `account_type`, `declaration_date`, `entity_code` (four digits), `entity_name` (as published, trimmed),
   `account_key`, `account_name` (the published *Nombre de la cuenta*, trimmed). `account_key` is
   `"<entity_code>-<nn>"`, `nn` the two-digit ordinal (from `01`) of the declaration of that entity and account
-  type in the order of the Excel; it is our own key, because the source gives no account id, and it is stable
+  type in the order of the Excel (the files of a type taken in the order given; an entity is in one file only,
+  DN-PF-26); it is our own key, because the source gives no account id, and it is stable
   within one snapshot; `account_name` is kept for display (DN-PF-02, decision Q8).
 
   Each entry of `rows` is one published cell for **one declaration date, account type, entity, account,
@@ -117,9 +156,11 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   the 13 of Source fact 4), `concept` (the published concept, trimmed), `text` (the published cell text,
   trimmed), `amount` (a string with exactly two decimals and a decimal **point**, e.g. `"6.50"`, **only** when
   the concept is a euro amount and the cell holds one; otherwise `null`) and `not_offered` (`true` when the
-  cell is the asterisk of *No practicado*, else `false`). Percentages (`Tipo de interés nominal anual.
-  Porcentaje (%)`), names, brands and periodicities keep their `text` and have `amount: null`. The *Proveedor
-  de la Cuenta* row is not stored as a row: its text is `account_name`.
+  cell is the asterisk, whose legend in the Excel is `(*) No se cobra comisión/no se ofrece el servicio`, else
+  `false`; DN-PF-06). **Only the rows of services `101` and `401` are stored, with all their concepts**
+  (amendment A1, DN-PF-27): the cash-machine block repeats concept names and overdraft is a non-goal. Names,
+  brands and periodicities keep their `text` and have `amount: null`. The *Proveedor
+  de la Cuenta* row is not stored as a row: its text is `account_name`. An empty cell is not stored as a row.
   - Row `{"account_type": "CNO", "account_key": "0049-01", "service_code": "101", "concept": "Comisión anual
     total (euros)", "text": "0,00", "amount": "0.00", "not_offered": false}` **(synthetic)**: amount `0.00`.
   - Row with `"text": "*"`, `"amount": null`, `"not_offered": true`: the entity does not apply that service.
@@ -135,7 +176,8 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   `start_page`, `licence_note` or `no_endorsement` different from the constants of the module, or
   `attribution` different from `attribution_for(declaration_date)`;
   `account_types` empty, with an unknown code, repeated or out of the fixed order; an account type without any
-  account; `excel_files` that does not have exactly one entry per account type, a `name` that is empty or
+  account; `excel_files` with no entry for an account type or an entry for a type not in `account_types`, two
+  entries with the same `sha256` (amendment A1, DN-PF-26), a `name` that is empty or
   contains a path separator, a `size_bytes` that is not a positive integer, a `sha256` that is not 64
   lowercase hex digits; an account with an extra or missing key, a `declaration_date` different from the
   snapshot's, an `entity_code` that is not four digits, an `account_key` that does not match
@@ -152,15 +194,17 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   - Row amount `"-1.00"` → same message shape (a fee is never negative).
   - Row with `not_offered: true` and `amount: "0.00"` → `FeeSnapshotError: not_offered row with an amount: CNO 0049-01 service 101`.
   - Row `service_code: "999"` → `FeeSnapshotError: unknown service code '999'`.
-  - Two rows with the same key → `FeeSnapshotError: duplicate row: CNO 0049-01 service 101 concept 'Comisión anual total (euros)'`.
+  - Two rows with the same key → `FeeSnapshotError: duplicate row: CNO 0049-01 service 101 concept 'Comisión ANUAL total (euros)'`.
   - `excel_files[0].sha256` of 63 digits → `FeeSnapshotError: invalid sha256 for CNO: expected 64 lowercase hex digits`.
+  - Two `CNO` entries with different hashes → valid; with the same hash → `FeeSnapshotError: excel_files has two entries with the same sha256 (CNO)`.
   The validator performs no I/O and no arithmetic.
 
 - **REQ-PF-03** *While* `data/public/bde_payment_account_fees.json` does not exist, no code, test or document shall
   assume it does. Tests that read the **committed** snapshot are marked `skipif(not exists)` with the reason
   `snapshot not committed yet (PF9 is blocked)`; task PF9 removes those marks. *When* the file exists, it shall
-  pass REQ-PF-02 and these pinned checks: `account_types` contains `CNO` and `COT` (decision Q5: both are
-  required; `CDI` and `CJO` are present if they were downloaded; `CBA` is not needed); every `declaration_date` equals the
+  pass REQ-PF-02 and these pinned checks: `account_types` contains `CNO` (amendment A1, DN-PF-25, which replaces
+  decision Q5: a type enters only when its files hold every entity the tool lists for it, so the first snapshot
+  holds `CNO` only and `COT` is left out until its missing parts are exported); every `declaration_date` equals the
   top-level one; `licence_note` and `no_endorsement` equal the constants and `attribution` equals
   `attribution_for(declaration_date)`; the file contains no
   personal data (account names are product names, entity names are the published company names). *If* the
@@ -168,51 +212,83 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   Pinned figures of fees are **not** written in any test: fee amounts are not pinned, so a refreshed snapshot
   breaks nothing (the demo tests compute their expectations from the snapshot, REQ-PF-21).
 
-## 2 — The importer (BLOCKED)
+## 2 — The importer
 
-- **REQ-PF-04** **BLOCKED until the Excel exists** (the owner approves generating and downloading it). The
+- **REQ-PF-04** (amended by A1: no longer blocked; the Excel was exported by hand on 23 November 2026). The
   system shall provide `scripts/import_bde_fees.py`, the **only** piece of the repository that reads the layout
   of the BdE Excel. It runs **on the developer machine only**: no app, test run of the apps, CI step or Streamlit
   Community Cloud run ever calls it. It **reads local files only** and never accesses the Banco de España site;
-  the Excel is exported by hand in the tool (decision Q6: no automated access, ever). It may use **`openpyxl`** (read-only mode, values only) if the Excel is an
-  `.xlsx` file; it shall not be added to `requirements.txt` (that file is what Community Cloud installs) but to an
-  optional extra `import` of `pyproject.toml` with an **exact pin**. If the real file is not `.xlsx` (for
-  example the old `.xls` format or an HTML table named `.xls`) the library is decided again in task PF8 (Q4).
-  Command line, PowerShell:
+  the Excel is exported by hand in the tool (decision Q6: no automated access, ever). It reads the binary `.xls`
+  with **`xlrd` 2.0.1** (DN-PF-24); `xlrd` shall not be added to `requirements.txt` (that file is what Community
+  Cloud installs) but to an optional extra `import` of `pyproject.toml` with an **exact pin**
+  (`xlrd==2.0.1`), and it is imported only inside `read_grid` (DN-PF-31). Command line, PowerShell:
   ```powershell
-  python scripts/import_bde_fees.py --declaration-date 2026-11-23 --excel CNO=C:\path\to\file.xlsx [--excel CDI=...] [--retrieved-on 2026-11-23] [--output data\public\bde_payment_account_fees.json]
+  python scripts/import_bde_fees.py --declaration-date 2026-11-23 --excel CNO=<folder>\CompararEntidadesCCP.xls [--excel TYPE=PATH ...] --expect-entities CNO=51 [--expect-entities TYPE=N ...] [--output data\public\bde_payment_account_fees.json]
   ```
-  `--excel` is repeated once per account type; the type is given on the command line because this spec does not
-  assume the file states it (the importer cross-checks it when the real file does). `--retrieved-on` defaults to
-  the run day (read in `main` only, so tests inject it). The script computes `size_bytes` and `sha256`
-  (`hashlib`) of each file **as downloaded**, stores `name` as the base name, builds the snapshot of
+  `--excel TYPE=PATH` may be repeated, also for one type (an export of more than 238 declarations is refused by
+  the tool, so one type can need several files, DN-PF-26). `--expect-entities TYPE=N` is given **once for every
+  type given**, `N` the number of entities the tool showed for that type with all entities selected; the import
+  fails unless the files of that type hold exactly `N` distinct entities (DN-PF-25). `--declaration-date` is
+  required and is a cross-check: it must equal the declaration date of the files. There is no
+  `--retrieved-on`: both dates come from the files and `main` reads no clock (DN-PF-30). The account type in the
+  title row of each file must equal the `TYPE` given with it. Every file must give the same declaration date and
+  the same generation date. An entity found in two files of one type, and two files with the same SHA-256, are
+  errors. The script computes `size_bytes` and `sha256` (`hashlib`) of each file **as downloaded**, stores `name`
+  as the base name, builds the snapshot of
   REQ-PF-01, **validates it with `validate_fee_snapshot`** (the importer needs the developer venv anyway, so it
   imports the library validator instead of repeating it, DN-PF-04) and writes it to a temporary file in the same
-  folder, renamed only after success. *When* any step fails (file missing, unreadable, an unknown service
-  label, an amount with more than two decimals, a duplicate key, a failed check), *then* it prints one line
-  starting `error:` to stderr, exits with code 1 and **leaves any existing snapshot untouched**. On success it
-  prints `wrote <path>: <n> accounts, <m> rows, types <codes>` and exits 0. The Excel files are **not
-  committed** (REQ-PF-21); the snapshot records their name, size and SHA-256 so the derivation can be checked
-  against the file the developer still has.
-  - Exit 1, stderr `error: cannot read C:\missing.xlsx: file not found`, snapshot untouched, for a missing file.
+  folder, renamed only after success. *When* any step fails (file missing, unreadable, a layout check of
+  REQ-PF-05, an unknown service label, an amount with more than two decimals, a duplicate key, a cross-check
+  above, a failed check), *then* it prints one line
+  starting `error:` to stderr, exits with code 1 and **leaves any existing snapshot untouched**. A wrong command
+  line is reported the same way (one `error:` line, exit 1). On success it
+  prints `wrote <path>: <n> accounts, <m> rows, types <codes>` (codes joined by `, `) and exits 0. The Excel
+  files are **not committed** (REQ-PF-21); the snapshot records their name, size and SHA-256 so the derivation
+  can be checked against the file the developer still has. The harmless `xlrd` warning about the file size
+  (Source fact 8) does not stop the import.
+  - Exit 1, stderr `error: cannot read C:\missing.xls: file not found`, snapshot untouched, for a missing file.
   - Exit 1, stderr `error: unknown service label 'Servicio inventado' in CNO file`, for a service the table of
     Source fact 4 does not list.
-  - Exit 1, stderr `error: amount '3,999' of CNO 0049-01 service 101 has more than two decimals`.
+  - Exit 1, stderr `error: amount '3,999' of CNO 9991-01 service 101 has more than two decimals`.
+  - Exit 1, stderr `error: the title of the CNO file names account type COT, not CNO`.
+  - Exit 1, stderr `error: the files give two declaration dates: 2026-11-23 and 2026-11-22`.
+  - Exit 1, stderr `error: --declaration-date 2026-11-24 differs from the date of the files (2026-11-23)`.
+  - Exit 1, stderr `error: entity 9991 is in two COT files: <path 1> and <path 2>`.
+  - Exit 1, stderr `error: the CNO files hold 2 entities, expected 51`;
+    `error: --expect-entities is missing for CNO`.
+  - Exit 1, stderr `error: <path 2> has the same SHA-256 as <path 1>`.
 
-- **REQ-PF-05** Whatever the real layout is, the conversion rules of the importer shall be: every cell text is
-  **trimmed** of whitespace, `\u00a0` and the padding characters found in the real file (Q4) before it is stored;
-  a euro amount published as `1.234,56` or `3,99` becomes `"1234.56"` or `"3.99"` through `Decimal` built from text,
-  **never through `float`**, with no rounding (more than two decimals is an error); an amount stored by the
-  Excel as a number is read through its text representation, not as a binary float; the asterisk sets
+- **REQ-PF-05** (amended by A1). The importer has three parts (DN-PF-31):
+  `read_grid(path)` is the **only** function that imports `xlrd`; it opens sheet 0 and returns every cell as
+  text (a text cell as written, an empty cell as `""`, a number cell whose value is whole as its integer text,
+  flagged as a number cell); any other cell (a number that is not whole, a date, a boolean, an error) is an
+  error, no guess. `parse_grid(grid, account_type)` is **pure** and is the only function that knows the layout
+  of Source fact 8: it finds the `Fecha:` cell, the `Fecha de referencia:` cell and the title above the
+  `SERVICIOS` row (exactly one of each), checks that the title names `account_type` and that column 0 of the
+  concept row holds the asterisk legend, finds the blocks by header text (never by position), checks every
+  service label against `SERVICES` (an unknown label is an error, no guess; *Proveedor de la Cuenta* is not a
+  service, its *Nombre de la cuenta* becomes `account_name`), keeps the blocks of services `101` and `401`
+  only, each of which must exist, contain its compared concept (`Comisión ANUAL total (euros)`,
+  `Comisión mantenimiento. ANUAL total (euros)`) and no concept twice, rejects a number cell inside a kept
+  block or the provider block, assigns an account row with empty columns 0 and 2 to the entity above, rejects
+  an entity that appears twice, and returns the two dates, the title and the records (one record per account,
+  with its non-empty cells of the kept blocks). `build_snapshot(records, meta)` is **pure** and holds the
+  conversion rules: every cell text is **trimmed** (`str.strip`, which removes spaces and `\u00a0`; the real
+  files carry trailing spaces only) before it is stored; a euro amount (concept ending in `(euros)`) published
+  as `1.234,56` or `3,99` becomes `"1234.56"` or `"3.99"` through `Decimal` built from text, **never through
+  `float`**, with no rounding (more than two decimals is an error; any other text made of digits, dots and
+  commas is an error; a text such as `ND` is kept as text with `amount: null`); the asterisk sets
   `not_offered: true`, `text: "*"`, `amount: null`; a published service label is mapped to its code by the
-  table of Source fact 4 (an unknown label is an error, no guess); an entity code is four digits padded with
-  zeros only if the file shows it without them and the entity name is then checked (Q4); the importer invents
-  no value, fills no missing cell with a default or an average, and drops no declaration. The mapping part is a
-  **pure function** (`build_snapshot(records, meta)`) that takes already-read records, so it is tested without
-  `openpyxl`; only `read_workbook(path)` knows the layout.
+  table of Source fact 4; an entity code is four-digit text as published (no padding: the real files show four
+  digits); the importer invents no value, fills no missing cell with a default or an average, and drops no
+  declaration (an empty cell is not a row; the account still counts). The tests of the three parts need no
+  `.xls` file and no real `xlrd` (a fake module in `sys.modules`, REQ-PF-22).
   - `3,99` → `"3.99"`; `33,00` → `"33.00"`; `1.234,56` → `"1234.56"`; `0,00` → `"0.00"` **(synthetic cells)**.
   - `"*" + 40 trailing spaces` → `text "*"`, `not_offered: true`.
   - `"  Mantenimiento de la cuenta\u00a0  "` → label `Mantenimiento de la cuenta` → service `101`.
+  - A kept block without its compared concept → `error: service 101 of the CNO file has no concept
+    'Comisión ANUAL total (euros)'`; a number cell in it → `error: number cell at row 14 column 10 in service
+    101 of the CNO file`.
 
 ## 3 — The reader
 
@@ -252,13 +328,13 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
      len(amounts) - not_offered_count`.
   Synthetic snapshot `S12` (declaration date `2026-11-23`, type `CNO` only, 15 accounts: 12 with the amounts
   `0.00, 0.00, 0.00, 0.00, 0.00, 12.00, 24.00, 36.00, 60.00, 78.00, 96.00, 240.00` for service `101`, concept
-  `Comisión anual total (euros)`, and 3 with the asterisk):
-  - `declarations("CNO", "101", "Comisión anual total (euros)")` → `account_count=15`, `amounts` equal to the twelve
+  `Comisión ANUAL total (euros)`, and 3 with the asterisk):
+  - `declarations("CNO", "101", "Comisión ANUAL total (euros)")` → `account_count=15`, `amounts` equal to the twelve
     values above in that order, `not_offered_count=3`, `declaration_date="2026-11-23"`, `without_amount_count=0`.
-  - `declarations("CDI", "101", "Comisión anual total (euros)")` → `None` (type not in the snapshot).
-  - `declarations("CNO", "301", "Comisión anual total (euros)")` → `account_count=15`, `amounts=()`,
+  - `declarations("CDI", "101", "Comisión ANUAL total (euros)")` → `None` (type not in the snapshot).
+  - `declarations("CNO", "301", "Comisión ANUAL total (euros)")` → `account_count=15`, `amounts=()`,
     `not_offered_count=0`, `without_amount_count=15`.
-  - `declarations("XXX", "101", "Comisión anual total (euros)")` → `ValueError`; `declarations("CNO", "999", "x")`
+  - `declarations("XXX", "101", "Comisión ANUAL total (euros)")` → `ValueError`; `declarations("CNO", "999", "x")`
     → `ValueError`.
 
 - **REQ-PF-08** *While* the reader answers it shall perform **no arithmetic**: it sorts, counts and compares
@@ -282,7 +358,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
 
   [peer_fees.maintenance]
   service = "101"
-  concept = "Comisión anual total (euros)"
+  concept = "Comisión ANUAL total (euros)"
   label = "account maintenance"
   words = ["mantenimiento cuenta", "mantenimiento de cuenta", "mantenimiento de la cuenta",
            "account maintenance"]
@@ -290,7 +366,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
 
   [peer_fees.debit_card]
   service = "401"
-  concept = "Comisión mantenimiento. Anual total (euros)"
+  concept = "Comisión mantenimiento. ANUAL total (euros)"
   label = "debit card maintenance"
   words = ["tarjeta debito", "tarjeta de debito", "debit card"]
   exclude = ["credito", "credit"]
@@ -313,8 +389,8 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   4. exactly one → that service; none → no comparison.
   Overdraft, ATM and transfer fees, card fees that do not say *debit*, credit cards, packages and custody have no
   service and get no comparison (**non-goals for now**).
-  - `BANCO FICTICIO` / `Comisión mantenimiento cuenta` → service `101`, concept `Comisión anual total (euros)`.
-  - `BANCO FICTICIO` / `Comisión anual tarjeta débito` → service `401`, concept `Comisión mantenimiento. Anual total (euros)`.
+  - `BANCO FICTICIO` / `Comisión mantenimiento cuenta` → service `101`, concept `Comisión ANUAL total (euros)`.
+  - `BANCO FICTICIO` / `Comisión anual tarjeta débito` → service `401`, concept `Comisión mantenimiento. ANUAL total (euros)`.
   - `Comisión mantenimiento tarjeta débito` → `401` (the maintenance words need `cuenta`).
   - `Cuota de mantenimiento de la cuenta y tarjeta de débito` → both services match → no comparison.
   - `Comisión tarjeta de crédito` → none match → no comparison. `Debit card credit card fee` → `401` matches,
@@ -371,7 +447,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
    "first_charge_date": "2025-01-05", "last_charge_date": "2026-10-05",
    "peer_source": "Banco de España, Comisiones de Cuentas de Pago", "peer_account_type": "CNO",
    "peer_account_type_label": "payroll or pension", "peer_service": "101",
-   "peer_service_label": "account maintenance", "peer_concept": "Comisión anual total (euros)",
+   "peer_service_label": "account maintenance", "peer_concept": "Comisión ANUAL total (euros)",
    "peer_declaration_date": "2026-11-23", "peer_account_count": 12, "peer_not_offered_count": 3,
    "peer_lower_count": 9, "peer_zero_count": 5, "peer_median_yearly": "18.00",
    "peer_max_yearly": "240.00"}
@@ -379,7 +455,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   `peer_lower_count` is 9: the five `0.00` and the `12.00`, `24.00`, `36.00`, `60.00`; the account at `78.00`
   equals `yearly_cost` and is not counted. `peer_median_yearly` is `18.00`: twelve amounts, the sixth and seventh
   are `12.00` and `24.00`, `(12.00 + 24.00) / 2`.
-  A second synthetic fixture `S10` (service `401`, concept `Comisión mantenimiento. Anual total (euros)`, ten
+  A second synthetic fixture `S10` (service `401`, concept `Comisión mantenimiento. ANUAL total (euros)`, ten
   accounts `0.00` ×5, `12.00`, `18.00`, `24.00`, `30.00`, `45.00`) with the demo card fee (`yearly_cost`
   `30.00`) gives `peer_account_count` 10, `peer_lower_count` 8, `peer_zero_count` 5, `peer_median_yearly`
   `6.00` (fifth and sixth `0.00` and `12.00`), `peer_max_yearly` `45.00`.
@@ -527,8 +603,9 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   snapshot has it, otherwise the first present type in the fixed order. Changing it reruns the pipeline with
   another `PeerContext`; the alert id does **not** change (decision Q7), so the explanation cache key of the
   Vampire app is `(alert.id, mode, peer fields)` (`explanation_cache_key`, design §9) and a new type or a new
-  snapshot never reuses a stale explanation. With a single type present the select box is still shown (the label
-  says which one is compared).
+  snapshot never reuses a stale explanation. **Amended by A1 (DN-PF-32):** with a single type present the
+  select box is **not** shown and the source line of REQ-PF-19 names the type; with two or more types the
+  select box is shown.
   **Why `CNO` is the default** (DN-PF-14, decision Q2): it is the default of the Banco de España tool itself;
   it is the only type for which the source facts give a size (51 entities
   had declared on 23 November 2026), so it is the best-supported sample; it is the type of the account that
@@ -537,6 +614,8 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
   a claim that the user's account is of that type.
   - Snapshot with `CNO` and `COT`: options `CNO · Cuenta Nómina/Pensión`, `COT · Otras Cuentas`; initial `CNO`.
   - Snapshot with `CDI` and `COT` only: initial `CDI`.
+  - Snapshot with `CNO` only (the first real snapshot): no select box; the comparison uses `CNO` and the source
+    line says `account type CNO (payroll or pension)`.
   - Select `COT` on the demo with a snapshot where `COT` has 8 amounts for service `101` → no peer keys on the
     maintenance card (fewer than `PEER_MIN_ACCOUNTS`); the sidebar still lists `COT`.
 
@@ -554,14 +633,15 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
 - **REQ-PF-22** *Tests.* Every fixture that holds fee amounts is built in the test folder, is marked **(synthetic)**
   in its name or docstring (`synthetic_s12_snapshot`, `synthetic_s10_snapshot`) and is never described as BdE
   data; the entity names in fixtures are fictional (`BANCO FICTICIO`, `Caja Demo`), the codes are the placeholder
-  range `9901` to `9999`. No test reads the network, the clock or an Excel file, except the importer tests of
-  task PF8 which read a tiny **synthetic** workbook built with `openpyxl` and are skipped with
-  `pytest.importorskip("openpyxl")`. The tests of the reader, the validator, the detector, the template, the
+  range `9901` to `9999`. No test reads the network, the clock or an Excel file: the importer tests of task PF8
+  use **synthetic grids** and synthetic records only (invented entities such as `9991 BANCO FICTICIO`, never a
+  row copied from the real files) and test `read_grid` with a **fake `xlrd` module placed in `sys.modules`** (no
+  `.xls` file in the repository, no `xlwt`), so they run in CI without the extra (amendment A1). The tests of the reader, the validator, the detector, the template, the
   card, the guard, the app and the documents are written first; every figure of REQ-PF-12 is also **recomputed**
   by a test from the synthetic snapshot with a second, independent code path (counting with `sum(...)`,
   `statistics.median` over `Decimal` and half-up rounding written in the test). A text test scans `ledger_kit/`,
-  `apps/` and `streamlit_app.py` and fails when any file imports `openpyxl`; another fails when `requirements.txt`
-  names it.
+  `apps/` and `streamlit_app.py` and fails when any file imports `xlrd`; another fails when `requirements.txt`
+  names it (DN-PF-24).
 
 ## Non-goals
 
@@ -574,7 +654,7 @@ series (22 charges from 2025-01-05 to 2026-10-05, last amount `6.50`, `yearly_co
 - No network access from the app, the tests, the explanation layer, the importer or CI; no scraping of the BdE
   page and no automated access to the Banco de España site, ever (decision Q6); the Excel is exported by hand and
   the importer reads a local file the developer downloaded.
-- Only the two annual-total concepts are compared (`101` *Comisión anual total (euros)*, `401` *Comisión
+- Only the two annual-total concepts are compared (`101` *Comisión ANUAL total (euros)*, `401` *Comisión
   mantenimiento. Anual total (euros)*); fees with a waiver condition are not compared (decision Q10).
 - No interest rates or percentages from the BdE; no date other than the one declaration date of the snapshot; no
   history of several declaration dates (format 1).
