@@ -1,11 +1,29 @@
 # Ghost Ledger Kit
 
-Financial apps where an LLM may word the explanation but cannot slip in a figure: any amount or IBAN that is not in the cited rows or the alert data, in digits or in English or Spanish words, or any such date in digits or with an English month name, sends the card back to a fixed template. It checks figures, not meaning (see What the guard does not check).
+Three financial apps, for individuals and small Spanish businesses, where an LLM may word the explanation but cannot slip in a figure.
+
+Any amount or IBAN that is not in the cited rows or the alert data, in digits or in English or Spanish words, or any such date in digits or with an English month name, sends the card back to a fixed template; when the model needs a calculation, it names it, and the kit computes it and shows the formula.
+
+They read the real Spanish bank and invoice formats (Norma 43 and Facturae); the demo data is synthetic.
 
 - Live app: not deployed yet; it will be on Streamlit Community Cloud, and the link will go here. Until then it runs locally in four commands, see Try it in [docs/developing.md](docs/developing.md).
 - Demo video: not recorded yet; the link will go here and on the Devpost page.
 
 ![Home: a recorded answer of llama3.2:3b invents 5% and 617.51, and the number guard strikes both out](docs/img/home_moment.gif)
+
+## Kiro at a glance
+
+| Kiro feature | What we did |
+|---|---|
+| Specs | 19 specs in `.kiro/specs/`, each with requirements, design and tasks; each rule that keeps figures honest is a numbered requirement with a test. |
+| Steering | Six steering files in `.kiro/steering/`: five always included, one manual. |
+| Hooks | Two CLI hooks, `lint-after-write` and `tests-on-stop`, logging every run to `data/hook_runs/hook_log.jsonl`. |
+| MCP | The context7 server checked library behaviour against current documentation. |
+| Powers and custom agent | The `ghost-ledger-detector` power and the `ghost-ledger-builder` agent, which built the Vampire Fees app. |
+| Property-based testing | Hypothesis tests with `max_examples=200` check that no alert cites a row that was not loaded. |
+| Kiro CLI | Built non-interactively in spec mode, one conversation per phase, with tests run between calls. |
+
+Full detail, with file paths and what each run found, in How we used Kiro below.
 
 ## For judges: 60 seconds
 
@@ -69,6 +87,8 @@ This is a student project. I chose what to build and directed it: the goal, the 
 | 23 Nov | Compare the recurring maintenance and debit-card fees that Vampire Fees finds with the fees that Spanish banks declared to the Banco de España comparator (payroll or pension accounts only; counts, median and maximum, as context that never decides an alert) | Claude Code (an option in its report of 20 Nov) | Me |
 
 ## What the guard does not check
+
+The guard checks figures, not meaning.
 
 - **Meaning.** It checks that each figure is in the cited rows or the alert data. What the sentence says about the figure is not checked, with two exceptions. First, a period that contradicts the field a figure matches is rejected: on a monthly 10.99 charge, `MUSICBOX costs 10.99 EUR every year` now goes back to the fixed template, while `MUSICBOX costs 10.99 EUR per month` passes. Second, it rejects an answer that names the price index as the cause of the price change, because the kit promises the index is context only. Other meaning is not checked: `MUSICBOX raised its price to 10.99 EUR per month` passes on an alert where nothing rose. A figure that is only in the cited rows has no period to compare, so on the duplicate-subscription card the every-year sentence still passes.
 - **Arithmetic.** The guard itself does none. A result the model writes by hand that is in no row is rejected (107.88 × 5 = 539.40 typed into the answer), and a figure that is in the rows passes whatever the sentence does with it. Arithmetic happens only when the model asks the kit through a placeholder, and the kit computes it from the alert fields.

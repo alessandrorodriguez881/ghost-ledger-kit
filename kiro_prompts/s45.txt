@@ -1,0 +1,17 @@
+Session 45: make the top of README.md quicker to read for a judge. Same facts, new order at the top only. Write files only with your file tools; never use a shell command.
+
+Read README.md and tests/test_readme.py first, and keep every test in tests/ green.
+
+1. Line 3 of README.md is one long paragraph. Replace it with exactly three short lines, each its own paragraph, plain English, one sentence each: (a) Three financial apps, for individuals and small Spanish businesses, where an LLM may word the explanation but cannot slip in a figure. (b) Any amount, IBAN or date that is not in the cited rows or the alert data sends the card back to a fixed template, and when the model needs a calculation it names it and the kit computes it and shows the formula. (c) They read the real Spanish bank and invoice formats (Norma 43 and Facturae); the demo data is synthetic. Use these meanings; you may polish the wording, but no new claims and no new numbers.
+
+2. The detail that paragraph had and the three lines drop (numbers in digits or in English or Spanish words, dates in digits or with an English month name, it checks figures, not meaning) moves down: add it as the first sentence of the section What the guard does not check, before its bullet list, in one short sentence that says what the guard checks. Do not repeat what the bullets already say.
+
+3. Keep the Live app line, the Demo video line and the GIF line exactly as they are, right after the three lines.
+
+4. Right after the GIF line, add a new section headed ## Kiro at a glance: a two-column table (Kiro feature | What we did) with at most seven rows, each cell at most 20 words: Specs, Steering, Hooks, MCP, Powers and custom agent, Property-based testing, Kiro CLI. Every number and name in it must be the same as in the full table of How we used Kiro (19 specs, six steering files, the two CLI hooks lint-after-write and tests-on-stop with their log, context7, the ghost-ledger-detector power and the ghost-ledger-builder agent, Hypothesis with max_examples=200, spec mode one conversation per phase). Under the table, one line: Full detail, with file paths and what each run found, in How we used Kiro below.
+
+5. Everything else stays where it is and as it is: For judges: 60 seconds, The three apps, How we used Kiro, Who did what (word for word), and the sections after them.
+
+6. In tests/test_readme.py: add Kiro at a glance to REQUIRED_HEADINGS right after Ghost Ledger Kit, and add one test that the Kiro at a glance section comes before For judges: 60 seconds, has at most seven table rows, and that the spec count it states equals the number of folders in .kiro/specs.
+
+Change no other file. Environment: Windows. When done, show the first 30 lines of README.md.

@@ -331,11 +331,10 @@ def test_the_exact_label_texts() -> None:
 # --- Tier 1: the README ------------------------------------------------------------------------
 
 LINE_3 = (
-    "Financial apps where an LLM may word the explanation but cannot slip in a figure: any "
-    "amount or IBAN that is not in the cited rows or the alert data, in digits or in English "
-    "or Spanish words, or any such date in digits or with an English month name, sends the "
-    "card back to a fixed template. It checks figures, not meaning (see What the guard does "
-    "not check)."
+    "Any amount or IBAN that is not in the cited rows or the alert data, in digits or in "
+    "English or Spanish words, or any such date in digits or with an English month name, "
+    "sends the card back to a fixed template; when the model needs a calculation, it names "
+    "it, and the kit computes it and shows the formula."
 )
 STEP_1 = (
     "1. Open Home. Once the page has loaded, the moment plays in under three seconds (a cold "
@@ -374,7 +373,12 @@ def _docs_texts() -> dict[str, str]:
 def test_readme_line_3_says_what_the_guard_checks() -> None:
     _, lines = _readme()
 
-    assert lines[2] == LINE_3
+    [line] = [item for item in lines if item.startswith("Any amount or IBAN")]
+    assert line == LINE_3
+    paragraphs = [item for item in lines if item.strip()]
+    assert paragraphs.index(line) == 2  # after the title and the first short line
+    [live] = [item for item in lines if item.startswith("- Live app")]
+    assert lines.index(line) < lines.index(live)
 
 
 def test_readme_judge_steps_1_and_4() -> None:

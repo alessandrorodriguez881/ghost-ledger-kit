@@ -1,0 +1,11 @@
+Session 45b: one test failed after session 45, and it is right. Write files only with your file tools; never use a shell command.
+
+tests/test_home_example.py, test_readme_line_3_says_what_the_guard_checks, pins the README line that says exactly what the guard checks. The new top of README.md dropped that scope from the top, so the top now claims more than the guard does.
+
+1. In README.md, replace the second of the three short top lines (the one that starts with Any amount, IBAN or date) with this sentence, word for word: Any amount or IBAN that is not in the cited rows or the alert data, in digits or in English or Spanish words, or any such date in digits or with an English month name, sends the card back to a fixed template; when the model needs a calculation, it names it, and the kit computes it and shows the formula.
+
+2. In the section What the guard does not check, the first sentence that session 45 added now repeats that scope. Shorten it to: The guard checks figures, not meaning.
+
+3. In tests/test_home_example.py, update LINE_3 and that test so they pin the new sentence of step 1 as the second top paragraph: the README line that starts with Any amount or IBAN must equal it, and it must come before the Live app line. Keep the test name. Change no other test.
+
+Change no other file. Environment: Windows. When done, show the first 8 lines of README.md.

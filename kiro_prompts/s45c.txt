@@ -1,0 +1,3 @@
+Session 45c: one cell of the new Kiro at a glance table claims a little more than the full table does. Write files only with your file tools; never use a shell command.
+
+In README.md, in the Specs row of the Kiro at a glance table, replace the words every rule is a numbered requirement with a test with each rule that keeps figures honest is a numbered requirement with a test, which is what the full How we used Kiro table says. Change nothing else in README.md or in any other file, and keep tests/test_readme.py green. Environment: Windows. When done, show that row.

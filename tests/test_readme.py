@@ -18,6 +18,7 @@ MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
 REQUIRED_HEADINGS = (
     "Ghost Ledger Kit",
+    "Kiro at a glance",
     "For judges: 60 seconds",
     "The three apps",
     "How we used Kiro",
@@ -275,6 +276,19 @@ def test_kiro_table_header_and_feature_rows(text: str) -> None:
     data = rows[2:]
     assert [row[0].lower() for row in data] == list(KIRO_FEATURES)
     assert all(len(row) == 3 and all(row) for row in data)
+
+
+def test_kiro_at_a_glance_is_short_first_and_states_the_real_spec_count(text: str) -> None:
+    """The glance table comes before the judges section, has at most 7 rows, right spec count."""
+    start = text.index("\n## Kiro at a glance")
+    assert start < text.index("\n## For judges: 60 seconds")
+    section = text[start + 1 :].split("\n## ", 1)[0]
+    rows = [r for r in section.splitlines() if r.strip().startswith("|")]
+    assert 3 <= len(rows) <= 2 + 7  # header and separator, then at most seven rows
+    match = re.search(r"(\d+) specs", section)
+    assert match, "the glance table states no spec count"
+    specs = [p for p in (REPO_ROOT / ".kiro" / "specs").iterdir() if p.is_dir()]
+    assert int(match.group(1)) == len(specs)
 
 
 def test_mcp_row_is_planned_unless_config_exists(text: str) -> None:
