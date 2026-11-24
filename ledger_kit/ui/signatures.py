@@ -34,6 +34,9 @@ PHANTOM_CAPTION: str = "Lit: the fields the detector compares. Each line is one 
 DOT: str = "\u00b7"  # the middle dot of "file · line N" and of a row label
 # The title of a chip whose line is known; the raw source_ref stays in front of it.
 LINE_TITLE: str = "line {line} of {file}"
+# An alert card of Zombie Subscriptions or Vampire Fees shows at most this many source ref chips;
+# the Source rows expander under them keeps every cited row (REQ-AS-40).
+CARD_MAX_CHIPS: int = 6
 SVG_NAMESPACE: str = "http://www.w3.org/2000/svg"
 HEARTBEAT_LABEL: str = "Charges of this alert over time, one dot per cited row"
 HEARTBEAT_CANCEL_LABEL: str = ", with the cancellation date marked"
@@ -230,6 +233,25 @@ def refs_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None)
     ref shows raw.
     """
     return " ".join(_chip(ref, lines) for ref in refs)
+
+
+def card_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None) -> str:
+    """Return the chips of an alert card: at most CARD_MAX_CHIPS, then one line for the rest.
+
+    The line is `and N more cited rows, all in Source rows below` ('row' when N is 1), with N
+    computed from the refs, in a div of class gl-card-more. The Source rows expander keeps every
+    cited row. '' when there is no ref (REQ-AS-40).
+    """
+    ordered = list(refs)
+    chips = refs_chips_html(ordered[:CARD_MAX_CHIPS], lines)
+    more = len(ordered) - CARD_MAX_CHIPS
+    if more <= 0:
+        return chips
+    noun = "row" if more == 1 else "rows"
+    return (
+        f'{chips}<div class="gl-card-more">and {more} more cited {noun}, '
+        "all in Source rows below</div>"
+    )
 
 
 def chip_source_template(

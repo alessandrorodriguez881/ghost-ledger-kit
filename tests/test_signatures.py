@@ -848,3 +848,74 @@ def test_a_sum_of_the_cited_amounts_added_to_a_signature_fails_the_guard() -> No
     # a sum that an alert states itself (a total field) is an attributed figure and may pass;
     # every other sum is a computed figure and must be rejected
     assert checked > 0 and failed > 0
+
+
+# --- REQ-AS-40: a short Source refs line on the card ---------------------------------------------
+
+
+def _refs(count: int) -> list[str]:
+    """Return `count` synthetic refs of one file."""
+    return [f"stmt.csv:{index}" for index in range(count)]
+
+
+def test_six_refs_give_six_chips_and_no_more_line() -> None:
+    markup = signatures.card_chips_html(_refs(6))
+
+    assert signatures.CARD_MAX_CHIPS == 6
+    assert markup.count('class="gl-ref-chip"') == 6
+    assert "gl-card-more" not in markup
+
+
+def test_seven_refs_give_six_chips_and_the_line_with_one_row() -> None:
+    markup = signatures.card_chips_html(_refs(7))
+
+    assert markup.count('class="gl-ref-chip"') == 6
+    assert (
+        '<div class="gl-card-more">and 1 more cited row, all in Source rows below</div>' in markup
+    )
+
+
+def test_forty_five_refs_give_six_chips_and_thirty_nine_more_rows() -> None:
+    markup = signatures.card_chips_html(_refs(45))
+
+    assert markup.count('class="gl-ref-chip"') == 6
+    assert "and 39 more cited rows, all in Source rows below" in markup
+    assert markup.endswith("</div>") and markup.count("gl-card-more") == 1
+
+
+def test_the_card_chips_keep_the_order_of_the_refs() -> None:
+    refs = ["z.csv:9", "a.csv:1", "m.csv:5", "b.csv:2", "c.csv:3", "d.csv:4", "e.csv:6"]
+
+    markup = signatures.card_chips_html(refs)
+
+    assert re.findall(r'title="([^"]*)"', markup) == refs[:6]
+    assert "e.csv:6" not in markup
+
+
+def test_a_card_chip_with_a_known_line_shows_the_file_and_the_line() -> None:
+    markup = signatures.card_chips_html(["a.csv:3", *_refs(7)], {"a.csv:3": 5})
+
+    assert f"a.csv {DOT} line 5" in markup
+    assert 'title="a.csv:3 (line 5 of a.csv)"' in markup
+
+
+def test_a_card_chip_with_markup_is_escaped() -> None:
+    markup = signatures.card_chips_html(["<b>x</b>.csv:1"])
+
+    assert "<b>" not in markup and "&lt;b&gt;x&lt;/b&gt;.csv:1" in markup
+
+
+def test_no_refs_give_an_empty_card_line() -> None:
+    assert signatures.card_chips_html([]) == ""
+
+
+@pytest.mark.parametrize("folder", ["zombie_subscriptions", "vampire_fees"])
+def test_the_zombie_and_vampire_cards_call_card_chips_html_and_keep_source_rows(
+    folder: str,
+) -> None:
+    path = Path(signatures.__file__).resolve().parents[2] / "apps" / folder / "app.py"
+    source = path.read_text(encoding="utf-8")
+
+    assert "card_chips_html(alert.source_refs" in source
+    assert "refs_chips_html" not in source
+    assert 'st.expander(f"Source rows ({len(alert.source_refs)})")' in source

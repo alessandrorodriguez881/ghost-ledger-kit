@@ -157,3 +157,13 @@ of the cited amounts of a case whose sum is in no field, must fail.
   and the number never reaches the text.
 - **DN-AS-07** `structure.md` and the README are not edited in this session (REQ-AS-19). The new
   module and tests are for the reviewer to list there.
+
+## 7 — A short Source refs line (REQ-AS-40, session 46)
+
+`signatures.py` gets `CARD_MAX_CHIPS: int = 6` and the pure `card_chips_html(refs, lines=None)`:
+`refs_chips_html` of the first six refs and, only when there are more, a
+`<div class="gl-card-more">and N more cited rows, all in Source rows below</div>` (`row` when N is
+1). The cards of `apps/zombie_subscriptions/app.py` and `apps/vampire_fees/app.py` call it for the
+`Source refs:` line; the signature and the `Source rows (n)` expander are untouched. Phantom
+Invoices and the Home tiles do not use it. `.gl-card-more` in `theme.py` is styled like
+`.gl-tile-more`.

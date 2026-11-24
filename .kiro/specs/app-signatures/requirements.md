@@ -360,3 +360,16 @@ None changes an alert, a detector, the number guard, `source_ref` or what the mo
   replays a recorded answer only on the CSV demo that loads by itself, and that the Real formats
   and Norma 43 demos have no recording; `TRY_IT` names the overdraft card in Vampire Fees. The Home
   stays under 650 words.
+
+## 13 — A short Source refs line (session 46)
+
+- **REQ-AS-40** In Zombie Subscriptions and Vampire Fees, an alert card shall show at most
+  `CARD_MAX_CHIPS = 6` source ref chips, in the order of `Alert.source_refs`. *When* the alert has
+  more refs, the chips shall be followed by one line, a `div` of class `gl-card-more`, that reads
+  `and N more cited rows, all in Source rows below` (`row`, not `rows`, when N is 1), N computed
+  from the refs. The `Source rows` expander under the line keeps every cited row and its count, so
+  nothing is lost. Phantom Invoices keeps all its chips, because its card has no `Source rows`
+  expander; the Home tiles keep their own limit (`TILE_MAX_CHIPS`).
+  - AE-AS-26 The `vf.fee_summary` card (45 refs) shows 6 chips and `and 39 more cited rows, all in
+    Source rows below`; its expander is `Source rows (45)`. An alert with 7 refs shows 6 chips and
+    `and 1 more cited row, all in Source rows below`.

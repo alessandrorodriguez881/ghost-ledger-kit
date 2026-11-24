@@ -428,6 +428,7 @@ BASE_CSS: str = """
 }
 .stApp .gl-tile-refs { margin-top: 0.2rem; }
 .stApp .gl-tile-more { font-size: 0.8rem; color: #b9ae95; margin: 0.1rem 0 0; }
+.stApp .gl-card-more { font-size: 0.8rem; color: #b9ae95; margin: 0.1rem 0 0; }
 .stApp .gl-diagram { margin: 0.4rem 0 1rem; }
 .stApp .gl-diagram svg { width: 100%; height: auto; color: #e8dcc0; }
 .stApp .gl-diagram text { font-family: Georgia, "Times New Roman", serif; fill: currentColor; }

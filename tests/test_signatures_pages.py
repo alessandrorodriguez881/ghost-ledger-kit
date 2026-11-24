@@ -16,6 +16,7 @@ from judge_path_support import ROOT, SCRIPTS, cases_of
 from streamlit.testing.v1 import AppTest
 
 from ledger_kit.detectors import _restore_registry, _snapshot_registry
+from ledger_kit.ui.signatures import CARD_MAX_CHIPS
 
 TIMEOUT_SECONDS = 120
 PREFIXES = sorted(SCRIPTS)
@@ -96,7 +97,15 @@ def test_the_refs_show_as_chips_in_the_order_of_the_alert(prefix: str) -> None:
         for line in lines
     ]
 
-    assert sorted(shown) == sorted(tuple(case.alert.source_refs) for case in cases_of(prefix))
+    # Zombie and Vampire cards show at most CARD_MAX_CHIPS chips (REQ-AS-40); the Source rows
+    # expander under the line keeps every ref, so its label count is checked below.
+    limit = CARD_MAX_CHIPS if prefix in ("zs", "vf") else None
+    expected = sorted(tuple(case.alert.source_refs)[:limit] for case in cases_of(prefix))
+    assert sorted(shown) == expected
+    if limit is not None:
+        labels = {expander.label for expander in at.expander}
+        for case in cases_of(prefix):
+            assert f"Source rows ({len(case.alert.source_refs)})" in labels
     for line in lines:
         assert line.startswith("**Source refs:** ")  # the label text is kept
         assert "`" not in line  # no inline code any more

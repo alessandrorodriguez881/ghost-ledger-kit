@@ -98,10 +98,10 @@ from ledger_kit.ui.reference_app import (  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     ZOMBIE_CAPTION,
     answer_row_note,
+    card_chips_html,
     chip_source_template,
     heartbeat_svg,
     ref_with_line_markdown,
-    refs_chips_html,
     signature_block,
     source_lines_of,
 )
@@ -548,7 +548,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         _render_signature(alert, ledger)
         _render_cpi_lines(alert, explanation)
         st.markdown(
-            "**Source refs:** " + refs_chips_html(alert.source_refs, source_lines_of(ledger)),
+            "**Source refs:** " + card_chips_html(alert.source_refs, source_lines_of(ledger)),
             unsafe_allow_html=True,
         )
         with st.expander(f"Source rows ({len(alert.source_refs)})"):

@@ -275,3 +275,23 @@ file is written, not that it was run. The hooks lint each file and run the tests
   `ledger_kit/replay.py`, `data/live_runs`, `tests/test_recorded_verdicts.py`, `docs/benchmark.md`,
   the 18 folders of `.kiro/specs`, the 6 files of `.kiro/steering`, the kicker of `theme.py`.
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
+
+## Task AS13 — A short Source refs line on the card (session 46)
+
+**Covers**: REQ-AS-40
+
+Requirements first (`requirements.md` section 13), then the tests, then the code. This session could
+not run commands: a box ticked here means the file is written, not that it was run.
+
+- [x] `tests/test_signatures.py`: 6 refs give 6 chips and no line; 7 give 6 and `and 1 more cited
+  row, all in Source rows below`; 45 give 6 and `39 more cited rows`; order kept; a known line
+  shows file and line; markup escaped; no refs gives ''; the source text of the two `app.py` files
+  calls `card_chips_html` and still has the `Source rows` expander.
+- [x] `ledger_kit/ui/signatures.py`: `CARD_MAX_CHIPS`, `card_chips_html`. `ledger_kit/ui/theme.py`:
+  `.gl-card-more`. `apps/zombie_subscriptions/app.py`, `apps/vampire_fees/app.py`: the `Source refs:`
+  line uses `card_chips_html`.
+- Existing test edited: `test_the_refs_show_as_chips_in_the_order_of_the_alert` in
+  `tests/test_signatures_pages.py` expected every ref as a chip on the card. For Zombie and Vampire
+  it now expects the first `CARD_MAX_CHIPS` refs as chips and looks for every ref in the
+  `Source rows (n)` expander label; Phantom Invoices still expects all of them.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

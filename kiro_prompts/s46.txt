@@ -1,0 +1,15 @@
+Session 46: on an alert card the Source refs line can be very long. The Vampire Fees card Bank fees on this statement shows 45 chips and a Zombie duplicate card shows 12, so a judge scrolls past a wall of chips. Make that line short and keep every row one click away. Write files only with your file tools; never use a shell command.
+
+Read first: ledger_kit/ui/signatures.py, apps/home_tiles.py (its tile chips already stop at three and add a line for the rest), the alert card of apps/zombie_subscriptions/app.py and of apps/vampire_fees/app.py (the Source refs line and the Source rows expander right under it), ledger_kit/ui/theme.py and the three files of .kiro/specs/app-signatures.
+
+1. Spec first. In .kiro/specs/app-signatures/requirements.md add REQ-AS-40: in Zombie Subscriptions and Vampire Fees, an alert card shows at most CARD_MAX_CHIPS = 6 source ref chips, in the order of the refs; when the alert has more refs, the chips are followed by one line that reads and N more cited rows, all in Source rows below (row, not rows, when N is 1), with N computed from the refs; the Source rows expander under it keeps every cited row, so nothing is lost. Phantom Invoices keeps all its chips, because its card has no Source rows expander. Add the matching short entry to design.md and one task to tasks.md, ticked when done.
+
+2. In ledger_kit/ui/signatures.py add CARD_MAX_CHIPS: int = 6 and a pure function card_chips_html(refs, lines=None) that returns refs_chips_html of the first CARD_MAX_CHIPS refs and, only when there are more, that line as a div with class gl-card-more. No Streamlit import; escape as the other functions do.
+
+3. In the alert card of apps/zombie_subscriptions/app.py and apps/vampire_fees/app.py, use card_chips_html instead of refs_chips_html for the Source refs line. Change nothing else on the card: the signature drawing, the Source rows expander and its count stay as they are. Do not touch Phantom Invoices or the Home tiles.
+
+4. In ledger_kit/ui/theme.py add a style for .gl-card-more like the one of .gl-tile-more.
+
+5. Tests, in tests/test_signatures.py: 6 refs give 6 chips and no line; 7 refs give 6 chips and the line and 1 more cited row; 45 refs give 6 chips and the line and 39 more cited rows; the order of the refs is kept; a ref with a known line still shows the file and the line; a ref with markup is escaped; no refs give an empty string. Add one test that reads the source text of the two app.py files and checks that the card calls card_chips_html and still has the Source rows expander. Keep every existing test green. If an existing test needs all the chips on a card, change it to look in the Source rows expander instead, and say which test and why.
+
+Change no other file. Environment: Windows. When done, list the files you changed.
