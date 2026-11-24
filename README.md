@@ -19,7 +19,7 @@ They read the real Spanish bank and invoice formats (Norma 43 and Facturae); the
 | Steering | Six steering files in `.kiro/steering/`: five always included, one manual. |
 | Hooks | Two CLI hooks, `lint-after-write` and `tests-on-stop`, logging every run to `data/hook_runs/hook_log.jsonl`. |
 | MCP | The context7 server checked library behaviour against current documentation. |
-| Powers and custom agent | The `ghost-ledger-detector` power and the `ghost-ledger-builder` agent, which built the Vampire Fees app. |
+| Powers and custom agent | The `ghost-ledger-detector` power and the `ghost-ledger-builder` agent, which built the Vampire Fees app (6 Kiro calls and about an hour in all, spec included). |
 | Property-based testing | Hypothesis tests with `max_examples=200` check that no alert cites a row that was not loaded. |
 | Kiro CLI | Built non-interactively in spec mode, one conversation per phase, with tests run between calls. |
 
@@ -39,7 +39,7 @@ To run it live with a local model, see `docs/live-guard.md`.
 
 ## The three apps
 
-All three apps are built on the same `ledger_kit` library and share nothing else.
+All three apps are built on the same `ledger_kit` library and share nothing else. Vampire Fees is the template test: it took 6 Kiro calls and about an hour, from the first spec prompt to green tests, and the `ghost-ledger-builder` agent wrote the app with zero changes to `ledger_kit/` or the other two apps (record: task VF17 in `.kiro/specs/vampire-fees/tasks.md`).
 
 - **Zombie Subscriptions** (`apps/zombie_subscriptions/`) is for individuals and finds forgotten subscriptions in a bank statement.
 - **Phantom Invoices** (`apps/phantom_invoices/`) is for small Spanish businesses and finds duplicate invoices, supplier IBAN changes and invalid IBANs, VAT errors, and overdue invoices or payments that match no invoice.
