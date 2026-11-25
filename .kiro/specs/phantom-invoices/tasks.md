@@ -394,3 +394,17 @@ Section references (§) point to `design.md`; REQ ids to `requirements.md`. Test
   - `ruff check .` and `ruff format --check .` pass with zero warnings.
   - The git working tree shows no CRLF warning for `data/samples/phantom_demo/` (DN-10).
 - [x] Fix any coverage gaps or lint issues found.
+
+---
+
+## Task P25 — The haunted ledger fits a laptop (session s49)
+
+**Covers**: REQ-PI-71, REQ-PI-50, design §13.3 (ledger layout). Reason: the gate-2 execution review
+of 25 Nov (the ledger was about 1,747 px wide in a frame of about 900 px at a 1360 px window with
+the sidebar open; the total, base, VAT and IBAN of the lit rows were off screen).
+
+- [x] Tests first in `test_pi_flashlight.py`: the header order and names (Line, Status, Invoice, Supplier, Total, Issued, Due, Base, VAT rate, VAT, Surcharge, Withholding, IBAN); `source_ref` is the text of no cell and the Line cell shows the file line with the ref as `title`; every row carries `data-ref`; lit and dim follow the refs; a supplier name and a ref with angle brackets and quotes are escaped in cells and attributes; an empty line cell keeps its title; only the Supplier cell has the wrapping class.
+- [x] `flashlight.py`: `LEDGER_VISIBLE` (key, header) pairs; `render_ledger_html` draws the ledger view under plain headers with `data-ref` and a Line `title`, both escaped; any other frame (cited master and payment rows) is drawn as before. `ledger_view` and `LEDGER_COLUMNS` are unchanged.
+- [x] `app.py` `APP_CSS`: cell padding `3px 6px`; `td.supplier` wraps (`white-space: normal; max-width: 15em`); every other cell stays on one line; `.ledger-wrap` keeps `overflow-x: auto`.
+- [x] `test_pi_app_logic.py`: the ledger is found by its `<th>Invoice</th>` header and the lit rows are read from `data-ref` (the old checks read `<th>invoice_number</th>` and a first `source_ref` cell).
+- [ ] Run `pytest apps/phantom_invoices/tests`, `ruff check .` and `ruff format --check .`, and look at the page at a 1360 px window with the sidebar open. Not run in session s49: the shell of that session refused every command, so this box stays open for the next session.

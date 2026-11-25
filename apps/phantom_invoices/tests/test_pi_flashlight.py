@@ -160,6 +160,139 @@ def test_flashlight_module_is_pure() -> None:
     assert "streamlit" not in imported
 
 
+# REQ-PI-71: the haunted ledger shows plain headers and the file line, not the source ref
+
+LEDGER_HEADERS = [
+    "Line",
+    "Status",
+    "Invoice",
+    "Supplier",
+    "Total",
+    "Issued",
+    "Due",
+    "Base",
+    "VAT rate",
+    "VAT",
+    "Surcharge",
+    "Withholding",
+    "IBAN",
+]
+
+
+def _view(suppliers: tuple[str, ...] = ("Ana García", "Luigi Rossi")) -> pd.DataFrame:
+    """A synthetic frame shaped like `ledger_view` (LEDGER_COLUMNS), one row per supplier."""
+    rows = [
+        {
+            "source_ref": f"invoices.csv:{i + 1}",
+            "source_line": str(i + 3),
+            "status": "✅",
+            "invoice_number": f"F-2026-{i:04d}",
+            "supplier_name": name,
+            "issue_date": "2026-01-05",
+            "due_date": "2026-02-04",
+            "base_amount": "100,00 EUR",
+            "vat_rate": "21 %",
+            "vat_amount": "21,00 EUR",
+            "surcharge_amount": "",
+            "withholding_amount": "",
+            "total": "121,00 EUR",
+            "iban": "ES88************1332",
+        }
+        for i, name in enumerate(suppliers)
+    ]
+    return pd.DataFrame(rows)
+
+
+def _cells(row_html: str) -> list[str]:
+    """The text of each td of one row."""
+    return re.findall(r"<td[^>]*>(.*?)</td>", row_html)
+
+
+def test_ledger_header_order_and_names() -> None:
+    """The visible headers are the plain names, in the order of REQ-PI-71."""
+    html = render_ledger_html(_view(), set())
+
+    assert re.findall(r"<th>(.*?)</th>", html) == LEDGER_HEADERS
+    assert "source_ref" not in html.split("<tbody>")[0]
+    assert "invoice_number" not in html
+
+
+def test_source_ref_is_not_the_text_of_any_cell() -> None:
+    """The ref is only an attribute: no cell shows it, and the line cell shows the file line."""
+    frame = _view()
+
+    html = render_ledger_html(frame, set())
+    rows = re.findall(r"<tr class=[^>]*>.*?</tr>", html)
+
+    assert len(rows) == 2
+    for row, ref in zip(rows, frame["source_ref"], strict=True):
+        assert ref not in _cells(row)
+        assert _cells(row)[0] == frame.loc[frame["source_ref"] == ref, "source_line"].item()
+        assert f'<td title="{ref}">' in row
+
+
+def test_every_row_carries_data_ref() -> None:
+    """Each row has its ref as data-ref, lit or not."""
+    for lit in (set(), {"invoices.csv:1"}):
+        html = render_ledger_html(_view(), lit)
+
+        assert 'data-ref="invoices.csv:1"' in html
+        assert 'data-ref="invoices.csv:2"' in html
+        assert html.count("data-ref=") == 2
+
+
+def test_lit_and_dim_follow_the_refs() -> None:
+    """The cited ref lights its row, the other row dims; the order of the frame is kept."""
+    html = render_ledger_html(_view(), {"invoices.csv:2"})
+
+    assert html.startswith('<table class="ledger has-lit">')
+    assert '<tr class="dim" data-ref="invoices.csv:1">' in html
+    assert '<tr class="lit" data-ref="invoices.csv:2">' in html
+    assert 'class="dim"' in html and html.count('class="lit"') == 1
+
+
+def test_no_lit_refs_leaves_ledger_rows_plain() -> None:
+    """Without lit refs no row has a lit or dim class."""
+    html = render_ledger_html(_view(), set())
+
+    assert html.startswith('<table class="ledger">')
+    assert html.count('<tr class="" data-ref=') == 2
+    assert "dim" not in html and "lit" not in html
+
+
+def test_ledger_cells_headers_and_attributes_are_escaped() -> None:
+    """Angle brackets and quotes in a supplier name and in a ref never become markup."""
+    nasty = '<img src=x onerror="alert(1)"> O\'Neil & "Sons"'
+    frame = _view((nasty,))
+    frame.loc[0, "source_ref"] = 'inv"><script>.csv:1'
+
+    html = render_ledger_html(frame, {'inv"><script>.csv:1'})
+
+    assert "<img" not in html and "<script>" not in html
+    assert "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;" in html
+    assert "O&#x27;Neil &amp; &quot;Sons&quot;" in html
+    assert 'data-ref="inv&quot;&gt;&lt;script&gt;.csv:1"' in html
+    assert '<td title="inv&quot;&gt;&lt;script&gt;.csv:1">' in html
+    assert '<tr class="lit" data-ref=' in html
+
+
+def test_ledger_empty_line_cell_keeps_the_title() -> None:
+    """An XML invoice has no line: the cell is empty and the ref is still on hover."""
+    frame = _view()
+    frame.loc[0, "source_line"] = ""
+
+    html = render_ledger_html(frame, set())
+
+    assert '<td title="invoices.csv:1"></td>' in html
+
+
+def test_supplier_cell_is_the_only_wrapping_cell() -> None:
+    """Only the supplier cell has the class that lets it wrap (see APP_CSS)."""
+    html = render_ledger_html(_view(), set())
+
+    assert html.count('<td class="supplier">') == 2
+
+
 # Tier 3: property-based tests
 
 

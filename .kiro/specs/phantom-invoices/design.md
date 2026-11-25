@@ -1560,6 +1560,17 @@ if st.session_state.get("selected_alert") not in options:
     st.session_state["selected_alert"] = NO_FLASHLIGHT       # allowed: the widget is not yet created
 ```
 
+**Ledger layout (REQ-PI-71, gate-2 execution review of 25 Nov).** When the frame is the ledger
+view (it holds `source_ref` and every key of `flashlight.LEDGER_VISIBLE`), `render_ledger_html`
+draws the columns of `LEDGER_VISIBLE` in this order under plain headers: Line, Status, Invoice,
+Supplier, Total, Issued, Due, Base, VAT rate, VAT, Surcharge, Withholding, IBAN. The `source_ref`
+is no cell: each row carries it as `data-ref`, the Line cell as `title`, both through `_esc`, and
+the lit/dim class is still decided by it. The Supplier cell has class `supplier`; `APP_CSS` lets
+only that cell wrap (`white-space: normal; max-width: 15em`) and trims the padding to `3px 6px`,
+so Line to Total fit a 1360 px window with the sidebar open; `.ledger-wrap` keeps
+`overflow-x: auto` as a fallback. Any other frame (the cited master and payment rows) is still
+drawn column by column under its own names. `ledger_view` and `LEDGER_COLUMNS` do not change.
+
 ### 13.4 Inputs (REQ-PI-51)
 
 Sidebar: three `st.file_uploader`s (invoices `.csv`/`.json`, suppliers `.csv`, payments `.csv`);

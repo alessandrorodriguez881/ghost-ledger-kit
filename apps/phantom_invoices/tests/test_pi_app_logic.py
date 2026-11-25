@@ -516,11 +516,11 @@ def _explanation_texts(at: AppTest) -> list[str]:
 
 
 def _ledger_html(at: AppTest) -> str:
-    """The HTML of the haunted ledger (the table with the invoice_number column)."""
+    """The HTML of the haunted ledger (the table with the plain Invoice header, REQ-PI-71)."""
     tables = [
         v
         for v in _markdown(at)
-        if v.startswith('<div class="ledger-wrap">') and "<th>invoice_number</th>" in v
+        if v.startswith('<div class="ledger-wrap">') and "<th>Invoice</th>" in v
     ]
     assert len(tables) == 1
     return tables[0]
@@ -633,23 +633,23 @@ def test_selecting_an_alert_lights_only_its_source_refs() -> None:
     at = _demo()
     before = _ledger_html(at)
     assert 'class="ledger"' in before and "has-lit" not in before and 'class="dim"' not in before
-    assert before.count('<tr class="">') == DEMO_LEDGER_ROWS
+    assert before.count('<tr class="" data-ref=') == DEMO_LEDGER_ROWS
 
     duplicate = next(a for a in _alerts(at) if a.data["variant"] == "same_number")
     at.radio(key="selected_alert").set_value(duplicate.id).run()
 
     assert not at.exception
     after = _ledger_html(at)
-    lit = re.findall(r'<tr class="lit"><td>([^<]*)</td>', after)
+    lit = re.findall(r'<tr class="lit" data-ref="([^"]*)">', after)
     assert 'class="ledger has-lit"' in after
     assert set(lit) == set(duplicate.source_refs) and len(lit) == 2
-    assert after.count('<tr class="dim">') == DEMO_LEDGER_ROWS - 2
+    assert after.count('<tr class="dim" data-ref=') == DEMO_LEDGER_ROWS - 2
 
     poltergeist = next(a for a in _alerts(at) if a.data["variant"] == IBAN_VARIANTS[0])
     at.radio(key="selected_alert").set_value(poltergeist.id).run()
 
     assert not at.exception
-    lit = re.findall(r'<tr class="lit"><td>([^<]*)</td>', _ledger_html(at))
+    lit = re.findall(r'<tr class="lit" data-ref="([^"]*)">', _ledger_html(at))
     invoice_ref = next(r for r in poltergeist.source_refs if r.startswith("invoices.csv"))
     supplier_ref = next(r for r in poltergeist.source_refs if r.startswith("suppliers.csv"))
     assert lit == [invoice_ref]

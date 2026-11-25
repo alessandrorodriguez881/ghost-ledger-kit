@@ -155,7 +155,8 @@ KEPT_KEY = "pi_kept"
 # the rules below restate the pieces of HAUNTED_CSS that carried the old green and amber.
 APP_CSS = """
 .ledger-wrap { overflow-x: auto; margin-bottom: 12px; }
-.ledger th, .ledger td { font-size: 0.85rem; white-space: nowrap; }
+.ledger th, .ledger td { font-size: 0.85rem; white-space: nowrap; padding: 3px 6px; }
+.ledger td.supplier { white-space: normal; max-width: 15em; min-width: 9em; }
 .ledger th { color: var(--gl-accent-text); border-bottom-color: var(--gl-accent); }
 .ledger tr.lit td { box-shadow: inset 0 0 14px 2px var(--gl-accent); }
 .ledger tr.lit td:first-child { border-left-color: var(--gl-accent); }

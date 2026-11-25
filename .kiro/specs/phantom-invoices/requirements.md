@@ -614,6 +614,20 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
   must **not** contain its own `requirements.txt` (Community Cloud would read it first and hide the
   root one). This supersedes the per-app `requirements.txt` shown in `.kiro/steering/structure.md`;
   one task of `tasks.md` updates the phantom section of that steering file to match (OD-PI-14).
+- **REQ-PI-71** *(ledger layout; reason: the gate-2 execution review of 25 Nov found the haunted
+  ledger about 1,747 px wide in a frame of about 900 px at a 1360 px window with the sidebar open,
+  so the total, base, VAT and IBAN of the lit rows were off screen, the sideways scrollbar sat
+  below all 68 rows, the headers were raw column names and the first two columns gave two numbers
+  for one row.)* The haunted ledger shows **the line of the file only**: `source_ref` is not a
+  visible cell; it stays on each row as an HTML-escaped `data-ref` attribute, is the title of the
+  Line cell (shown on hover), and still decides which rows are lit and dimmed (REQ-PI-50). The
+  visible columns, in this order, have plain headers: **Line, Status, Invoice, Supplier, Total,
+  Issued, Due, Base, VAT rate, VAT, Surcharge, Withholding, IBAN**. Only the Supplier cell may
+  wrap (at most about 15em); the other cells stay on one line with smaller padding, and the
+  wrapper keeps `overflow-x: auto` as a fallback. At a 1360 px window with the sidebar open, Line,
+  Status, Invoice, Supplier and Total are visible without scrolling sideways. `ledger_view` and
+  `LEDGER_COLUMNS` are unchanged; only the rendering changes. Every cell, header and attribute is
+  HTML-escaped (`test_pi_flashlight.py`).
 
 ---
 
