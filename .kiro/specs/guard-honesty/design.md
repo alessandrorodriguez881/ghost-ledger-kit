@@ -150,3 +150,29 @@ it is not changed in this session.
 
 **The kit's own sentence.** `CPI_SENTENCE` and `CPI_SENTENCE_LAG` say `changed by`, which is not a
 cause phrase; a test fills both templates from the demo alerts and checks that they pass.
+
+## §8 Amendment A-GH-01 (session s50): a year on its own (REQ-GH-24, REQ-GH-25)
+
+| File | Change |
+|---|---|
+| `ledger_kit/live_guard.py` | `YEAR_MIN`, `YEAR_MAX`, `YEAR_DIGITS`, `BADGE_YEAR_ALONE`, `VERDICT_YEAR_ALONE`, `is_year_alone`; `BADGE_NOT_FOUND` moved above `rejection_clause` and used by it; `rejection_clause`, `verdict_line` and `_currency_verdict` split the figure tokens into other figures and years |
+| tests | new `tests/test_guard_year_wording.py` |
+| `README.md` | **Dates** bullet; V35 example in the **Meaning** bullet |
+
+**Why words and not a new rule.** Matching a lone year to the years of the row dates would accept
+`2026` on every card of a 2026 statement whatever the sentence says about it, and it would change
+recorded verdicts (V37, P27). The reviewer's problem is that the badge states something false
+(`not found in the cited rows`) about a figure that is in the rows as part of a date. Saying what
+the guard really does fixes that and leaves every verdict as it is.
+
+**Where the test is made.** `is_year_alone` looks at the token only: the guard's tokens of digits
+never carry a sign or a separator for a whole number, so `2026.00`, `2.026`, `€2026` and `2026%`
+are not years by construction. The split is made in the shared helpers of `live_guard.py`, so the
+replay badge, the three apps' live badges and the Provoke verdict say the same words. The calc,
+index-cause and period rejections never reach the split.
+
+**Proof that nothing else changed.** `tests/test_guard_year_wording.py` pins, for each of the 43
+records of the 16 Nov run, the source, the rejected tokens and the reason as literals, and checks
+them against today's guard and against the `observed_*` fields the run recorded. A property test
+checks that a clause without a year is the clause of before, character for character.
+`tests/test_recorded_verdicts.py` keeps its pinned sets.

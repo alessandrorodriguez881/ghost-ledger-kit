@@ -84,6 +84,7 @@ SKIPPED_DIRS = {".git", ".venv", "__pycache__", ".hypothesis", ".ruff_cache", ".
 
 FENCE_RE = re.compile(r"^```.*?^```[ \t]*$", re.DOTALL | re.MULTILINE)
 INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
+DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")  # a DD/MM/YYYY date is text, not a path
 HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 LINK_RE = re.compile(r"https?://[^\s)\]>\"']+")
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
@@ -117,6 +118,8 @@ def _path_candidates(text: str) -> list[str]:
     found: list[str] = []
     for token in INLINE_CODE_RE.findall(_without_fences(text)):
         if re.search(r"[\s*<>:$=]", token) or token.startswith(("http", "-")):
+            continue
+        if DATE_RE.fullmatch(token):
             continue
         if "/" in token or Path(token).suffix in PATH_SUFFIXES or token in ROOT_FILE_NAMES:
             found.append(token)
@@ -158,6 +161,13 @@ def _missing_paths(text: str) -> list[str]:
         elif not (REPO_ROOT / path).exists() and not _file_exists_anywhere(path):
             missing.append(token)
     return sorted(set(missing))
+
+
+def test_a_backticked_date_is_not_a_path() -> None:
+    """A DD/MM/YYYY date is skipped; a missing path with a slash is still reported."""
+    sample = "Dates `08/05/2026` and `no_such_dir/no_such_file.py`."
+    assert _path_candidates(sample) == ["no_such_dir/no_such_file.py"]
+    assert _missing_paths(sample) == ["no_such_dir/no_such_file.py"]
 
 
 def _bad_links(text: str) -> list[str]:

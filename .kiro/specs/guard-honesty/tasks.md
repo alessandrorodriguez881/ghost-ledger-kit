@@ -152,3 +152,53 @@ What the reviewer saw for the earlier rows:
   the CLOUDVAULT price-increase card shows the fixed template with the neutral CPI sentence, and
   the badge says the recorded answer was rejected because it names the price index as the cause,
   quoting the sentence, for Z04 and Z05.
+
+## Part 4 — session s50: amendment A-GH-01
+
+### Task GH12 — A year on its own is said as a year
+
+**Covers**: REQ-GH-24, REQ-GH-25, §8
+
+- [x] `tests/test_guard_year_wording.py` first: the date forms of today through `check_figures`
+  (ISO, DD/MM/YYYY, `June 18, 2025`, `18 June 2025`, `June 18` accepted when the date is in the
+  data; `in 2026`, `June 2025` and `18 de junio de 2025` rejected with the year, and the day for the
+  Spanish form, as plain numbers; a lone 2026 passes when an invoice number holds 2026), the year
+  test and its constants, the badge clause, the reason text, the Provoke verdict, the V37 and P27
+  replay badges, the Vampire live badge, the 43 pinned outcomes of the 16 Nov run, the README
+  bullets, and two Hypothesis properties (`max_examples=200`).
+- [x] `ledger_kit/live_guard.py`: the constants, `is_year_alone` and the split in
+  `rejection_clause`, `verdict_line` and `_currency_verdict` (§8). No change to `explainer.py`,
+  `calc.py`, `replay.py`, the apps or `data/live_runs`.
+- [x] README: the **Dates** bullet and the V35 example in **Meaning**.
+
+Record of session s50:
+
+- Date handling found by reading `_tokenise` and `_passes_number_guard` (table of REQ-GH-24): a
+  date with a day (ISO, DD/MM/YYYY, English month name) is parsed and matched to the date cells
+  and the alert dates; `June 18` is matched by month and day; a year alone and `June 2026` leave
+  the year as a plain number; Spanish month names are not read, so `18 de junio de 2025` gives the
+  plain numbers `18` and `2025`.
+- Count: 10 of the 43 records of `2026-11-16_llama3.2-3b_calc2.json` go back to the template
+  (Z03, Z04, Z05, Z22, P27, P32, V37, V41, V42, V43), the number the owner gave. Kiro could not run
+  commands in this session (every shell call was refused before it ran), so the count is the one
+  the run recorded (`observed_source`) and the one `tests/test_recorded_verdicts.py` already pins
+  for today's guard; the new test pins it again with the tokens and reasons.
+- V35: the alert fields are `interest_total` 61.00 and `total` 106.00 (`fee_total` 45.00), read
+  from the detector (`total` is the sum of all overdraft rows, `interest_total` of the interest
+  rows) and from the recorded rejections of V41 (`total = interest_total + fee_total`) and V43
+  (`interest_total used more than once` for `interest_total - 61.00`); the new test checks them on
+  the demo alert.
+- Verification (`ruff check .`, `ruff format --check .`, `pytest`): not run by Kiro (no shell);
+  left to the reviewer and the workspace hooks.
+
+Record of session s50b (follow-up to s50):
+
+- Conflict: `test_readme_has_the_dates_bullet` (tests/test_guard_year_wording.py) wants the README
+  Dates bullet to show `08/05/2026` in backticks, and `test_every_backticked_path_exists`
+  (tests/test_readme.py) read that text as a path (`assert not ['08/05/2026']`).
+- Fix, narrow, in `tests/test_readme.py` only: `DATE_RE` (`\d{2}/\d{2}/\d{4}`) and one `continue`
+  in `_path_candidates` for a backticked text that is a whole date. The README bullet is unchanged.
+- New test `test_a_backticked_date_is_not_a_path`: a date is skipped, a missing path with a slash
+  is still reported by `_path_candidates` and `_missing_paths`.
+- Verification (`ruff check .`, `ruff format --check .`, `pytest`): not run by Kiro (the shell
+  refused `ruff` and `pytest` calls before they ran); left to the reviewer and the workspace hooks.

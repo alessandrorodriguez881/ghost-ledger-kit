@@ -353,6 +353,57 @@ a cause word.
     | `The price rose because the plan changed.` | accepted | |
     | the fixed CPI sentence of a filled template | accepted | |
 
+## 7 — Amendment A-GH-01 (session s50): a year on its own is said as a year
+
+A reviewer found a rejection reason that is not true. On the CSV demo the Vampire Fees card *Bank
+fees on this statement* (record V37 of `data/live_runs/2026-11-16_llama3.2-3b_calc2.json`) said
+`rejected (not found in the cited rows or the alert data: 2025, 2026)`, while the cited rows and
+the fixed template both hold those years (`Between 2025-01-02 and 2026-10-30`); the Phantom card
+of record P27 said the same for `24, 2026`. `scripts/ledger_scan.py check` with `These charges
+started in 2026` is rejected, while `2026-05-08` passes.
+
+What the guard does with dates today (read in `_tokenise` and `_passes_number_guard`, pinned by
+`tests/test_guard_year_wording.py`; no rule changes in this amendment):
+
+| Form | Example | Today |
+|---|---|---|
+| ISO date | `2026-05-08` | parsed to a date; accepted when it is a date cell of a visible row or a date of the alert data, else rejected as `2026-05-09` |
+| DD/MM/YYYY | `08/05/2026` | same as ISO |
+| English month, day and year | `June 18, 2025`, `18 June 2025` | same as ISO |
+| English month and day, no year | `June 18` | matched by month and day to the allowed dates |
+| Year on its own | `in 2026` | a plain number token `2026`: rejected unless the value 2026 is a number of the rows or the alert data (an invoice number such as `F-2026-0310` holds it) |
+| Month and year | `June 2026` | the same: `June` is not a date without a day, `2026` is a plain number |
+| Spanish month name | `18 de junio de 2025` | not read as a date: `18` and `2025` are plain numbers, each rejected unless it is a number of the data |
+
+- **REQ-GH-24** *When* a figure rejection (empty `rejected_reason`) holds a token that is a plain
+  whole number of `YEAR_DIGITS` (4) ASCII digits from `YEAR_MIN` (1900) to `YEAR_MAX` (2099), with
+  no separator, decimal part, currency or percent sign (`live_guard.is_year_alone`), the badge
+  (`rejection_clause`, `rejection_reason_text`, and through them `replay.card_badge` and the
+  apps' `guard_badge`) shall say `a year on its own is not matched to the dates of the rows:
+  YEARS` (`BADGE_YEAR_ALONE`) for those tokens, and the Provoke verdict (`verdict_line`) shall say
+  `A year on its own is not matched to the dates of the rows: ` (`VERDICT_YEAR_ALONE`) with the
+  tokens in backticks. Every other token shall keep the words `not found in the cited rows or the
+  alert data`. *If* both kinds are rejected, *then* the badge shall give both phrases, the other
+  figures first, in one parenthesis separated by `; `, and the verdict two sentences. A
+  calculation, a price index, a period or a currency rejection shall keep its own words.
+  - AE-GH-24
+
+    | Rejected tokens | Badge clause |
+    |---|---|
+    | `2025`, `2026` (V37) | ` (a year on its own is not matched to the dates of the rows: 2025, 2026)` |
+    | `24`, `2026` (P27) | ` (not found in the cited rows or the alert data: 24; a year on its own is not matched to the dates of the rows: 2026)` |
+    | `98765.43`, `2026.00`, `2100`, `1899` | ` (not found in the cited rows or the alert data: ...)`, as before |
+    | `$` (Z03) | the currency sentence, as before |
+
+- **REQ-GH-25** The amendment shall change words only. The outcome of every record of
+  `2026-11-16_llama3.2-3b_calc2.json` (source, rejected tokens, reason) shall be pinned as a
+  literal list and shall be the same before and after: 43 records, 33 accepted, 10 on the fixed
+  template (Z03, Z04, Z05, Z22, P27, P32, V37, V41, V42, V43). The README section `What the guard
+  does not check` shall gain a **Dates** bullet with the findings above, and its **Meaning** bullet
+  the V35 example: the answer calls `€61.00` the critical overdraft cost and gives a total of
+  `€106.00`; 61.00 is `interest_total` and 106.00 is `total` (`interest_total` + `fee_total`), both
+  in the alert data, so the guard accepts it.
+
 ## Out of scope
 
 Other languages; ordinals; fractions and decimals in words (`three point five`); amounts with

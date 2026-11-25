@@ -219,6 +219,9 @@ def verdict_line(result: ProbeResult) -> str:
             prefix = VERDICT_REJECTED_PERIOD_PREFIX
         elif result.why:
             return _currency_verdict(result)
+        elif any(is_year_alone(t) for t in result.rejected_numbers):
+            parts = _verdict_figure_parts(result.rejected_numbers)
+            return VERDICT_REJECTED_HEAD + ". ".join(parts)
         line = prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
         if result.reason == REASON_CALC_NOT_ALLOWED and result.why:
             line += ". Why: " + "; ".join(result.why) + "."
@@ -229,33 +232,83 @@ def verdict_line(result: ProbeResult) -> str:
 def _currency_verdict(result: ProbeResult) -> str:
     """The verdict of an answer with a currency sign the data does not name, in words.
 
-    A figure rejected with it keeps the usual wording; the sign gets its own sentence.
+    A figure rejected with it keeps the usual wording, a year on its own gets its own words, and
+    the sign gets its own sentence.
     """
     figures = [t for t in result.rejected_numbers if not is_currency_token(t)]
     line = VERDICT_REJECTED_HEAD
-    if figures:
-        line += VERDICT_NOT_FOUND + ", ".join(f"`{t}`" for t in figures) + ". "
+    for part in _verdict_figure_parts(figures):
+        line += part + ". "
     return line + "; ".join(result.why) + "."
+
+
+# --- A year on its own (amendment A-GH-01, REQ-GH-24) ------------------------------------------
+
+# A rejected token is a year on its own when it is a plain whole number of YEAR_DIGITS digits
+# from YEAR_MIN to YEAR_MAX: no separator, no decimal part, no currency or percent sign. The guard
+# matches a date to the dates of the rows only when it has a month and a day; a year alone is read
+# as a plain number, so the badge says that instead of "not found".
+YEAR_MIN: int = 1900
+YEAR_MAX: int = 2099
+YEAR_DIGITS: int = 4
+
+BADGE_NOT_FOUND = "not found in the cited rows or the alert data"
+BADGE_YEAR_ALONE = "a year on its own is not matched to the dates of the rows"
+VERDICT_YEAR_ALONE = "A year on its own is not matched to the dates of the rows: "
+
+
+def is_year_alone(token: str) -> bool:
+    """True when a rejected token is a plain four-digit whole number from YEAR_MIN to YEAR_MAX."""
+    if len(token) != YEAR_DIGITS or not token.isascii() or not token.isdigit():
+        return False
+    return YEAR_MIN <= int(token) <= YEAR_MAX
+
+
+def _split_years(tokens: Sequence[str]) -> tuple[list[str], list[str]]:
+    """Split figure tokens into (other figures, years on their own), each in the order given."""
+    years = [t for t in tokens if is_year_alone(t)]
+    others = [t for t in tokens if not is_year_alone(t)]
+    return others, years
+
+
+def _badge_figure_parts(tokens: Sequence[str]) -> list[str]:
+    """The badge words of rejected figures: the not-found part, then the year part."""
+    others, years = _split_years(tokens)
+    parts = []
+    if others:
+        parts.append(f"{BADGE_NOT_FOUND}: {', '.join(others)}")
+    if years:
+        parts.append(f"{BADGE_YEAR_ALONE}: {', '.join(years)}")
+    return parts
+
+
+def _verdict_figure_parts(tokens: Sequence[str]) -> list[str]:
+    """The verdict sentences of rejected figures (tokens in backticks), without the final stop."""
+    others, years = _split_years(tokens)
+    parts = []
+    if others:
+        parts.append(VERDICT_NOT_FOUND + ", ".join(f"`{t}`" for t in others))
+    if years:
+        parts.append(VERDICT_YEAR_ALONE + ", ".join(f"`{t}`" for t in years))
+    return parts
 
 
 def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
     """Return what a rejected card badge says after `rejected`, in parentheses; '' for no token.
 
     A calculation the kit will not make and a currency sign the data does not name are said in
-    words (`why`); any other token is "not found in the cited rows or the alert data".
+    words (`why`); a year on its own says so (`BADGE_YEAR_ALONE`); any other token is "not found
+    in the cited rows or the alert data". All parts stand in one parenthesis.
     """
     if reason == REASON_CALC_NOT_ALLOWED:
         said = "; ".join(why) if why else ", ".join(tokens)
         return f" (the answer asks the kit for a calculation it will not make: {said})"
     if why:
-        parts = []
         figures = [t for t in tokens if not is_currency_token(t)]
-        if figures:
-            parts.append("not found in the cited rows or the alert data: " + ", ".join(figures))
-        parts.extend(why)
+        parts = [*_badge_figure_parts(figures), *why]
         return " (" + "; ".join(parts) + ")"
     if tokens:
-        return " (not found in the cited rows or the alert data: " + ", ".join(tokens) + ")"
+        return " (" + "; ".join(_badge_figure_parts(tokens)) + ")"
     return ""
 
 
@@ -263,16 +316,16 @@ def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str]) -> 
 # the one replay.card_badge writes for a recorded answer.
 BADGE_INDEX_CAUSE = "the answer names the price index as the cause of the price change"
 BADGE_PERIOD = "the answer gives a figure a period that contradicts the alert field it matches"
-BADGE_NOT_FOUND = "not found in the cited rows or the alert data"
 
 
 def rejection_reason_text(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
     """Return the real reason of a rejection for the badge of a card, without parentheses.
 
     A figure in no row says `not found in the cited rows or the alert data: tokens` (the text the
-    badge always had); the price index named as the cause, a period that contradicts its field, a
-    calculation the kit will not make and a currency sign the data does not name each say their
-    own reason, in the words of `rejection_clause` and of the replay badge.
+    badge always had) and a year on its own says `BADGE_YEAR_ALONE: years`; the price index named
+    as the cause, a period that contradicts its field, a calculation the kit will not make and a
+    currency sign the data does not name each say their own reason, in the words of
+    `rejection_clause` and of the replay badge.
     """
     if reason == REASON_INDEX_AS_CAUSE:
         return f"{BADGE_INDEX_CAUSE}: {' '.join(tokens)}"
