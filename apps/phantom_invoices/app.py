@@ -103,6 +103,7 @@ from ledger_kit.ui.first_run import DEMO_FORMAT_CAPTION, should_autoload  # noqa
 from ledger_kit.ui.signatures import (  # noqa: E402
     PHANTOM_CAPTION,
     answer_row_note,
+    card_headings,
     chip_source_template,
     lantern_html,
     refs_chips_html,
@@ -514,8 +515,13 @@ def _render_signature(alert: Alert, pipeline: Pipeline) -> None:
         st.markdown(drawing, unsafe_allow_html=True)
 
 
-def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
-    """One alert card: title, detector label, explanation, guard badge, refs and captions."""
+def _render_alert(
+    alert: Alert, pipeline: Pipeline, hallucinate: bool, heading: str | None = None
+) -> None:
+    """One alert card: title, detector label, explanation, guard badge, refs and captions.
+
+    `heading` is what the title line shows (`card_headings`); None shows Alert.title.
+    """
     explanation = _explain(alert, pipeline, hallucinate)
     recording = _card_recording(alert, hallucinate)
     if recording is not None:
@@ -526,7 +532,8 @@ def _render_alert(alert: Alert, pipeline: Pipeline, hallucinate: bool) -> None:
         kind = badge_kind(explanation, has_key)
     # The container key only carries the severity into the CSS: a critical card glows.
     with st.container(border=True, key=card_key("pi", alert.severity, alert.id)):
-        title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
+        shown_title = alert.title if heading is None else heading
+        title = f"{severity_marker(alert.severity)}{html.escape(shown_title)}"
         st.markdown(f'<div class="pi-alert-title">{title}</div>', unsafe_allow_html=True)
         label = LABELS.get(alert.detector, alert.detector)
         st.caption(f"{label} · `{alert.detector}` · severity: {alert.severity}")
@@ -566,12 +573,14 @@ def _render_alerts(alerts: Sequence[Alert], pipeline: Pipeline, hallucinate: boo
         st.write("No alerts: nothing in these files looks like a phantom invoice.")
         return
     groups = group_alerts(alerts)
+    # Two cards with the same title show the amount of each in the heading (REQ-AS-42).
+    headings = card_headings(alerts)
     for severity in SEVERITY_ORDER:
         if not groups[severity]:
             continue
         show_severity(severity)
         for alert in groups[severity]:
-            _render_alert(alert, pipeline, hallucinate)
+            _render_alert(alert, pipeline, hallucinate, headings[alert.id])
 
 
 def _render_quarantine(quarantine: Sequence[dict]) -> None:

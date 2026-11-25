@@ -167,3 +167,25 @@ of the cited amounts of a case whose sum is in no field, must fail.
 `Source refs:` line; the signature and the `Source rows (n)` expander are untouched. Phantom
 Invoices and the Home tiles do not use it. `.gl-card-more` in `theme.py` is styled like
 `.gl-tile-more`.
+
+## 8 — Short lists in the text and distinct headings (REQ-AS-41, REQ-AS-42, session s52)
+
+- `card_more_text(more)` holds the words of the `gl-card-more` line; `card_chips_html` and the new
+  `card_source_text(text, refs, lines=None)` both use it, so the chips and the text read alike.
+  `card_source_text` looks for the whole list in the text, first in chip form, then raw, and
+  replaces it once by the first six items and the line. It is called only where a text is shown:
+  `st.write` of the card text and of the Provoke template in the Zombie and Vampire apps.
+  `Explanation.text` is never rewritten, so the number guard, the CPI and peer sentences and the
+  cache keep the whole text (DN-AS-08). A model answer that writes its refs some other way is left
+  as written; the raw answer of a Provoke result is not cut (it is labelled raw).
+- `card_headings(alerts, currency="EUR")` counts the titles of the page and returns a heading per
+  alert id; a repeated title gains `, ` and `format_amount` of the first number among
+  `HEADING_AMOUNT_FIELDS`. The three `_render_alerts` compute it once and pass the heading to
+  `_render_alert(..., heading=None)`; the title `div` escapes it as before. Zombie passes the
+  ledger currency, Vampire and Phantom the default, and an alert's own `currency` field wins.
+- **DN-AS-08** Display only. Cutting the explanation itself would change what the CPI and peer
+  sentences compare with and what a test of the guard reads; the cut belongs to the screen.
+- **DN-AS-09** The amount, not a counter (`#1`, `#2`), tells the two GLOWBILL cards apart: it is a
+  field of each alert, so the heading quotes an attributed figure (Finance Rule 1) and the person
+  can match it with the rows. Two cards with the same title and the same amount keep the same
+  heading rather than gain an invented difference.

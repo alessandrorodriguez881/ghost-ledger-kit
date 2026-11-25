@@ -11,7 +11,15 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
-from judge_path_support import ROOT, SCRIPTS, cases_of, escape_for, lines_of, shown_template
+from judge_path_support import (
+    ROOT,
+    SCRIPTS,
+    cases_of,
+    escape_for,
+    filled_template,
+    lines_of,
+    shown_template,
+)
 from streamlit.testing.v1 import AppTest
 
 import streamlit_app
@@ -100,7 +108,7 @@ def test_one_template_per_app_shows_lines_and_no_internal_key(prefix: str) -> No
     lines = lines_of(prefix)
     case = next(c for c in cases_of(prefix) if any(r in lines for r in c.alert.source_refs))
 
-    text = shown_template(case)
+    text = filled_template(case)
 
     chips = ", ".join(chip_text(ref, lines) for ref in case.alert.source_refs)
     assert f"Source: {chips}." in text
@@ -139,7 +147,7 @@ def test_the_phantom_duplicate_card_says_line_2_and_line_3() -> None:
 
     line = (
         "Supplier Suministros Ibéricos Aurora, S.L. sent 2 invoices with the same invoice "
-        "number, all issued on 2026-10-06. "
+        "number, both issued on 2026-10-06. "
         f"Source: invoices.csv {DOT} line 2, invoices.csv {DOT} line 3."
     )
     assert line in [element.value for element in at.markdown]

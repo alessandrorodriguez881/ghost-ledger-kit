@@ -295,3 +295,40 @@ not run commands: a box ticked here means the file is written, not that it was r
   it now expects the first `CARD_MAX_CHIPS` refs as chips and looks for every ref in the
   `Source rows (n)` expander label; Phantom Invoices still expects all of them.
 - [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.
+
+## Task AS14 — Short lists in the text and distinct headings (session s52)
+
+**Covers**: REQ-AS-41, REQ-AS-42, §8
+
+- [x] `tests/test_card_display.py` (new): six refs or fewer and a text without the whole list are
+  unchanged; 7 chip refs give six and `and 1 more cited row, all in Source rows below`; 45 raw
+  refs give six and `39 more cited rows`; the line of the text is the line of the chips; a
+  Hypothesis property (`max_examples=200`) that the shown list never holds more than six refs;
+  every long Zombie and Vampire demo template is cut while the whole template keeps every row;
+  the Vampire `Bank fees on this statement` card and the Zombie page in `AppTest`; Phantom keeps
+  its whole list. Headings: two equal titles show `, 2,99 EUR` and `, 0,99 EUR`; a title shown
+  once stays bare; the alert's currency; a card without an amount field stays bare; the two
+  GLOWBILL demo cards on the Zombie page, with `Alert.title` and the ids unchanged.
+- [x] `ledger_kit/ui/signatures.py`: `card_more_text`, `card_source_text`,
+  `HEADING_AMOUNT_FIELDS`, `card_headings`. `apps/zombie_subscriptions/app.py` and
+  `apps/vampire_fees/app.py`: the card text and the Provoke template through `card_source_text`;
+  the three `app.py` files: headings from `card_headings`.
+- [x] Existing tests edited: `tests/judge_path_support.py` gains `filled_template` (the whole
+  text) and `shown_template` cuts the Zombie and Vampire list as the card does;
+  `test_one_template_per_app_shows_lines_and_no_internal_key` of `tests/test_fresh_eyes_fixes.py`
+  reads `filled_template`, because it checks the template, not the card.
+- Not changed, by design: `Alert.title`, `Alert.id`, `source_refs` and `data` of every alert,
+  every detector, the number guard, `Explanation.text`, `ledger_kit/replay.py` recordings,
+  `data/live_runs`.
+
+Record of session s52:
+
+- Findings by reading the code: the Vampire `vf.fee_summary` template is `... Source:
+  {source_refs}.` with 45 refs; the Zombie cards with 12 refs are the STREAMING and MUSICBOX
+  ones; the two GLOWBILL cards are `zs.recurring_charge` alerts with `current_amount` 2.99 and
+  0.99. Phantom Invoices has no `Source rows` expander, so its text keeps the whole list.
+- Kiro could not run commands in this session: every shell call except `git status`, `git log`
+  and `git ls-files` was refused before it ran, also for a sub-agent. The search for affected
+  tests was done by reading files and with the code tool. `ruff check .`, `ruff format --check .`
+  and `pytest` are left to the reviewer and the workspace hooks.
+- [ ] Run `ruff check .`, `ruff format --check .` and `pytest`; paste the result here.

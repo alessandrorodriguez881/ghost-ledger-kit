@@ -160,11 +160,28 @@ def test_a_template_holds_no_digit_no_month_and_keeps_the_senders_details_in_bra
 @pytest.mark.parametrize("language", ["en", "es"])
 def test_the_duplicate_draft_lists_each_invoice_and_asks_for_a_credit_note(language: str) -> None:
     draft = _draft(_alert("pi.duplicate_invoice", "same_number", DUPLICATE), language)
-    same_day = {"en": "all issued on 2026-10-06", "es": "todas emitidas el 2026-10-06"}
+    # Two invoices on one date are "both" / "ambas" (REQ-PI-72).
+    same_day = {"en": "both issued on 2026-10-06", "es": "ambas emitidas el 2026-10-06"}
 
     assert draft.count("F-2026-0310: 484,00 EUR") == 2
     assert "factura rectificativa" in draft
     assert same_day[language] in draft
+    assert "all issued on" not in draft and "todas emitidas" not in draft
+
+
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_three_invoices_on_one_date_keep_all_and_todas(language: str) -> None:
+    data = {
+        **DUPLICATE,
+        "invoice_count": 3,
+        "invoice_numbers": ["F-2026-0310"] * 3,
+        "totals": ["484.00"] * 3,
+    }
+    draft = _draft(_alert("pi.duplicate_invoice", "same_number", data), language)
+    same_day = {"en": "all issued on 2026-10-06", "es": "todas emitidas el 2026-10-06"}
+
+    assert same_day[language] in draft
+    assert "both issued on" not in draft and "ambas emitidas" not in draft
 
 
 def test_a_duplicate_group_over_several_days_gives_the_span_of_dates() -> None:

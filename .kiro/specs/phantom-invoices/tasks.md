@@ -408,3 +408,30 @@ the sidebar open; the total, base, VAT and IBAN of the lit rows were off screen)
 - [x] `app.py` `APP_CSS`: cell padding `3px 6px`; `td.supplier` wraps (`white-space: normal; max-width: 15em`); every other cell stays on one line; `.ledger-wrap` keeps `overflow-x: auto`.
 - [x] `test_pi_app_logic.py`: the ledger is found by its `<th>Invoice</th>` header and the lit rows are read from `data-ref` (the old checks read `<th>invoice_number</th>` and a first `source_ref` cell).
 - [ ] Run `pytest apps/phantom_invoices/tests`, `ruff check .` and `ruff format --check .`, and look at the page at a 1360 px window with the sidebar open. Not run in session s49: the shell of that session refused every command, so this box stays open for the next session.
+
+---
+
+## Task P26 — Two invoices are both (session s52)
+
+**Covers**: REQ-PI-72, design DN-14. Reason: the gate-2 execution review of 25 Nov.
+
+- [x] Tests first. `test_pi_explain_support.py`: for the three duplicate variants two invoices on
+  one date read `both issued on D` and never `all issued on`, three keep `all issued on D` and the
+  plain same-day template; the committed demo alert of `F-2026-0310` (two invoices) reads `both`
+  and its id is the id of the same fields. `test_pi_exorcise.py`: the pair draft says `both issued
+  on` / `ambas emitidas el`, a group of three says `all issued on` / `todas emitidas el`.
+- [x] `explain_support.py`: `PAIR_COUNT`, `SAME_DAY_ALL`, `SAME_DAY_BOTH`, `invoice_count_of`;
+  `template_for` picks `both` for a pair. `action_templates.py`: `PAIR_COUNT`, `_invoice_count`;
+  `_span` picks `both` / `ambas` for a pair. The Home moment (`apps/home_tiles.py`) fills
+  `template_for` through `explain_alert`, so it follows with no change of its own.
+- [x] Existing tests edited to the new wording only: `_expected_template` of
+  `test_pi_explain_support.py`, the pair draft of `test_pi_exorcise.py` and
+  `test_the_phantom_duplicate_card_says_line_2_and_line_3` of `tests/test_fresh_eyes_fixes.py`.
+- Seen, not changed: `docs/img/home_moment.gif` was recorded with `all issued on`; it is a
+  recording of the page and is left for the owner to record again. The README and the docs do not
+  quote the phrase.
+- Record of session s52: the phrase is built in two places only (`SAME_DAY_TEMPLATES` with
+  `template_for`, and `_span`); found by reading the two modules and the tests that quote it.
+  Kiro could not run commands (every shell call except `git status`, `git log` and `git ls-files`
+  was refused before it ran).
+- [ ] Run `pytest apps/phantom_invoices/tests tests/test_fresh_eyes_fixes.py tests/test_home_moment.py`, `ruff check .` and `ruff format --check .`.

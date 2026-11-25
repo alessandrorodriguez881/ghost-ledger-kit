@@ -26,7 +26,7 @@ from apps.zombie_subscriptions import settings as zs_settings
 from apps.zombie_subscriptions.detectors.utils import normalise_alias_map, normalise_date_map
 from ledger_kit.explainer import fill_fallback
 from ledger_kit.models import Alert
-from ledger_kit.ui.signatures import chip_source_template, source_lines_of
+from ledger_kit.ui.signatures import card_source_text, chip_source_template, source_lines_of
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "data" / "live_runs"
@@ -143,12 +143,24 @@ def lines_of(prefix: str) -> dict[str, int]:
     return source_lines_of(pipeline.invoices, pipeline.suppliers, pipeline.payments)
 
 
-def shown_template(case: Case) -> str:
-    """The fixed template as the card shows it: the cited rows read as their chips read them."""
+def filled_template(case: Case) -> str:
+    """The whole filled fixed template, its cited rows read as their chips read them."""
     template = chip_source_template(
         template_of(case), case.alert.source_refs, lines_of(case.prefix)
     )
     return fill_fallback(template, case.alert)
+
+
+def shown_template(case: Case) -> str:
+    """The fixed template as the card shows it: the cited rows read as their chips read them.
+
+    On a Zombie or Vampire card a list of more than CARD_MAX_CHIPS rows is cut as the chips are
+    (REQ-AS-41); Phantom cards have no Source rows expander and keep the whole list.
+    """
+    filled = filled_template(case)
+    if case.prefix == "pi":
+        return filled
+    return card_source_text(filled, case.alert.source_refs, lines_of(case.prefix))
 
 
 def find_case(alert_id: str) -> Case | None:

@@ -341,7 +341,10 @@ def card_badge(recording: Recording, explanation: Explanation) -> tuple[str, str
         )
     else:
         numbers = rejection_clause(
-            explanation.rejected_reason, explanation.rejected_numbers, explanation.rejected_why
+            explanation.rejected_reason,
+            explanation.rejected_numbers,
+            explanation.rejected_why,
+            explanation.raw_answer,
         )
     label = BADGE_REJECTED.format(model=recording.model_name, date=recording.date, numbers=numbers)
     return "rejected", label

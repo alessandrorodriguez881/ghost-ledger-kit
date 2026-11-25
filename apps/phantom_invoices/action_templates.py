@@ -17,6 +17,10 @@ from ledger_kit.actions import ActionTemplate
 from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount
 
+# With exactly this many invoices on one date the span says "both" / "ambas", not "all" /
+# "todas" (REQ-PI-72); three or more keep "all" / "todas".
+PAIR_COUNT: int = 2
+
 DUPLICATE_INVOICE_TEXTS: dict[str, str] = {
     "en": (
         "Subject: Duplicate invoice: please cancel it or issue a credit note\n\n"
@@ -138,13 +142,28 @@ TOTAL_MISMATCH_TEXTS: dict[str, str] = {
 
 
 def _span(alert: Alert, language: str) -> str:
-    """Return 'issued between D and D' or 'all issued on D' (Spanish forms for 'es')."""
+    """Return 'issued between D and D', or 'all issued on D' ('both' for two invoices).
+
+    Spanish forms for 'es': 'todas emitidas el D', 'ambas emitidas el D' (REQ-PI-72).
+    """
     first, last = alert.data.get("first_issue_date"), alert.data.get("last_issue_date")
     if first == last:
-        return f"todas emitidas el {first}" if language == "es" else f"all issued on {first}"
+        pair = _invoice_count(alert) == PAIR_COUNT
+        if language == "es":
+            return f"{'ambas' if pair else 'todas'} emitidas el {first}"
+        return f"{'both' if pair else 'all'} issued on {first}"
     if language == "es":
         return f"emitidas entre {first} y {last}"
     return f"issued between {first} and {last}"
+
+
+def _invoice_count(alert: Alert) -> int | None:
+    """Return `invoice_count` of a duplicate group, else the number of its invoice numbers."""
+    count = alert.data.get("invoice_count")
+    if isinstance(count, int) and not isinstance(count, bool):
+        return count
+    numbers = alert.data.get("invoice_numbers")
+    return len(numbers) if isinstance(numbers, list) else None
 
 
 def invoice_extras(alert: Alert, _rows: pd.DataFrame, language: str) -> Mapping[str, str]:

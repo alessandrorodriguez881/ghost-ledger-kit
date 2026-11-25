@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections import Counter
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -26,6 +27,7 @@ from typing import Any
 
 import pandas as pd
 
+from ledger_kit.models import Alert
 from ledger_kit.utils.money import format_amount, scale_to
 
 ZOMBIE_CAPTION: str = "Each dot is one cited charge."
@@ -235,23 +237,88 @@ def refs_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None)
     return " ".join(_chip(ref, lines) for ref in refs)
 
 
+def card_more_text(more: int) -> str:
+    """Return 'and N more cited rows, all in Source rows below' ('row' when N is 1)."""
+    noun = "row" if more == 1 else "rows"
+    return f"and {more} more cited {noun}, all in Source rows below"
+
+
 def card_chips_html(refs: Iterable[str], lines: Mapping[str, int] | None = None) -> str:
     """Return the chips of an alert card: at most CARD_MAX_CHIPS, then one line for the rest.
 
-    The line is `and N more cited rows, all in Source rows below` ('row' when N is 1), with N
-    computed from the refs, in a div of class gl-card-more. The Source rows expander keeps every
-    cited row. '' when there is no ref (REQ-AS-40).
+    The line is `card_more_text(N)`, with N computed from the refs, in a div of class
+    gl-card-more. The Source rows expander keeps every cited row. '' when there is no ref
+    (REQ-AS-40).
     """
     ordered = list(refs)
     chips = refs_chips_html(ordered[:CARD_MAX_CHIPS], lines)
     more = len(ordered) - CARD_MAX_CHIPS
     if more <= 0:
         return chips
-    noun = "row" if more == 1 else "rows"
-    return (
-        f'{chips}<div class="gl-card-more">and {more} more cited {noun}, '
-        "all in Source rows below</div>"
-    )
+    return f'{chips}<div class="gl-card-more">{card_more_text(more)}</div>'
+
+
+def card_source_text(text: str, refs: Iterable[str], lines: Mapping[str, int] | None = None) -> str:
+    """Return a card text with its list of cited rows cut as the chips under it are (REQ-AS-41).
+
+    When the text holds the whole list of the refs, joined with a comma and a space, either as
+    the chips read them (`chip_text`) or as raw source refs, and there are more than
+    CARD_MAX_CHIPS refs, the list is shown as its first CARD_MAX_CHIPS items followed by
+    `card_more_text(N)`. Any other text is returned unchanged. Display only: the guard checks the
+    full text and the explanation keeps it.
+    """
+    ordered = [str(ref) for ref in refs]
+    more = len(ordered) - CARD_MAX_CHIPS
+    if more <= 0 or not text:
+        return text
+    for written in ([chip_text(ref, lines) for ref in ordered], ordered):
+        full = ", ".join(written)
+        if full in text:
+            head = ", ".join(written[:CARD_MAX_CHIPS])
+            return text.replace(full, f"{head} {card_more_text(more)}")
+    return text
+
+
+# The amount fields a card heading adds when two cards of a page share a title, first found wins
+# (REQ-AS-42). Each is a field of Alert.data, so the heading quotes an attributed figure.
+HEADING_AMOUNT_FIELDS: tuple[str, ...] = (
+    "current_amount",
+    "amount",
+    "total",
+    "payment_amount",
+    "new_amount",
+)
+
+
+def _heading_amount(alert: Alert) -> Decimal | None:
+    """Return the first amount field of HEADING_AMOUNT_FIELDS in the alert data, else None."""
+    for name in HEADING_AMOUNT_FIELDS:
+        amount = _as_amount(alert.data.get(name))
+        if amount is not None:
+            return amount
+    return None
+
+
+def card_headings(alerts: Iterable[Alert], currency: str = "EUR") -> dict[str, str]:
+    """Return the heading each card of a page shows, by alert id (REQ-AS-42).
+
+    A title that only one card has is shown as it is. When two or more cards share a title, each
+    of them shows the title, a comma and the amount of its first HEADING_AMOUNT_FIELDS field,
+    written by `format_amount` in the alert's `currency` field or else `currency`; a card with no
+    such field keeps the bare title. Alert.title and the alert id are not touched.
+    """
+    listed = list(alerts)
+    counts = Counter(alert.title for alert in listed)
+    headings: dict[str, str] = {}
+    for alert in listed:
+        heading = alert.title
+        amount = _heading_amount(alert) if counts[alert.title] > 1 else None
+        if amount is not None:
+            code = alert.data.get("currency")
+            shown = code if isinstance(code, str) and code else currency
+            heading = f"{alert.title}, {format_amount(amount, shown)}"
+        headings[alert.id] = heading
+    return headings
 
 
 def chip_source_template(

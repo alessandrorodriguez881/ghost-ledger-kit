@@ -264,7 +264,10 @@ def guard_badge(explanation: Explanation, *, has_api_key: bool) -> GuardBadge:
         return GuardBadge("llm", BADGE_LLM)
     if explanation.rejected_numbers:
         reason = rejection_reason_text(
-            explanation.rejected_reason, explanation.rejected_numbers, explanation.rejected_why
+            explanation.rejected_reason,
+            explanation.rejected_numbers,
+            explanation.rejected_why,
+            explanation.raw_answer,
         )
         return GuardBadge("rejected", BADGE_REJECTED_REASON.format(reason=reason))
     if has_api_key:

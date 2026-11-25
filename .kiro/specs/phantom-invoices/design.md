@@ -1999,3 +1999,9 @@ Clarifications made while writing the design; none changes a requirement except 
   indexed, not attributed to payments and not checked for IBAN validity.
 - **DN-13 (open decisions).** All OD-PI items are resolved; OD-PI-07 and OD-PI-14 were changed by
   review and are reflected in §2, §7 and §1 (the `structure.md` update is a task in `tasks.md`).
+- **DN-14 (both, session s52, REQ-PI-72).** The pair wording is a text change of the same-day
+  template, not a fourth template table: `template_for` replaces `all issued on` (`SAME_DAY_ALL`)
+  by `both issued on` (`SAME_DAY_BOTH`) when `invoice_count_of(alert) == PAIR_COUNT` (2), so the
+  three variants cannot drift apart. `action_templates._span` makes the same choice for the
+  drafts (`ambas` / `todas` in Spanish) with its own `PAIR_COUNT`, since the two modules do not
+  import each other. Neither word is a number word, so the number guard reads the texts as before.

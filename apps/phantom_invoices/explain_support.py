@@ -109,6 +109,23 @@ SAME_DAY_TEMPLATES: dict[tuple[str, str], str] = {
         "{total:money}, all issued on {first_issue_date}. Source: {source_refs}."
     ),
 }
+# With exactly PAIR_COUNT invoices on one date the same-day wording says "both", not "all"
+# (REQ-PI-72). Three or more keep "all".
+PAIR_COUNT: int = 2
+SAME_DAY_ALL: str = "all issued on"
+SAME_DAY_BOTH: str = "both issued on"
+
+
+def invoice_count_of(alert: Alert) -> int | None:
+    """Return the number of invoices of a duplicate group: `invoice_count`, else the numbers."""
+    count = alert.data.get("invoice_count")
+    if isinstance(count, int) and not isinstance(count, bool):
+        return count
+    if isinstance(count, str) and count.strip().isdigit():
+        return int(count.strip())
+    numbers = alert.data.get("invoice_numbers")
+    return len(numbers) if isinstance(numbers, list) else None
+
 
 # Guard-badge texts (REQ-PI-46).
 BADGE_LLM: str = "🤖 ✓ LLM text · figures checked by the number guard; wording not checked"
@@ -125,13 +142,17 @@ BADGE_REJECTED_REASON: str = "⚠️ LLM answer rejected: {reason}"
 def template_for(alert: Alert) -> str:
     """Return the fallback template of the alert's (detector, variant); KeyError if unknown.
 
-    A duplicate-invoice alert whose invoices share one issue date gets the same-day wording.
+    A duplicate-invoice alert whose invoices share one issue date gets the same-day wording,
+    with "both" instead of "all" when the group has exactly two invoices.
     """
     variant = str(alert.data.get("variant", ""))
     key = (alert.detector, variant)
     first, last = alert.data.get("first_issue_date"), alert.data.get("last_issue_date")
     if key in SAME_DAY_TEMPLATES and first is not None and first == last:
-        return SAME_DAY_TEMPLATES[key]
+        template = SAME_DAY_TEMPLATES[key]
+        if invoice_count_of(alert) == PAIR_COUNT:
+            template = template.replace(SAME_DAY_ALL, SAME_DAY_BOTH)
+        return template
     try:
         return TEMPLATES[key]
     except KeyError:
@@ -198,7 +219,7 @@ def guard_badge(meta: Explanation, api_key_present: bool) -> str:
         return BADGE_LLM
     if meta.rejected_numbers:
         reason = rejection_reason_text(
-            meta.rejected_reason, meta.rejected_numbers, meta.rejected_why
+            meta.rejected_reason, meta.rejected_numbers, meta.rejected_why, meta.raw_answer
         )
         return BADGE_REJECTED_REASON.format(reason=reason)
     return BADGE_UNAVAILABLE if api_key_present else BADGE_TEMPLATE

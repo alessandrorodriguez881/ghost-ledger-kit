@@ -104,6 +104,8 @@ from ledger_kit.ui.signatures import (  # noqa: E402
     answer_row_note,
     bites_svg,
     card_chips_html,
+    card_headings,
+    card_source_text,
     chip_source_template,
     ref_with_line_markdown,
     signature_block,
@@ -468,7 +470,7 @@ def _render_probe_result(
                 st.caption(line)
         st.caption(NOTE_GUARD_SCOPE)
     st.markdown(f"**{TEMPLATE_LABEL}**")
-    st.write(result.template_text)
+    st.write(card_source_text(result.template_text, refs, lines))
 
 
 def _render_live_panel(alert: Alert, ledger: pd.DataFrame) -> None:
@@ -538,8 +540,13 @@ def _render_peer_lines(alert: Alert, explanation: Explanation) -> None:
         st.caption(markdown_safe(source_line))
 
 
-def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None:
-    """One alert card: title, detector, explanation, guard badge, refs and cited rows."""
+def _render_alert(
+    alert: Alert, ledger: pd.DataFrame, hallucinate: bool, heading: str | None = None
+) -> None:
+    """One alert card: title, detector, explanation, guard badge, refs and cited rows.
+
+    `heading` is what the title line shows (`card_headings`); None shows Alert.title.
+    """
     explanation = _explain(alert, ledger, hallucinate)
     recording = _card_recording(alert, hallucinate)
     if recording is not None:
@@ -547,15 +554,17 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
     else:
         badge = guard_badge(explanation, has_api_key=bool(os.environ.get("OPENAI_API_KEY", "")))
         badge_kind, badge_label = badge.kind, badge.label
+    lines = source_lines_of(ledger)
     # The container key only carries the severity into the CSS: a critical card glows.
     with st.container(border=True, key=card_key("vf", alert.severity, alert.id)):
-        title = f"{severity_marker(alert.severity)}{html.escape(alert.title)}"
+        shown_title = alert.title if heading is None else heading
+        title = f"{severity_marker(alert.severity)}{html.escape(shown_title)}"
         st.markdown(f'<div class="vf-alert-title">{title}</div>', unsafe_allow_html=True)
         st.caption(f"Detector: `{alert.detector}` · severity: {alert.severity}")
-        st.write(explanation.text)
+        st.write(card_source_text(explanation.text, alert.source_refs, lines))
         for line in computed_lines(explanation.computed):
             st.caption(line)
-        _render_row_note(explanation, alert, source_lines_of(ledger))
+        _render_row_note(explanation, alert, lines)
         st.markdown(
             f'<span class="vf-badge vf-badge-{badge_kind}">{html.escape(badge_label)}</span>',
             unsafe_allow_html=True,
@@ -563,7 +572,7 @@ def _render_alert(alert: Alert, ledger: pd.DataFrame, hallucinate: bool) -> None
         _render_signature(alert, ledger)
         _render_peer_lines(alert, explanation)
         st.markdown(
-            "**Source refs:** " + card_chips_html(alert.source_refs, source_lines_of(ledger)),
+            "**Source refs:** " + card_chips_html(alert.source_refs, lines),
             unsafe_allow_html=True,
         )
         with st.expander(f"Source rows ({len(alert.source_refs)})"):
@@ -585,12 +594,14 @@ def _render_alerts(alerts: Sequence[Alert], ledger: pd.DataFrame, hallucinate: b
         st.write("No alerts: no bank fee was found in this statement.")
         return
     groups = group_alerts_by_severity(alerts)
+    # Two cards with the same title show the amount of each in the heading (REQ-AS-42).
+    headings = card_headings(alerts)
     for severity in SEVERITY_ORDER:
         if not groups[severity]:
             continue
         show_severity(severity)
         for alert in groups[severity]:
-            _render_alert(alert, ledger, hallucinate)
+            _render_alert(alert, ledger, hallucinate, headings[alert.id])
 
 
 def _render_quarantine(quarantine: Sequence[dict]) -> None:

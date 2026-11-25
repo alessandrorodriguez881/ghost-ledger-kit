@@ -176,3 +176,26 @@ records of the 16 Nov run, the source, the rejected tokens and the reason as lit
 them against today's guard and against the `observed_*` fields the run recorded. A property test
 checks that a clause without a year is the clause of before, character for character.
 `tests/test_recorded_verdicts.py` keeps its pinned sets.
+
+## §9 Amendment A-GH-02 (session s52): a number in words as the answer wrote it (REQ-GH-26)
+
+| File | Change |
+|---|---|
+| `ledger_kit/live_guard.py` | `shown_token(token, raw="")`, `shown_tokens`, private `_written_in`; `rejection_clause` and `rejection_reason_text` take an optional `raw`; `verdict_line` and `_currency_verdict` use `ProbeResult.raw_answer`; `highlight_segments` also marks the spelling `_written_in` finds |
+| `ledger_kit/replay.py` | `card_badge` passes `Explanation.raw_answer` |
+| `guard_badge` of the three apps | pass `Explanation.raw_answer` |
+| tests | new `tests/test_guard_words_display.py` |
+
+**What is looked up.** Only a token made of letters, spaces and hyphens (`_WORDS_ONLY`, the test
+the highlight already uses for words) is looked up. Its letters are searched in the raw answer,
+case as written, as whole words with any white space or none between two letters; the first match
+is the spelling of the answer. Every run of white space is shown as one space, so a line break or
+a double space inside the phrase does not reach the badge. A digit token, a date, an IBAN, a
+currency sign, a calculation part and an index sentence are left exactly as they were.
+
+**Why at the display, not in the guard.** The guard already keeps a phrase as written
+(REQ-GH-10), and `rejected_numbers` is pinned for every recorded run (REQ-GH-14, REQ-GH-25). The
+glued form seen on 25 Nov has to come from a step after the guard; the fix reads the words again
+from the answer where they are shown, so whatever path a token takes, the badge, the replay badge,
+the verdict and the highlight show the answer's own words. Without a raw answer (`raw=""`, the
+default) every function returns what it returned before.

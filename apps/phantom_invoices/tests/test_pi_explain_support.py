@@ -11,6 +11,7 @@ import re
 import sys
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -19,6 +20,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from apps.phantom_invoices import settings as pi_settings
 from apps.phantom_invoices.detectors import run_pi_detectors
 from apps.phantom_invoices.detectors.iban_change import VERIFY_BY_PHONE_MESSAGE
 from apps.phantom_invoices.detectors.utils import is_missing
@@ -127,11 +129,17 @@ def _duplicate_alert(variant: str, first: str, last: str) -> Alert:
 
 
 def _expected_template(alert: Alert) -> str:
-    """The template template_for must pick: the same-day wording when the dates are equal."""
+    """The template template_for must pick: the same-day wording when the dates are equal.
+
+    With exactly two invoices the same-day wording says "both" instead of "all" (REQ-PI-72).
+    """
     key = (alert.detector, alert.data["variant"])
     same_day = alert.data.get("first_issue_date") == alert.data.get("last_issue_date")
     if key in SAME_DAY_TEMPLATES and same_day:
-        return SAME_DAY_TEMPLATES[key]
+        template = SAME_DAY_TEMPLATES[key]
+        if alert.data.get("invoice_count") == 2:
+            template = template.replace("all issued on", "both issued on")
+        return template
     return TEMPLATES[key]
 
 
@@ -427,6 +435,60 @@ def test_guard_accepts_the_same_day_wording_and_rejects_a_foreign_date(
     assert rejected.source == "fallback"
     assert rejected.rejected_numbers == ("1999-01-01",)
     assert rejected.text == filled
+
+
+# Session s52 (REQ-PI-72): two invoices on one date are "both", three or more are "all"
+
+
+@pytest.mark.parametrize("key", DUPLICATE_VARIANTS)
+def test_two_invoices_on_one_date_read_both_issued_on(key: tuple[str, str]) -> None:
+    """A pair of invoices on one date says 'both issued on D', never 'all issued on D'."""
+    alert = _duplicate_alert(key[1], ISSUE_DAY, ISSUE_DAY)
+
+    text = fill_fallback(template_for(alert), alert)
+
+    assert "2 invoices" in text
+    assert f"both issued on {ISSUE_DAY}" in text
+    assert "all issued on" not in text
+
+
+@pytest.mark.parametrize("key", DUPLICATE_VARIANTS)
+def test_three_invoices_on_one_date_keep_all_issued_on(key: tuple[str, str]) -> None:
+    """Three invoices on one date keep 'all issued on D'."""
+    pair = _duplicate_alert(key[1], ISSUE_DAY, ISSUE_DAY)
+    alert = pair.model_copy(
+        update={
+            "data": {**pair.data, "invoice_count": 3},
+            "source_refs": ["inv.csv:0", "inv.csv:1", "inv.csv:2"],
+        }
+    )
+
+    text = fill_fallback(template_for(alert), alert)
+
+    assert f"all issued on {ISSUE_DAY}" in text
+    assert "both issued on" not in text
+    assert template_for(alert) == SAME_DAY_TEMPLATES[key]
+
+
+def test_the_demo_duplicate_of_two_invoices_reads_both_and_keeps_its_id() -> None:
+    """The committed demo alert of F-2026-0310 (two invoices) reads 'both'; its id is the same."""
+    config_path = Path(__file__).resolve().parents[1] / "config.toml"
+    root = Path(__file__).resolve().parents[3]
+    demo = pi_settings.demo_inputs(pi_settings.load_config(config_path), root)
+    pipeline = pi_settings.run_pipeline(demo.invoices, demo.suppliers, demo.payments, demo.as_of)
+    [alert] = [
+        a
+        for result in pipeline.results
+        for a in result.alerts
+        if a.detector == "pi.duplicate_invoice" and "F-2026-0310" in a.data["invoice_numbers"]
+    ]
+
+    text = fill_fallback(template_for(alert), alert)
+
+    assert alert.data["invoice_count"] == 2
+    assert f"both issued on {alert.data['first_issue_date']}" in text
+    assert "all issued on" not in text
+    assert alert.id == Alert(**alert.model_dump(exclude={"id", "explanation"})).id
 
 
 @pytest.mark.parametrize("key", IBAN_CRITICAL_VARIANTS)

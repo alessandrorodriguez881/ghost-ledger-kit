@@ -220,9 +220,12 @@ def verdict_line(result: ProbeResult) -> str:
         elif result.why:
             return _currency_verdict(result)
         elif any(is_year_alone(t) for t in result.rejected_numbers):
-            parts = _verdict_figure_parts(result.rejected_numbers)
+            parts = _verdict_figure_parts(shown_tokens(result.rejected_numbers, result.raw_answer))
             return VERDICT_REJECTED_HEAD + ". ".join(parts)
-        line = prefix + ", ".join(f"`{t}`" for t in result.rejected_numbers)
+        tokens = result.rejected_numbers
+        if result.reason not in (REASON_INDEX_AS_CAUSE, REASON_CALC_NOT_ALLOWED):
+            tokens = shown_tokens(tokens, result.raw_answer)
+        line = prefix + ", ".join(f"`{t}`" for t in tokens)
         if result.reason == REASON_CALC_NOT_ALLOWED and result.why:
             line += ". Why: " + "; ".join(result.why) + "."
         return line
@@ -235,7 +238,8 @@ def _currency_verdict(result: ProbeResult) -> str:
     A figure rejected with it keeps the usual wording, a year on its own gets its own words, and
     the sign gets its own sentence.
     """
-    figures = [t for t in result.rejected_numbers if not is_currency_token(t)]
+    shown = shown_tokens(result.rejected_numbers, result.raw_answer)
+    figures = [t for t in shown if not is_currency_token(t)]
     line = VERDICT_REJECTED_HEAD
     for part in _verdict_figure_parts(figures):
         line += part + ". "
@@ -271,6 +275,41 @@ def _split_years(tokens: Sequence[str]) -> tuple[list[str], list[str]]:
     return others, years
 
 
+# --- A number in words, shown as the answer wrote it (amendment A-GH-02, REQ-GH-26) -------------
+
+_SPACES = re.compile(r"\s+")
+
+
+def _written_in(token: str, raw: str) -> str | None:
+    """Return a letters-only token as `raw` writes it, any white space between its letters."""
+    if not raw or not _WORDS_ONLY.fullmatch(token):
+        return None
+    letters = [char for char in token if not char.isspace()]
+    pattern = r"\s*".join(re.escape(char) for char in letters)
+    found = re.search(r"(?<!\w)" + pattern + r"(?!\w)", raw)
+    return None if found is None else found.group(0)
+
+
+def shown_token(token: str, raw: str = "") -> str:
+    """Return a rejected token as the answer wrote it, for a badge or a verdict only.
+
+    A token made only of letters, spaces and hyphens (a number in words such as `two hundred and
+    sixty-four`, a currency code) is looked up in `raw`, the model's answer, as whole words with
+    any white space, or none, between its letters; the first match is returned with each run of
+    white space written as one space. A token not found, an empty `raw` or any other token is
+    returned unchanged. What the guard checked is not changed: only the words shown.
+    """
+    if not _WORDS_ONLY.fullmatch(token):
+        return token
+    written = _written_in(token, raw)
+    return token if written is None else _SPACES.sub(" ", written).strip()
+
+
+def shown_tokens(tokens: Sequence[str], raw: str = "") -> tuple[str, ...]:
+    """Return each rejected token as `shown_token` writes it, in the order given."""
+    return tuple(shown_token(token, raw) for token in tokens)
+
+
 def _badge_figure_parts(tokens: Sequence[str]) -> list[str]:
     """The badge words of rejected figures: the not-found part, then the year part."""
     others, years = _split_years(tokens)
@@ -293,22 +332,24 @@ def _verdict_figure_parts(tokens: Sequence[str]) -> list[str]:
     return parts
 
 
-def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
+def rejection_clause(reason: str, tokens: Sequence[str], why: Sequence[str], raw: str = "") -> str:
     """Return what a rejected card badge says after `rejected`, in parentheses; '' for no token.
 
     A calculation the kit will not make and a currency sign the data does not name are said in
     words (`why`); a year on its own says so (`BADGE_YEAR_ALONE`); any other token is "not found
-    in the cited rows or the alert data". All parts stand in one parenthesis.
+    in the cited rows or the alert data". All parts stand in one parenthesis. `raw` is the
+    model's answer: a number in words is shown as it wrote it (`shown_token`).
     """
     if reason == REASON_CALC_NOT_ALLOWED:
         said = "; ".join(why) if why else ", ".join(tokens)
         return f" (the answer asks the kit for a calculation it will not make: {said})"
+    shown = shown_tokens(tokens, raw)
     if why:
-        figures = [t for t in tokens if not is_currency_token(t)]
+        figures = [t for t in shown if not is_currency_token(t)]
         parts = [*_badge_figure_parts(figures), *why]
         return " (" + "; ".join(parts) + ")"
-    if tokens:
-        return " (" + "; ".join(_badge_figure_parts(tokens)) + ")"
+    if shown:
+        return " (" + "; ".join(_badge_figure_parts(shown)) + ")"
     return ""
 
 
@@ -318,23 +359,26 @@ BADGE_INDEX_CAUSE = "the answer names the price index as the cause of the price 
 BADGE_PERIOD = "the answer gives a figure a period that contradicts the alert field it matches"
 
 
-def rejection_reason_text(reason: str, tokens: Sequence[str], why: Sequence[str]) -> str:
+def rejection_reason_text(
+    reason: str, tokens: Sequence[str], why: Sequence[str], raw: str = ""
+) -> str:
     """Return the real reason of a rejection for the badge of a card, without parentheses.
 
     A figure in no row says `not found in the cited rows or the alert data: tokens` (the text the
     badge always had) and a year on its own says `BADGE_YEAR_ALONE: years`; the price index named
     as the cause, a period that contradicts its field, a calculation the kit will not make and a
     currency sign the data does not name each say their own reason, in the words of
-    `rejection_clause` and of the replay badge.
+    `rejection_clause` and of the replay badge. `raw` is the model's answer: a number in words is
+    shown as it wrote it (`shown_token`).
     """
     if reason == REASON_INDEX_AS_CAUSE:
         return f"{BADGE_INDEX_CAUSE}: {' '.join(tokens)}"
     if reason == REASON_PERIOD_MISMATCH:
-        return f"{BADGE_PERIOD}: {', '.join(tokens)}"
-    clause = rejection_clause(reason, tokens, why)
+        return f"{BADGE_PERIOD}: {', '.join(shown_tokens(tokens, raw))}"
+    clause = rejection_clause(reason, tokens, why, raw)
     if clause.startswith(" (") and clause.endswith(")"):
         return clause[2:-1]
-    return f"{BADGE_NOT_FOUND}: {', '.join(tokens)}"
+    return f"{BADGE_NOT_FOUND}: {', '.join(shown_tokens(tokens, raw))}"
 
 
 @dataclass(frozen=True)
@@ -414,7 +458,9 @@ def highlight_segments(raw: str, tokens: Sequence[str]) -> list[Segment]:
     for token in tokens:
         if not token:
             continue
-        for form in _forms(token):
+        written = _written_in(token, raw)
+        forms = _forms(token) + ([written] if written and written != token else [])
+        for form in forms:
             spans.extend((m.start(), m.end()) for m in _token_pattern(form).finditer(raw))
     merged: list[tuple[int, int]] = []
     for start, end in sorted(spans):

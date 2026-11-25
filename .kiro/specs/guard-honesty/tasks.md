@@ -202,3 +202,37 @@ Record of session s50b (follow-up to s50):
   is still reported by `_path_candidates` and `_missing_paths`.
 - Verification (`ruff check .`, `ruff format --check .`, `pytest`): not run by Kiro (the shell
   refused `ruff` and `pytest` calls before they ran); left to the reviewer and the workspace hooks.
+
+## Part 5 — session s52: amendment A-GH-02
+
+### Task GH13 — A number in words is shown as the answer wrote it
+
+**Covers**: REQ-GH-26, §9
+
+- [x] `tests/test_guard_words_display.py` first: the guard still rejects `two hundred and
+  sixty-four` exactly as written; `shown_token` restores the spaces of a glued token from the
+  answer, writes a line break, a tab or a double space as one space, leaves digits, dates, signs
+  and words not in the answer alone, and matches whole words only; the badges of the three apps,
+  `rejection_reason_text`, `rejection_clause` (with a year too), the replay badge, the Provoke
+  verdict and the highlight show `two hundred and sixty-four`, never the glued form; a real
+  rejection through `explain_with_meta` gives the same words in the Zombie badge.
+- [x] `ledger_kit/live_guard.py`: `_written_in`, `shown_token`, `shown_tokens`; the optional
+  `raw` of `rejection_clause` and `rejection_reason_text`; `verdict_line`, `_currency_verdict` and
+  `highlight_segments` read the answer. `ledger_kit/replay.py` (`card_badge`) and the three
+  `guard_badge` pass `Explanation.raw_answer`. No change to `explainer.py`, `number_words.py`,
+  `calc.py` or `data/live_runs`.
+
+Record of session s52:
+
+- Reading `number_words.find_number_phrases`, `_passes_number_guard`, `_in_text_order`, the badge
+  helpers of `live_guard.py`, `replay.card_badge` and the three `guard_badge`, every path keeps
+  the phrase as `text[start:end]`, spaces included; the glued form was not found in the code that
+  could be read. The fix therefore reads the words again from the raw answer where they are
+  shown, so the badge is right whichever step dropped the spaces, and the guard's tokens stay
+  pinned.
+- Verification (`ruff check .`, `ruff format --check .`, `pytest`): not run by Kiro. Every shell
+  call except `git status`, `git log` and `git ls-files` was refused before it ran, also for a
+  sub-agent; left to the reviewer and the workspace hooks.
+- [ ] Run `pytest tests/test_guard_words_display.py tests/test_guard_year_wording.py
+  tests/test_live_guard.py tests/test_fresh_eyes_fixes.py`, `ruff check .` and
+  `ruff format --check .`.

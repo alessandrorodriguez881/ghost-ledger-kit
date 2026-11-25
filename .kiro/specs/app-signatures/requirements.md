@@ -373,3 +373,36 @@ None changes an alert, a detector, the number guard, `source_ref` or what the mo
   - AE-AS-26 The `vf.fee_summary` card (45 refs) shows 6 chips and `and 39 more cited rows, all in
     Source rows below`; its expander is `Source rows (45)`. An alert with 7 refs shows 6 chips and
     `and 1 more cited row, all in Source rows below`.
+
+## 14 — Short lists in the text and distinct headings (session s52)
+
+Two display fixes from the gate-2 execution review of 25 Nov. Display text only: no detector, no
+alert id, no rule of the number guard and no recorded run changes.
+
+- **REQ-AS-41** In Zombie Subscriptions and Vampire Fees, *where* a card text (a fixed template or
+  a recorded or live model answer) or the fixed template of a Provoke result is shown and holds
+  the whole list of the alert's refs, joined with a comma and a space, as the chips read them
+  (`chip_text`) or as raw `source_ref` values, *when* the alert has more than `CARD_MAX_CHIPS`
+  refs, the shown text shall list the first `CARD_MAX_CHIPS` of them followed by the line of
+  REQ-AS-40 (`card_more_text`: `and N more cited rows, all in Source rows below`), through
+  `card_source_text(text, refs, lines)` of `ledger_kit/ui/signatures.py`. The explanation keeps
+  its whole text: the guard checks it, and the CPI and peer sentences compare with it. Any other
+  text is shown as it is. Phantom Invoices keeps its whole list, because its card has no `Source
+  rows` expander; the raw answer of a Provoke result is shown as received.
+  - AE-AS-27 The `vf.fee_summary` card (45 refs) reads `Source: ` and six
+    `vampire_demo_statement.csv · line N`, then `and 39 more cited rows, all in Source rows
+    below.`; a Zombie card with 12 refs ends `and 6 more cited rows, all in Source rows below.`
+    An alert with 6 refs or fewer, or a text without the whole list, is shown unchanged.
+
+- **REQ-AS-42** *When* two or more cards of one page would show the same `Alert.title`, each of
+  them shall show in its heading the title, a comma, a space and its amount: the first of the
+  `Alert.data` fields `HEADING_AMOUNT_FIELDS` (`current_amount`, `amount`, `total`,
+  `payment_amount`, `new_amount`) that holds a number, written by `format_amount` in the alert's
+  `currency` field or else the currency of the page. A card with no such field keeps the bare
+  title; a title that only one card has is shown as it is. The headings come from
+  `card_headings(alerts, currency)` of `ledger_kit/ui/signatures.py`, used by the three apps.
+  `Alert.title`, the alert id, the flashlight labels and everything a recording or a test matches
+  on stay as they are.
+  - AE-AS-28 The two Zombie demo cards titled `Recurring charge detected: GLOWBILL` show `Recurring
+    charge detected: GLOWBILL, 2,99 EUR` and `Recurring charge detected: GLOWBILL, 0,99 EUR`;
+    their `Alert.title` and ids are unchanged.

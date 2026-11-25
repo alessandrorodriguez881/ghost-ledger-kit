@@ -628,6 +628,20 @@ IBANs as defined in Finance Rule 5 as revised by CR-LC-3h (REQ-PI-58).
   Status, Invoice, Supplier and Total are visible without scrolling sideways. `ledger_view` and
   `LEDGER_COLUMNS` are unchanged; only the rendering changes. Every cell, header and attribute is
   HTML-escaped (`test_pi_flashlight.py`).
+- **REQ-PI-72** *(two invoices are both; reason: the gate-2 execution review of 25 Nov found the
+  duplicate card and the Spanish draft saying `all issued on D` and `todas emitidas el D` for a
+  pair of invoices.)* *When* the invoices of a duplicate group share one issue date and the group
+  has exactly two invoices (`invoice_count`, else the length of `invoice_numbers`), the same-day
+  fallback template (`template_for` in `explain_support.py`) shall say `both issued on D` and the
+  Exorcise draft (`_span` in `action_templates.py`) shall say `both issued on D` in English and
+  `ambas emitidas el D` in Spanish. With three or more invoices they keep `all issued on D` and
+  `todas emitidas el D`; different dates keep `issued between D1 and D2` and `N days apart`. The
+  Home moment fills the same template, so it reads `both` too. Display text only: no detector,
+  alert id, guard rule or recorded run changes.
+  - AE-PI-72 The demo alert of `F-2026-0310` (two invoices, 2026-10-06) reads `sent 2 invoices
+    with the same invoice number, both issued on 2026-10-06`; its draft says `both issued on
+    2026-10-06` and `ambas emitidas el 2026-10-06`. The same group with `invoice_count` 3 says
+    `all issued on 2026-10-06` and `todas emitidas el 2026-10-06`.
 
 ---
 

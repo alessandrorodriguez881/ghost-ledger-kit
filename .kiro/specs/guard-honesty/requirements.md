@@ -404,6 +404,32 @@ What the guard does with dates today (read in `_tokenise` and `_passes_number_gu
   `€106.00`; 61.00 is `interest_total` and 106.00 is `total` (`interest_total` + `fee_total`), both
   in the alert data, so the guard accepts it.
 
+## 8 — Amendment A-GH-02 (session s52): a number in words is shown as the answer wrote it
+
+The gate-2 execution review of 25 Nov saw a badge that showed a rejected number in words glued,
+`twohundredandsixty-four`, where the answer wrote `two hundred and sixty-four`.
+
+- **REQ-GH-26** *When* a rejected token is made only of letters, spaces and hyphens (a number in
+  words, a currency code) and the model's answer is known, the card badge of the three apps
+  (`guard_badge`, through `rejection_reason_text`), the replay badge (`replay.card_badge`, through
+  `rejection_clause`), the Provoke verdict (`verdict_line`) and the highlight
+  (`highlight_segments`) shall show the token as the answer wrote it: its letters are looked up in
+  the answer as whole words, case as written, with any white space or none between two letters,
+  and the first match is shown with each run of white space as one space
+  (`live_guard.shown_token`). A token not found in the answer, a token with a digit or a sign, and
+  the tokens of a calculation or a price-index rejection are shown as before. `rejected_numbers`,
+  every rule of the guard, every recorded run and every pinned verdict stay as they are: only the
+  words shown change.
+  - AE-GH-26
+
+    | Rejected token | Answer | Shown |
+    |---|---|---|
+    | `twohundredandsixty-four` | `SHOP charges two hundred and sixty-four euros.` | `two hundred and sixty-four` |
+    | `twohundredandsixty-four` | `two  hundred` + line break + `and` + tab + `sixty-four` | `two hundred and sixty-four` |
+    | `two hundred and sixty-four` | the first answer | `two hundred and sixty-four` (the guard's own token) |
+    | `539.40`, `2026-05-09`, `$` | any | unchanged |
+    | `once` | `A concession was made.` | `once` (no whole word, unchanged) |
+
 ## Out of scope
 
 Other languages; ordinals; fractions and decimals in words (`three point five`); amounts with
