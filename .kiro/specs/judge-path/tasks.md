@@ -140,6 +140,15 @@ set) is run by the user: this session could not run commands. Tasks run in order
   of a live answer (`guard_badge` in each app's `settings.py`, shown only with a key) was not
   changed.
 
+## Task JP10 — One GIF per app in the README
+
+**Covers**: REQ-JP-29, §8b
+
+- [x] `tests/test_readme.py`: the test that allowed only the home moment is now
+  `test_exactly_four_images_the_home_moment_and_one_gif_per_app_and_no_badge`.
+- [x] `README.md`, *The three apps*: one GIF under each app bullet. `.kiro/steering/structure.md`
+  lists the three GIFs next to `home_moment.gif`.
+
 ## Open for the user to run
 
 - [ ] `ruff check .` and `ruff format --check .`

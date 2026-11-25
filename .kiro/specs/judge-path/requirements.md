@@ -245,3 +245,11 @@ examples is **(synthetic)** or a recorded answer of a real model on synthetic de
   to a model. A replay is counted in the counter, labelled `recorded replays: N`, and never
   consumes the limit; `Counts.live_asked` is the presses that called a model.
 - **REQ-JP-28** Every existing honesty test is kept.
+
+### One GIF per app in the README
+
+- **REQ-JP-29** The README section *The three apps* shall show, under the bullet of each app, one
+  GIF recorded from the local app (`docs/img/zombie_graveyard.gif`, `docs/img/phantom_flashlight.gif`,
+  `docs/img/vampire_coffins.gif`) as a markdown image with a short alt text that states only what
+  the GIF shows. The README shall hold exactly four markdown images (these three and the Home
+  moment), each file present and under 2 MB, and no `img` tag and no badge.

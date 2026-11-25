@@ -164,6 +164,14 @@ committed file.
 | `tests/test_judge_path_pages.py` | REQ-JP-05 to 14 (AppTest of the three apps and Home) |
 | `tests/test_judge_path_misc.py` | REQ-JP-13, 16, 17 (config, percentages, plurals) |
 
+## 8b — README images (REQ-JP-29)
+
+*The three apps* in `README.md` shows one GIF under each app bullet, written as a markdown image
+(indented two spaces so it stays inside the list item). The GIFs are files of `docs/img/`, recorded
+by hand from the local apps and never edited by code. `tests/test_readme.py` allows exactly four
+images (the Home moment and the three GIFs), checks that each file exists and is under 2 MB, and
+still refuses an `img` tag and a badge.
+
 ## 9 — Risks
 
 - The run file is being recorded while this change is built. Tests that need a specific record use

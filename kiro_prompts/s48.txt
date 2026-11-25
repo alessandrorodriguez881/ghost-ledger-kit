@@ -1,0 +1,10 @@
+README: one GIF per app (the last part of improvement 2 of the weekly jury). Claude Code recorded three GIFs from the local apps, at real speed and without zoom, and put them in docs/img/. Do not change the GIF files.
+docs/img/zombie_graveyard.gif (6.9 s): the Zombie Subscriptions demo scrolls from the graveyard of three dead subscriptions (BEATSTREAM, PHOTOBOX, STASHCRATE) down to the GYMPLUS alert, a charge after cancellation drawn as one dot per cited charge, with its source ref chips.
+docs/img/phantom_flashlight.gif (6.8 s): in Phantom Invoices the pointer picks the duplicate invoice F-2026-0310 in the flashlight of the haunted ledger, and the ledger lights its two invoice rows and dims the rest.
+docs/img/vampire_coffins.gif (6.9 s): the Vampire Fees demo scrolls from its totals (45 fees, 379,25 EUR) down to the coffins, one per recurring fee with what it drains a year, such as a monthly maintenance fee of 6,50 EUR that drains 78,00 EUR a year.
+Do this:
+1) README.md, section The three apps: under each app bullet, add that app GIF as a markdown image with a short, true alt text based on the descriptions above. Keep the bullets and the rest of the README as they are. Do not use img tags or badges.
+2) tests/test_readme.py: the test that allows only the home moment image must now allow exactly four markdown images, the home moment and these three GIFs, each file present and under 2 MB, still with no img tag and no badge. Rename that test so its name says what it checks.
+3) .kiro/steering/structure.md: list the three new GIFs under docs/img next to home_moment.gif, one line each, in the same style.
+4) Add one short requirement for this to the judge-path spec (requirements.md, design.md if it has a README part, and a ticked task in tasks.md), in the same style as the other entries.
+Do not change any other file. Do not run commands. At the end, list the changed files and lines.

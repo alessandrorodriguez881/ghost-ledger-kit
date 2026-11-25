@@ -42,8 +42,16 @@ To run it live with a local model, see `docs/live-guard.md`.
 All three apps are built on the same `ledger_kit` library and share nothing else. Vampire Fees is the template test: it took 6 Kiro calls and about an hour, from the first spec prompt to green tests, and the `ghost-ledger-builder` agent wrote the app with zero changes to `ledger_kit/` or the other two apps (record: task VF17 in `.kiro/specs/vampire-fees/tasks.md`).
 
 - **Zombie Subscriptions** (`apps/zombie_subscriptions/`) is for individuals and finds forgotten subscriptions in a bank statement.
+
+  ![Zombie Subscriptions demo: the page scrolls from the graveyard of three dead subscriptions down to the GYMPLUS alert, a charge after cancellation drawn as one dot per cited charge, with its source ref chips](docs/img/zombie_graveyard.gif)
+
 - **Phantom Invoices** (`apps/phantom_invoices/`) is for small Spanish businesses and finds duplicate invoices, supplier IBAN changes and invalid IBANs, VAT errors, and overdue invoices or payments that match no invoice.
+
+  ![Phantom Invoices demo: the pointer picks duplicate invoice F-2026-0310 in the flashlight of the haunted ledger, and the ledger lights its two invoice rows and dims the rest](docs/img/phantom_flashlight.gif)
+
 - **Vampire Fees** (`apps/vampire_fees/`) is for individuals and small businesses and finds the bank fees that drain an account.
+
+  ![Vampire Fees demo: the page scrolls from its totals, 45 fees and 379,25 EUR, down to the coffins, one per recurring fee with what it drains a year, such as a monthly maintenance fee of 6,50 EUR that drains 78,00 EUR a year](docs/img/vampire_coffins.gif)
 
 How it works, the detectors of each app and the demo numbers are in [docs/how-it-works.md](docs/how-it-works.md).
 

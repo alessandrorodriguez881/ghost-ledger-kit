@@ -14,6 +14,11 @@ HOME_MOMENT_ALT = (
     "Home: a recorded answer of llama3.2:3b invents 5% and 617.51, and the number guard "
     "strikes both out"
 )
+APP_GIFS = (
+    "docs/img/zombie_graveyard.gif",
+    "docs/img/phantom_flashlight.gif",
+    "docs/img/vampire_coffins.gif",
+)
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
 REQUIRED_HEADINGS = (
@@ -172,13 +177,19 @@ def test_links_are_official_docs_only(text: str) -> None:
     assert not bad, f"README links outside the allowed docs: {bad}"
 
 
-def test_the_only_image_is_the_home_moment_and_there_is_no_badge(text: str) -> None:
-    """One markdown image, docs/img/home_moment.gif, under 2 MB; no badge and no img tag."""
+def test_exactly_four_images_the_home_moment_and_one_gif_per_app_and_no_badge(
+    text: str,
+) -> None:
+    """Four markdown images (home moment, three app GIFs), each present, under 2 MB; no badge."""
     images = re.findall(r"!\[([^\]]*)\]\(([^)]*)\)", text)
-    assert images == [(HOME_MOMENT_ALT, HOME_MOMENT)]
-    gif = REPO_ROOT / HOME_MOMENT
-    assert gif.is_file()
-    assert gif.stat().st_size < MAX_IMAGE_BYTES
+    assert len(images) == 4
+    assert images[0] == (HOME_MOMENT_ALT, HOME_MOMENT)
+    assert sorted(path for _alt, path in images[1:]) == sorted(APP_GIFS)
+    assert all(alt.strip() for alt, _path in images)
+    for _alt, path in images:
+        gif = REPO_ROOT / path
+        assert gif.is_file(), path
+        assert gif.stat().st_size < MAX_IMAGE_BYTES, path
     assert "shields.io" not in text.lower()
     assert "<img" not in text.lower()
 
