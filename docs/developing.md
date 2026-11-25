@@ -38,7 +38,7 @@ In any app, click **Load demo data** in the sidebar if it has not loaded by itse
 .venv\Scripts\python.exe scripts/ledger_scan.py check --alert-id ALERT_ID --text "your text" data/samples/zombie_demo_statement.csv
 ```
 
-`scan` lists, per file, its path, SHA-256, kind, row count and quarantined count (an unreadable file carries an `error` and the others still run), and every alert with its id, app, detector, severity, title, the fixed template text of the card, `source_refs`, the cited rows and the Exorcise drafts in English and Spanish (or `null`). Statements go through Zombie Subscriptions (with no aliases and no cancellation dates, so the detectors that need them stay silent) and Vampire Fees; invoices go through Phantom Invoices, with the optional supplier master and payments. `check` reruns the scan and prints `passed` and the rejected tokens; an unknown alert id gives `passed` false and an error message. The exit code is 0 when the command ran and 2 for bad arguments. The spec is `.kiro/specs/scan-command/`.
+`scan` lists, per file, its path, SHA-256, kind, row count and quarantined count (an unreadable file carries an `error` and the others still run), and every alert with its `alert_id`, `app`, `detector`, `severity`, `title`, `text` (the fixed template text of the card), `source_refs`, `rows` (the cited rows) and `drafts` (the Exorcise drafts in English and Spanish, or `null`). The top-level keys are `kit_version`, `files` and `alerts`; each file has `path`, `sha256`, `kind`, `format`, `rows`, `quarantined` and `error`. Statements go through Zombie Subscriptions (with no aliases and no cancellation dates, so the detectors that need them stay silent) and Vampire Fees; invoices go through Phantom Invoices, with the optional supplier master and payments. `check` reruns the scan and prints `alert_id`, `passed`, `rejected` (the rejected tokens) and `error`; an unknown alert id gives `passed` false and an error message. The exit code is 0 when the command ran and 2 for bad arguments. The spec is `.kiro/specs/scan-command/`.
 
 ## Run the tests
 
@@ -69,7 +69,7 @@ apps/
   vampire_fees/          app.py, config.toml, settings.py, detectors/, tests/
 scripts/               generate_samples.py (seeded synthetic data), generate_benchmark.py and benchmark.py (benchmark), fetch_ine_cpi.py (INE snapshot), ledger_scan.py (scan and check files, JSON on stdout), kiro_hooks.py (CLI hooks: lint after write, tests on stop)
 data/samples/          synthetic sample and demo files only (CSV, Norma 43, Facturae)
-data/public/           the committed INE CPI snapshot and its licence notes
+data/public/           the committed INE CPI snapshot, the Banco de España payment-account fee snapshot and their licence notes
 data/benchmark/        results.json written by scripts/benchmark.py
 data/live_runs/        raw answers of real-model runs on the synthetic demo data
 data/hook_runs/        hook_log.jsonl, the log written by the CLI hooks
@@ -77,7 +77,7 @@ data/hook_runs/        hook_log.jsonl, the log written by the CLI hooks
 .github/workflows/     two workflows: tests on every push, and a visit to the public demo every 6 hours once its address is set
 powers/                the ghost-ledger-detector power
 kiro_prompts/          the prompt file of every Kiro CLI call and run_kiro.ps1, the script that sent them
-docs/                  how-it-works.md, real-formats.md, public-data.md, developing.md, benchmark.md (generated), live-guard.md, mcp-api-checks.md (library API checks made through MCP), img/ (home_moment.gif, the image in the README)
+docs/                  how-it-works.md, real-formats.md, public-data.md, developing.md, benchmark.md (generated), live-guard.md, mcp-api-checks.md (library API checks made through MCP), img/ (home_moment.gif, the Home GIF, and one GIF per app: zombie_graveyard.gif, phantom_flashlight.gif, vampire_coffins.gif; all shown in the README)
 tests/                 tests of the shared library and the showcase
 streamlit_app.py       showcase entry page
 ```

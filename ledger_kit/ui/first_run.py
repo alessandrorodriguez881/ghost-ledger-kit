@@ -13,6 +13,10 @@ from typing import Any
 # the root conftest.py so that they keep starting from an empty page; it is True in production.
 AUTOLOAD_DEMO: bool = True
 
+# Caption under the Demo format selector of every app (judge-path, REQ-JP-30): choosing a format
+# alone changes nothing; the demo of that format loads when Load demo data is pressed.
+DEMO_FORMAT_CAPTION: str = "Choose a format, then press Load demo data to load that demo."
+
 
 def should_autoload(state: MutableMapping[str, Any], done_key: str, has_source: bool) -> bool:
     """Return True once per session when nothing is loaded; the first call marks the session.

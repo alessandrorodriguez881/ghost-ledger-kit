@@ -99,7 +99,7 @@ from ledger_kit.live_guard import (  # noqa: E402
 )
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
-from ledger_kit.ui.first_run import should_autoload  # noqa: E402
+from ledger_kit.ui.first_run import DEMO_FORMAT_CAPTION, should_autoload  # noqa: E402
 from ledger_kit.ui.signatures import (  # noqa: E402
     PHANTOM_CAPTION,
     answer_row_note,
@@ -222,6 +222,7 @@ def _render_sidebar() -> dict[str, Any]:
         horizontal=True,
         help="CSV: the CSV demo files. Real formats: Facturae XML invoices and a Norma 43 file.",
     )
+    st.sidebar.caption(DEMO_FORMAT_CAPTION)
     st.sidebar.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
     uploads = {
         "invoices": st.sidebar.file_uploader(

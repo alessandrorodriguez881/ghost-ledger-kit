@@ -172,6 +172,20 @@ by hand from the local apps and never edited by code. `tests/test_readme.py` all
 images (the Home moment and the three GIFs), checks that each file exists and is under 2 MB, and
 still refuses an `img` tag and a badge.
 
+## 8c — Gate-2 honesty fixes (REQ-JP-30, session s51)
+
+Words only, plus one caption. `DEMO_FORMAT_CAPTION` lives in `ledger_kit/ui/first_run.py`, the
+module of the demo that loads by itself, because the caption is about the same thing: what loads
+and when. Each app draws it with `st.caption` right after the *Demo format* radio and before the
+*Load demo data* button; no widget key, state key or callback changes. The size sentence of the
+README counts physical lines (`str.splitlines`) of the `.py` files; the core is `models.py`,
+`detectors/` (`base.py`, `registry.py`, `__init__.py`), `explainer.py` and the guard helpers it
+imports (`calc.py`, `number_words.py`, `index_cause.py`) plus `utils/money.py`, which the guard
+uses to format amounts. The Spanish format readers are `norma43_reader.py`, `facturae_reader.py`
+and `iso4217.py`; the plain CSV readers stay in *the rest*. `tests/test_judge_path_gate2.py` reads
+each figure back from the README sentence, recounts the files and allows 10 percent either way, so
+the sentence goes stale only with a failing test.
+
 ## 9 — Risks
 
 - The run file is being recorded while this change is built. Tests that need a specific record use

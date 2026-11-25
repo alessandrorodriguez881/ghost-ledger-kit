@@ -14,7 +14,8 @@ Material icon.
 
 Facts checked in Streamlit 1.67: ``st.set_page_config`` may be called again by a page (the calls
 are additive, the page's title wins); a file page runs as ``__main__``, so the guard at the bottom
-of each app fires; both apps are named ``app.py``, so every page needs an explicit ``url_path``.
+of each app fires; all three apps are named ``app.py``, so every page needs an explicit
+``url_path``.
 """
 
 import html
@@ -35,7 +36,7 @@ class PageSpec(NamedTuple):
 
     title: str
     icon: str  # name of a ledger_kit.ui.icons icon; the menu draws it with CSS, no emoji
-    url_path: str  # explicit and unique: both app files are called app.py
+    url_path: str  # explicit and unique: all three app files are called app.py
     script: str | None  # path of an app's app.py relative to this file; None: a function page
 
 

@@ -149,6 +149,46 @@ set) is run by the user: this session could not run commands. Tasks run in order
 - [x] `README.md`, *The three apps*: one GIF under each app bullet. `.kiro/steering/structure.md`
   lists the three GIFs next to `home_moment.gif`.
 
+## Task JP11 — Session s51: honesty and documentation fixes of the gate-2 review (25 Nov)
+
+**Covers**: REQ-JP-30, §8c
+
+- [x] Tests first, `tests/test_judge_path_gate2.py`: the README size figures against a recount of
+  `ledger_kit/` (10 percent either way) and the files the sentence names; every mention of the six
+  calls says first version, none says the agent built the whole app; the Kiro line of *Who did
+  what* names `kiro_prompts/` and the four GIFs; `DEMO_FORMAT_CAPTION` sits between the *Demo
+  format* radio and the *Load demo data* button in the three apps; README step 3; the
+  `docs/developing.md` layout lines; the fee snapshot sentence; the `streamlit_app.py` docstring;
+  the scan keys of `docs/developing.md` against the real output of `scripts/ledger_scan.py`.
+- [x] `ledger_kit/ui/first_run.py`: `DEMO_FORMAT_CAPTION`. The three `app.py` files: one
+  `st.caption` under the selector. No widget key, state key or callback changed.
+- [x] Words: `README.md` (glance row, *The three apps* with the size sentence, the Custom agent and
+  Spec-driven rows, step 3, the Kiro line, the Banco de España sentence), `docs/how-it-works.md`
+  (Template proof), `docs/developing.md` (scan keys, `data/public/` and `docs/` lines),
+  `streamlit_app.py` (docstring and the `PageSpec` comment).
+- [x] Updated on purpose: `tests/test_public_data_docs.py` (`FEE_SENTENCE`, the README sentence
+  on the committed fee snapshot).
+- [x] Not touched: `data/live_runs/`, any recorded run, any detector, figure or guard rule.
+
+Record of session s51 (25 Nov): one Kiro IDE session. Line counts of `ledger_kit/` at the time
+(physical lines of `.py` files): core 2,483 (`models.py` 175, `detectors/` 164, `explainer.py`
+1,081, `calc.py` 478, `number_words.py` 336, `index_cause.py` 70, `utils/money.py` 179), Spanish
+format readers 1,074, `public_data/` 762, `ui/` 2,266, the rest 1,835; 8,420 in all. The shell of
+this session could not run commands, so `ruff` and `pytest` were not run here; they are in the
+list below.
+
+Record of session s51b (25 Nov, follow-up to s51):
+`test_no_document_says_the_agent_built_the_whole_app` failed on the README row *Spec-driven
+versus vibe coding*, which rightly says *The first version of Vampire Fees was built by the
+custom agent*. The test now checks the meaning instead of the
+substring: the helper `_unqualified` finds each of the three claims (`which built the Vampire Fees
+app`, `It built the Vampire Fees app`, `Vampire Fees was built by the custom agent`) and allows one
+only when `first version of ` comes right before it; the check that `normal Kiro sessions` is
+present is unchanged. A new test, `test_the_whole_app_claim_check_reads_the_qualifier`, pins that
+the qualified phrase passes and the bare phrase, or a `first version` elsewhere in the text, still
+fails. `README.md` was not changed. The shell of this session could not run commands either, so
+`ruff` and `pytest` were not run here.
+
 ## Open for the user to run
 
 - [ ] `ruff check .` and `ruff format --check .`

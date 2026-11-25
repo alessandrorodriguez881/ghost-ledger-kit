@@ -28,8 +28,8 @@ GITIGNORE = REPO_ROOT / ".gitignore"
 FETCH_COMMAND = "python scripts/fetch_ine_cpi.py"
 IMPORT_SCRIPT = "scripts/import_bde_fees.py"
 FEE_SENTENCE = (
-    "The fee comparison appears once the snapshot data/public/bde_payment_account_fees.json is "
-    "committed; without it the app shows no comparison."
+    "The snapshot `data/public/bde_payment_account_fees.json` is committed, so the app shows the "
+    "fee comparison; without the file it would show none."
 )
 
 PINNED_ATTRIBUTION = "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"

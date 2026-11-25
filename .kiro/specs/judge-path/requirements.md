@@ -253,3 +253,26 @@ examples is **(synthetic)** or a recorded answer of a real model on synthetic de
   `docs/img/vampire_coffins.gif`) as a markdown image with a short alt text that states only what
   the GIF shows. The README shall hold exactly four markdown images (these three and the Home
   moment), each file present and under 2 MB, and no `img` tag and no badge.
+
+### Session s51: honesty and documentation fixes of the gate-2 review (25 Nov)
+
+- **REQ-JP-30** Words only, plus one caption; nothing the kit computes or the guard decides
+  changes.
+  - Every place that cites the six Kiro calls of Vampire Fees, or says the custom agent built the
+    app, shall say that this was the **first version** (record VF17, commit `e0d38b9`) and, where
+    it fits, that later changes came in normal Kiro sessions.
+  - The *Who did what* line of Kiro shall name the exceptions: `kiro_prompts/` (prompt files and
+    `run_kiro.ps1`) was written by Claude Code, and the four GIF files in `docs/img/` were
+    recorded by Claude Code from the running app.
+  - The README section *The three apps* shall state the size of `ledger_kit/` in one sentence:
+    the core every app uses and the optional parts, with rounded line counts and the files
+    counted; a test shall recount them and fail when a figure is off by more than 10 percent.
+  - When a visitor chooses a demo format, the page shall say under the selector that the demo of
+    that format loads when **Load demo data** is pressed; the caption is one constant,
+    `DEMO_FORMAT_CAPTION` in `ledger_kit/ui/first_run.py`, used by the three apps. README step 3
+    of *For judges* shall say the same.
+  - Stale lines shall be corrected: `docs/developing.md` (the `data/public/` line names the Banco
+    de España snapshot; the `img/` line names the Home GIF and one GIF per app; the keys of the
+    `scripts/ledger_scan.py` output are the real ones, `alert_id` among them), the README sentence
+    on the Banco de España snapshot (it is committed), and the docstring of `streamlit_app.py`
+    (all three apps are named `app.py`).

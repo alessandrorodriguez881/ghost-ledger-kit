@@ -87,7 +87,7 @@ from ledger_kit.live_guard import (  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.public_data import CpiSeries  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
-from ledger_kit.ui.first_run import should_autoload  # noqa: E402
+from ledger_kit.ui.first_run import DEMO_FORMAT_CAPTION, should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     count_by_severity,
@@ -214,6 +214,7 @@ def _render_sidebar() -> Any:
             horizontal=True,
             help="CSV: the CSV demo statement. Real formats: the same statement as Norma 43.",
         )
+        st.caption(DEMO_FORMAT_CAPTION)
         st.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
         # Developer inputs: one collapsed expander, the widget keys are unchanged.
         with st.expander("Advanced inputs", expanded=False):

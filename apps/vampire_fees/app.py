@@ -91,7 +91,7 @@ from ledger_kit.live_guard import (  # noqa: E402
 from ledger_kit.models import Alert  # noqa: E402
 from ledger_kit.public_data import FeeSnapshot  # noqa: E402
 from ledger_kit.ui.exorcise import render_exorcise  # noqa: E402
-from ledger_kit.ui.first_run import should_autoload  # noqa: E402
+from ledger_kit.ui.first_run import DEMO_FORMAT_CAPTION, should_autoload  # noqa: E402
 from ledger_kit.ui.icons import icon  # noqa: E402
 from ledger_kit.ui.reference_app import (  # noqa: E402
     count_by_severity,
@@ -283,6 +283,7 @@ def _render_sidebar(config: dict[str, Any], snapshot: FeeSnapshot | None = None)
             horizontal=True,
             help="CSV or Norma 43: the same demo statement in the format you choose.",
         )
+        st.caption(DEMO_FORMAT_CAPTION)
         st.button("Load demo data", key=LOAD_DEMO_KEY, on_click=load_demo)
         st.toggle(
             "Simulate a hallucinating LLM",

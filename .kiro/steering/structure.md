@@ -237,6 +237,7 @@ ghost-ledger-kit/
 │   ├── test_source_line_pages.py   # the line of the file on the chips, tables, lists, lantern and quarantine tables
 │   ├── test_row_note.py            # the row numbers of a model answer as lines of the file: function, recorded answers, MUSICBOX card
 │   ├── test_guard_year_wording.py  # A-GH-01: date forms of the guard, a year on its own in the badge and verdict, the 43 pinned outcomes of the 16 Nov run
+│   ├── test_judge_path_gate2.py    # REQ-JP-30: README size figures recounted, first-version wording, demo format caption, stale doc lines
 │   ├── test_money.py
 │   └── test_anonymise.py
 ├── scripts/
