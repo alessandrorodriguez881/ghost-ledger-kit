@@ -430,6 +430,7 @@ the sidebar open; the total, base, VAT and IBAN of the lit rows were off screen)
 - Seen, not changed: `docs/img/home_moment.gif` was recorded with `all issued on`; it is a
   recording of the page and is left for the owner to record again. The README and the docs do not
   quote the phrase.
+- Update (26 Nov): the reviewer recorded `docs/img/home_moment.gif` again from the local app; it now shows both issued on, and `docs/img/phantom_flashlight.gif` was recorded again with the column order of session s49.
 - Record of session s52: the phrase is built in two places only (`SAME_DAY_TEMPLATES` with
   `template_for`, and `_span`); found by reading the two modules and the tests that quote it.
   Kiro could not run commands (every shell call except `git status`, `git log` and `git ls-files`

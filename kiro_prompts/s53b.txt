@@ -1,0 +1,7 @@
+Session s53b, normal mode. Same task as s53, which found the right place but changed nothing: it tried the shell, and the shell is refused in this build. Write with the file tools instead: load the Replace in File tool (str_replace) if it is not loaded yet, as sessions s49 to s52 did, and use it. Do not use Run Command.
+
+In .kiro/specs/phantom-invoices/tasks.md, insert this bullet directly after the s52 note that begins Seen, not changed: docs/img/home_moment.gif was recorded with all issued on (after its last line, which ends with quote the phrase.) and before the bullet Record of session s52:
+
+- Update (26 Nov): the reviewer recorded docs/img/home_moment.gif again from the local app; it now shows both issued on, and docs/img/phantom_flashlight.gif was recorded again with the column order of session s49.
+
+Keep the s52 note unchanged. s53 already checked the alt texts in README.md and the lines in .kiro/steering/structure.md and docs/developing.md, and they are still true, so do not edit any other file. End with a short summary and the changed lines.

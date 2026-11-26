@@ -1,0 +1,9 @@
+Session s53, normal mode. Documentation only: no change to code, tests, data or recorded runs.
+
+The reviewer recorded two GIFs again on 26 Nov from the local app at commit c9af92d, at real speed, without zoom and under 2 MB: docs/img/home_moment.gif, whose Home moment now shows the current promise line under the title, the fixed template saying both issued on 2026-10-06 and the sources invoices.csv · line 2 and invoices.csv · line 3; and docs/img/phantom_flashlight.gif, whose haunted ledger now has the column order of session s49 (Line, Status, Invoice, Supplier and Total first) while the pointer picks duplicate invoice F-2026-0310 and its two rows light up.
+
+1. In .kiro/specs/phantom-invoices/tasks.md, the s52 note that begins Seen, not changed: docs/img/home_moment.gif was recorded with all issued on is now out of date. Keep that note as the record of session s52 and add one line right under it saying that the Home GIF was recorded again on 26 Nov by the reviewer and now shows both issued on.
+
+2. Read the alt texts of these two images in README.md and their lines in .kiro/steering/structure.md and docs/developing.md. Change a line only if it no longer states exactly what the GIF shows, as described above; if all are still true, change nothing there and say so in your summary.
+
+Do not edit any other file. End with a short summary of what you changed.

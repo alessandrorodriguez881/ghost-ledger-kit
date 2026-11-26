@@ -1,0 +1,7 @@
+Session s53d, normal mode. Same one-line edit as s53b, which found the place but had no file tool. In this Kiro CLI version the main spec agent has no write tool, so make the edit through invoke_sub_agent with the general-task-execution agent, as session s52 did. Do not use execute_pwsh.
+
+In .kiro/specs/phantom-invoices/tasks.md, insert this bullet directly after the s52 note that begins Seen, not changed: docs/img/home_moment.gif was recorded with all issued on (after its last line, which ends with quote the phrase.) and before the bullet Record of session s52:
+
+- Update (26 Nov): the reviewer recorded docs/img/home_moment.gif again from the local app; it now shows both issued on, and docs/img/phantom_flashlight.gif was recorded again with the column order of session s49.
+
+Keep the s52 note unchanged and do not edit any other file: s53 already checked the alt texts in README.md and the lines in .kiro/steering/structure.md and docs/developing.md, and they are still true. End with a short summary and the changed lines.

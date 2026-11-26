@@ -1,0 +1,7 @@
+Session s53g, with the ghost-ledger-builder agent. This is not an app build: it is a one-line note in a spec task list, with no change to ledger_kit, to any app folder, to code, tests or data. After the Kiro CLI update of 25 Nov the spec-mode sessions s53 to s53f had no file write tool, so this note is made with this agent, which has the write tool.
+
+In .kiro/specs/phantom-invoices/tasks.md, insert this bullet directly after the s52 note that begins Seen, not changed: docs/img/home_moment.gif was recorded with all issued on (after its last line, which ends with quote the phrase.) and before the bullet Record of session s52, keeping the s52 note unchanged:
+
+- Update (26 Nov): the reviewer recorded `docs/img/home_moment.gif` again from the local app; it now shows both issued on, and `docs/img/phantom_flashlight.gif` was recorded again with the column order of session s49.
+
+Do not edit any other file and do not change any task status. You cannot run commands, so do not claim that anything ran. End with a short summary and the changed lines.

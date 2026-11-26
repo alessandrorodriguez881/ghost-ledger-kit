@@ -1,0 +1,9 @@
+Session s53f, spec mode. Take your option B from s53e: the edit becomes a task of its own, so the sub-agent check passes the normal way.
+
+1. Add one new task at the end of .kiro/specs/phantom-invoices/tasks.md, after the last item: Record that the reviewer recorded docs/img/home_moment.gif and docs/img/phantom_flashlight.gif again on 26 Nov (note only, no code or test change). Use the spec task tools this version gives you. If you cannot add a task without a write tool, stop and say exactly which tool is missing and what it said.
+
+2. Mark only that new task in_progress, then use invoke_sub_agent with spec-task-execution to make its change: insert this bullet directly after the s52 note that begins Seen, not changed: docs/img/home_moment.gif was recorded with all issued on (after its last line, which ends with quote the phrase.) and before the bullet Record of session s52, keeping the s52 note unchanged:
+
+- Update (26 Nov): the reviewer recorded `docs/img/home_moment.gif` again from the local app; it now shows both issued on, and `docs/img/phantom_flashlight.gif` was recorded again with the column order of session s49.
+
+3. Mark the new task completed. Do not change the status of any other task and do not edit any other file. Do not use execute_pwsh. End with a short summary, the changed lines and the exact names of the task tools you used.
