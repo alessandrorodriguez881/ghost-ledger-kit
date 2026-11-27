@@ -2,6 +2,7 @@ param([string]$Name, [string]$ExtraTools = '', [string]$Agent = '')
 # Runs one Kiro CLI spec-mode call with the prompt in <Name>.txt and writes <Name>_out.txt, then runs ruff and pytest.
 # -ExtraTools adds comma-separated tool ids (for example MCP tools) to the trusted list.
 # -Agent runs the call with a workspace custom agent from .kiro/agents (for example ghost-ledger-builder).
+#   With -Agent, Kiro CLI 3.6.2 ignores --mode spec and warns: the agent selects its own mode (s54, 27 Nov).
 $sp = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location (Split-Path -Parent $sp)  # the repository root (was the absolute path of the local clone)
 $p = (Get-Content "$sp\$Name.txt" -Encoding UTF8 | Where-Object { $_ -ne '' }) -join ' '

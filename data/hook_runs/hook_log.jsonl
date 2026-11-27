@@ -1631,3 +1631,5 @@ ds": 0.8}
 {"time": "2026-11-26T02:21:23", "event": "stop", "session": "sess_51f97bab-f2b3-482b-b1ea-15bdbd2f6011", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.2}
 {"time": "2026-11-26T02:22:17", "event": "post-write", "session": "sess_c8124e11-37d9-4d9c-a51e-ee515d0a0732", "file": ".kiro/specs/phantom-invoices/tasks.md", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
 {"time": "2026-11-26T02:22:20", "event": "stop", "session": "sess_c8124e11-37d9-4d9c-a51e-ee515d0a0732", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 0.2}
+{"time": "2026-11-27T02:33:56", "event": "post-write", "session": "sess_3a56b9e2-622b-4644-9b99-48eb80806313", "file": ".gitattributes", "checks": [], "result": "skipped", "detail": "not a .py file", "seconds": 0.0}
+{"time": "2026-11-27T02:33:59", "event": "stop", "session": "sess_3a56b9e2-622b-4644-9b99-48eb80806313", "file": null, "checks": ["ruff check ."], "result": "pass", "detail": "no pytest targets", "seconds": 1.1}

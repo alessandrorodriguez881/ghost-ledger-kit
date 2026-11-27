@@ -1,0 +1,9 @@
+Session s54, with the ghost-ledger-builder agent. This is not an app build: it is one line in .gitattributes, with no change to ledger_kit, to any app folder, to code, tests or data.
+
+What the reviewer found on 27 Nov: in a fresh clone on Windows, where Git for Windows sets core.autocrlf to true, data/samples/zombie_demo_statement.csv is checked out with CRLF line endings, so the test test_existing_demo_modes_are_unchanged in apps/vampire_fees/tests/test_vf_demo_generator.py fails (1 failed, 5038 passed; the Linux CI does not see it). The file is stored with LF in git. .gitattributes already marks the Phantom and Vampire demo files -text for this reason (DN-10), but not the Zombie demo CSV.
+
+In .gitattributes, insert this line directly after the line data/samples/vampire_demo_statement.csv -text, keeping every other line unchanged:
+
+data/samples/zombie_demo_statement.csv -text
+
+Do not edit any other file, do not touch data/samples, and do not change any task status. You cannot run commands, so do not claim that anything ran. End with a short summary and the changed lines.
